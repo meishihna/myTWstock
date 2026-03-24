@@ -57,6 +57,22 @@ def calc_margin(numerator, denominator):
     return result
 
 
+def calc_admin_exp(income_stmt):
+    """Get G&A expense, falling back to SGA - Selling if G&A is missing."""
+    admin = get_series(income_stmt, METRICS_KEYS["admin_exp"])
+    selling = get_series(income_stmt, METRICS_KEYS["selling_exp"])
+    sga = get_series(income_stmt, ["Selling General And Administration"])
+
+    if admin.empty and not sga.empty and not selling.empty:
+        # Derive G&A = SGA - Selling
+        return sga - selling
+    elif not admin.empty and not sga.empty:
+        # Fill NaN gaps in G&A from SGA - Selling
+        derived = sga - selling
+        return admin.fillna(derived)
+    return admin
+
+
 def extract_metrics(income_stmt, cashflow):
     if income_stmt.empty and cashflow.empty:
         return pd.DataFrame()
@@ -69,7 +85,7 @@ def extract_metrics(income_stmt, cashflow):
             get_series(income_stmt, METRICS_KEYS["revenue"]),
         ),
         "Selling & Marketing Exp": get_series(income_stmt, METRICS_KEYS["selling_exp"]),
-        "General & Admin Exp": get_series(income_stmt, METRICS_KEYS["admin_exp"]),
+        "General & Admin Exp": calc_admin_exp(income_stmt),
         "Operating Income": get_series(income_stmt, METRICS_KEYS["operating_income"]),
         "Operating Margin (%)": calc_margin(
             get_series(income_stmt, METRICS_KEYS["operating_income"]),
