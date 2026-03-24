@@ -141,41 +141,32 @@ Pilot_Reports/{Industry}/{Ticker}_{ChineseName}.md
 
 ---
 
-## Batch Enrichment
+## Tools & Skills
 
-### Source of Truth
-- **Batch definitions & progress**: `task.md`
-- **Batch status**: `[x]` = completed, `[ ]` = pending
-
-### Tools
-| Tool | Command | Purpose |
+### Scripts
+| Script | Command | Purpose |
 |---|---|---|
-| Audit | `python scripts/audit_batch.py <batch> -v` | Single batch quality check |
-| Audit All | `python scripts/audit_batch.py --all -v` | Regression check on all completed batches |
-| Enrich | Edit DATA in `scripts/fix_batch.py`, then run | Apply enrichment to files |
-| Financials | `python scripts/update_financials.py [args]` | Refresh financial tables (annual 3yr + quarterly 4Q) |
+| Add Ticker | `python scripts/add_ticker.py <ticker> <name>` | Generate new report with financials |
+| Update Financials | `python scripts/update_financials.py [scope]` | Refresh financial tables (3yr annual + 4Q) |
+| Update Enrichment | `python scripts/update_enrichment.py --data <json> [scope]` | Update desc/supply chain/customers |
+| Audit | `python scripts/audit_batch.py <batch> -v` | Quality check (single batch) |
+| Audit All | `python scripts/audit_batch.py --all -v` | Quality check (all completed batches) |
 
-### Financial Update (`/update-financials`)
-Refreshes `## 財務概況` section + metadata (市值, 企業價值) from yfinance. Preserves all enrichment content.
+### Scope Syntax (shared across all scripts)
 ```
-python scripts/update_financials.py                     # ALL tickers
-python scripts/update_financials.py 2330                # Single ticker
-python scripts/update_financials.py 2330 2317 3034      # Multiple tickers
-python scripts/update_financials.py --batch 101         # All tickers in a batch
-python scripts/update_financials.py --sector Semiconductors  # Entire sector
+<ticker>                    # Single ticker:  2330
+<ticker> <ticker> ...       # Multiple:       2330 2317 3034
+--batch <num>               # By batch:       --batch 101
+--sector <name>             # By sector:      --sector Semiconductors
+(no args)                   # ALL tickers
 ```
 
-### Process
-```
-1. Audit       → python .agent/workflows/audit_batch.py <batch> -v
-2. Research    → web search per ticker (法說會, 年報, MOPS, IR pages, company website)
-3. Verify Name → CRITICAL: confirm filename company matches researched company
-4. Prepare     → inject research into fix_batch.py DATA dict (CLEAN dict first!)
-5. Execute     → python .agent/workflows/fix_batch.py
-6. Verify      → re-audit, confirm all CLEAN
-7. Mark done   → update task.md with [x]
-8. Commit      → git checkpoint after each batch
-```
+### Slash Commands
+| Command | What it does |
+|---|---|
+| `/add-ticker 2330 台積電` | Generate .md + fetch financials + research & enrich |
+| `/update-financials 2330` | Refresh 財務概況 from yfinance (preserves enrichment) |
+| `/update-enrichment 2330` | Re-research & update 業務簡介/供應鏈/客戶 (preserves financials) |
 
 ### Research Queries (per ticker)
 - `[Ticker] 法說會` — investor conference transcripts
@@ -184,9 +175,6 @@ python scripts/update_financials.py --sector Semiconductors  # Entire sector
 - `[Company Name] supplier customer` — English-language sources
 - Company IR pages, MOPS filings, industry reports
 
-### Execution Rules
-- **CLEAN the DATA dict before each new batch** — old entries cause regressions
-- Process in groups of 10 tickers per research cycle
-- All data injection via the DATA dict in `fix_batch.py` — no temporary scripts
-- Mark `task.md` immediately after batch completion
-- Git commit after each batch is verified CLEAN
+### Batch Progress
+- **Batch definitions & progress**: `task.md`
+- **Batch status**: `[x]` = completed, `[ ]` = pending
