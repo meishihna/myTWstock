@@ -101,6 +101,17 @@ def extract_metrics(income_stmt, cashflow):
         "Financing Cash Flow": get_series(cashflow, METRICS_KEYS["fcf"]),
         "CAPEX": get_series(cashflow, METRICS_KEYS["capex"]),
     }
+
+    # Derive CAPEX from FCF when CAPEX is missing: CAPEX = FCF - OCF (negative)
+    capex = data["CAPEX"]
+    ocf = data["Op Cash Flow"]
+    fcf = get_series(cashflow, ["Free Cash Flow"])
+    if not capex.empty and not ocf.empty and not fcf.empty:
+        derived_capex = fcf - ocf
+        data["CAPEX"] = capex.fillna(derived_capex)
+    elif capex.empty and not ocf.empty and not fcf.empty:
+        data["CAPEX"] = fcf - ocf
+
     df = pd.DataFrame(data).T
     # Clean column headers: remove time component from datetime
     df.columns = [
