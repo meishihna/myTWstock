@@ -196,6 +196,8 @@ def fetch_financials(ticker):
             valuation["_fwd_end"] = (
                 datetime.fromtimestamp(nfy).strftime("%Y-%m-%d") if nfy else None
             )
+            cur_price = info.get("currentPrice")
+            valuation["_price"] = f"{cur_price:,.2f}" if cur_price else None
 
             return {
                 "annual": df_annual,
@@ -240,10 +242,17 @@ def build_financial_section(data):
         sep_row = "|" + "|".join("-" * (w + 2) for w in widths) + "|"
         val_row = "| " + " | ".join(val.rjust(w) for val, w in zip(values, widths)) + " |"
 
-        # Period annotation
+        # Period and price annotation
+        from datetime import date
+
         ttm_end = v.get("_ttm_end")
         fwd_end = v.get("_fwd_end")
+        price = v.get("_price")
+        today = date.today().strftime("%Y-%m-%d")
+
         period_parts = []
+        if price:
+            period_parts.append(f"股價 ${price} as of {today}")
         if ttm_end:
             period_parts.append(f"TTM 截至 {ttm_end}")
         if fwd_end:
