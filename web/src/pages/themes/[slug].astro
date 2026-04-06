@@ -1,0 +1,110 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import { SITE, THEMES_PAGE } from "../../lib/ui";
+import fs from "node:fs";
+import path from "node:path";
+
+type Co = { ticker: string; name: string; sector: string; sectorSlug: string };
+type ThemeData = {
+  slug: string;
+  title: string;
+  companyCount: number;
+  relatedRaw: string;
+  tiers: { upstream: Co[]; midstream: Co[]; downstream: Co[] };
+};
+
+export function getStaticPaths() {
+  const p = path.join(process.cwd(), "public/data/themes-index.json");
+  if (!fs.existsSync(p)) return [];
+  const data = JSON.parse(fs.readFileSync(p, "utf8"));
+  const list = (data.themes ?? []) as ThemeData[];
+  return list.map((t) => ({ params: { slug: t.slug } }));
+}
+
+export const prerender = true;
+
+const { slug } = Astro.params;
+const themesPath = path.join(process.cwd(), "public/data/themes-index.json");
+const data = JSON.parse(fs.readFileSync(themesPath, "utf8"));
+const theme = (data.themes as ThemeData[]).find((t) => t.slug === slug);
+
+if (!theme) {
+  return Astro.redirect("/themes");
+}
+
+const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
+
+const tierBlocks: { key: keyof ThemeData["tiers"]; label: string }[] = [
+  { key: "upstream", label: THEMES_PAGE.tierUp },
+  { key: "midstream", label: THEMES_PAGE.tierMid },
+  { key: "downstream", label: THEMES_PAGE.tierDown },
+];
+---
+<Layout title={pageTitle} description={theme.title}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <a href="/themes">{THEMES_PAGE.nav}</a>
+    <span class="bc-sep"> / </span>
+    <span>{theme.title}</span>
+  </div>
+  <h1 class="page-h1">{theme.title}</h1>
+  <p class="page-lead">
+    {THEMES_PAGE.countLabel}：<strong>{theme.companyCount || "—"}</strong>
+  </p>
+  {
+    theme.relatedRaw && (
+      <p class="themes-related-line">
+        <span class="themes-related-label">{THEMES_PAGE.related}：</span>
+        {theme.relatedRaw}
+      </p>
+    )
+  }
+
+  {
+    tierBlocks.map(({ key, label }) => (
+      <section class="theme-tier-block" aria-label={label}>
+        <h2 class="theme-tier-heading">{label}</h2>
+        {theme.tiers[key].length === 0 ? (
+          <p class="page-muted">{THEMES_PAGE.empty}</p>
+        ) : (
+          <table class="theme-tier-table company-table">
+            <thead>
+              <tr>
+                <th>
+                  <Bi zh="代號" en="Ticker" />
+                </th>
+                <th>
+                  <Bi zh="公司" en="Company" />
+                </th>
+                <th>
+                  <Bi zh="產業" en="Sector" />
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {theme.tiers[key].map((c) => (
+                <tr>
+                  <td>
+                    <a href={`/report/${c.ticker}`}>{c.ticker}</a>
+                  </td>
+                  <td>
+                    <a href={`/report/${c.ticker}`}>{c.name}</a>
+                  </td>
+                  <td>
+                    {c.sectorSlug ? (
+                      <a href={`/sectors/${c.sectorSlug}`}>{c.sector}</a>
+                    ) : (
+                      c.sector
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    ))
+  }
+</Layout>

@@ -1,0 +1,14 @@
+---
+/**
+ * 中文（English）並列，供標題與導覽使用。
+ */
+interface Props {
+  zh: string;
+  en: string;
+  class?: string;
+}
+const { zh, en, class: className } = Astro.props;
+---
+<span class:list={["bi-label", className]}>
+  <span class="bi-zh">{zh}</span><span class="bi-paren" aria-hidden="true">（</span><span class="bi-en" lang="en">{en}</span><span class="bi-paren" aria-hidden="true">）</span>
+</span>

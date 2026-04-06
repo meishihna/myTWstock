@@ -1,0 +1,80 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import SectorBilingualName from "../../components/SectorBilingualName.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { HOME, SECTOR_DETAIL, SECTORS_PAGE, SITE } from "../../lib/ui";
+
+const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
+
+export function getStaticPaths() {
+  const p = path.join(process.cwd(), "public/data/reports-index.json");
+  if (!fs.existsSync(p)) return [];
+  const idx = JSON.parse(fs.readFileSync(p, "utf8"));
+  return (idx.sectors as { slug: string }[]).map((s) => ({
+    params: { slug: s.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+const sectorName = idx.slugToSector?.[slug!] as string | undefined;
+if (!sectorName) {
+  return Astro.redirect("/sectors");
+}
+
+const byTicker = idx.byTicker as Record<
+  string,
+  { ticker: string; name: string; sector: string }
+>;
+const companies = Object.values(byTicker)
+  .filter((c) => c.sector === sectorName)
+  .sort((a, b) => a.ticker.localeCompare(b.ticker));
+---
+<Layout
+  title={`${sectorName} — ${SITE.name}`}
+  description={`${sectorName} — ${SECTOR_DETAIL.sectorNote}`}
+>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <a href="/sectors">{SECTORS_PAGE.breadcrumb}</a>
+    <span class="bc-sep"> / </span>
+    <span><SectorBilingualName enName={sectorName} /></span>
+  </div>
+  <h1 class="page-h1">
+    <SectorBilingualName enName={sectorName} class="page-h1-bi" />
+  </h1>
+  <p class="page-lead sector-note" lang="en">{SECTOR_DETAIL.sectorNote}</p>
+  <p class="page-lead">
+    {SECTORS_PAGE.countPrefix} {companies.length}{" "}
+    {HOME.filesUnit}
+  </p>
+  <table class="company-table">
+    <thead>
+      <tr>
+        <th>
+          <Bi zh="代號" en="Ticker" />
+        </th>
+        <th>
+          <Bi zh="公司" en="Company" />
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        companies.map((c) => (
+          <tr>
+            <td>
+              <a href={`/report/${c.ticker}`}>{c.ticker}</a>
+            </td>
+            <td>
+              <a href={`/report/${c.ticker}`}>{c.name}</a>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</Layout>

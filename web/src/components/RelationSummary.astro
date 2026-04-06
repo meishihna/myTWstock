@@ -1,0 +1,44 @@
+---
+import Bi from "./Bi.astro";
+import { renderReportMarkdown } from "../lib/renderReport";
+import type { RelationBlocks } from "../lib/parseReport";
+import { RELATION } from "../lib/ui";
+
+interface Props {
+  blocks: RelationBlocks;
+  nameToTicker: Record<string, string>;
+}
+const { blocks, nameToTicker } = Astro.props;
+
+function toHtml(fragment?: string): string {
+  if (!fragment?.trim()) return "";
+  return renderReportMarkdown(fragment, nameToTicker);
+}
+
+const sections: {
+  key: keyof RelationBlocks;
+  title: string;
+  html: string;
+}[] = [
+  { key: "supplyChain", title: RELATION.supply, html: toHtml(blocks.supplyChain) },
+  { key: "customers", title: RELATION.customers, html: toHtml(blocks.customers) },
+  { key: "suppliers", title: RELATION.suppliers, html: toHtml(blocks.suppliers) },
+  { key: "competitors", title: RELATION.competitors, html: toHtml(blocks.competitors) },
+].filter((s) => s.html.length > 0);
+---
+{
+  sections.length > 0 && (
+    <section class="relation-summary" aria-label={RELATION.title}>
+      <h2 class="relation-summary-title">{RELATION.title}</h2>
+      <p class="relation-summary-hint">{RELATION.hint}</p>
+      <div class="relation-accordions">
+        {sections.map((s) => (
+          <details class="relation-details" open={s.key === "supplyChain"}>
+            <summary class="relation-summary-btn">{s.title}</summary>
+            <div class="relation-summary-body prose-rel" set:html={s.html} />
+          </details>
+        ))}
+      </div>
+    </section>
+  )
+}

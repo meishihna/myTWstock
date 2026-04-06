@@ -1,0 +1,23 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Bi from "../components/Bi.astro";
+import { GRAPH_PAGE, SITE } from "../lib/ui";
+---
+<Layout
+  title={`${GRAPH_PAGE.breadcrumb} — ${SITE.name}`}
+  description={GRAPH_PAGE.hint}
+>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <span>{GRAPH_PAGE.breadcrumb}</span>
+  </div>
+  <p class="page-lead graph-lead">{GRAPH_PAGE.hint}</p>
+  <p class="graph-tech-note" lang="en">
+    Run <code class="inline-code">npm run dev</code> so <code class="inline-code">network/</code> is
+    copied to <code class="inline-code">public/network</code> before opening this page.
+  </p>
+  <div class="graph-frame-wrap">
+    <iframe src="/network/index.html" title="Wikilink co-mention network (D3)"></iframe>
+  </div>
+</Layout>

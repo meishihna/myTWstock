@@ -1,0 +1,35 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import SectorBilingualName from "../../components/SectorBilingualName.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { HOME, SECTORS_PAGE, SITE } from "../../lib/ui";
+
+const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
+const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+const sectors = idx.sectors as { name: string; slug: string; count: number }[];
+---
+<Layout title={`${SECTORS_PAGE.title} — ${SITE.name}`} description={SECTORS_PAGE.title}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <span>{SECTORS_PAGE.breadcrumb}</span>
+  </div>
+  <h1 class="page-h1">{SECTORS_PAGE.title}</h1>
+  <p class="page-lead">
+    {SECTORS_PAGE.countPrefix} {sectors.length} {SECTORS_PAGE.countSuffix}
+  </p>
+  <div class="sector-grid">
+    {
+      sectors.map((s) => (
+        <a class="sector-card" href={`/sectors/${s.slug}`}>
+          <SectorBilingualName enName={s.name} class="sector-card-title" />
+          <span class="count">
+            {s.count} {HOME.filesUnit}
+          </span>
+        </a>
+      ))
+    }
+  </div>
+</Layout>

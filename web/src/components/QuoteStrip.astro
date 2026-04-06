@@ -1,0 +1,110 @@
+---
+import { QUOTE } from "../lib/ui";
+
+interface Props {
+  ticker: string;
+}
+const { ticker } = Astro.props;
+
+const labels = {
+  loading: QUOTE.loading,
+  error: QUOTE.error,
+  last: QUOTE.last,
+  prevClose: QUOTE.prevClose,
+  change: QUOTE.change,
+  pct: QUOTE.pct,
+  asOf: QUOTE.asOf,
+  na: QUOTE.na,
+};
+---
+<section class="quote-strip" aria-label={QUOTE.title} data-ticker={ticker}>
+  <div class="quote-strip-head">
+    <h2 class="quote-strip-title">{QUOTE.title}</h2>
+    <p class="quote-strip-note">{QUOTE.sourceNote}</p>
+  </div>
+  <p class="quote-strip-msg" data-role="msg">{labels.loading}</p>
+  <dl class="quote-strip-dl" data-role="dl" hidden>
+    <div class="quote-strip-row">
+      <dt>{labels.last}</dt>
+      <dd data-role="price">{labels.na}</dd>
+    </div>
+    <div class="quote-strip-row">
+      <dt>{labels.prevClose}</dt>
+      <dd data-role="prev">{labels.na}</dd>
+    </div>
+    <div class="quote-strip-row">
+      <dt>{labels.change}</dt>
+      <dd data-role="chg">{labels.na}</dd>
+    </div>
+    <div class="quote-strip-row">
+      <dt>{labels.pct}</dt>
+      <dd data-role="pct">{labels.na}</dd>
+    </div>
+    <div class="quote-strip-row quote-strip-row--full">
+      <dt>{labels.asOf}</dt>
+      <dd data-role="time">{labels.na}</dd>
+    </div>
+  </dl>
+</section>
+
+<script is:inline define:vars={{ ticker, labels }}>
+  (function () {
+    const root = document.querySelector('.quote-strip[data-ticker="' + ticker + '"]');
+    if (!root) return;
+    const msg = root.querySelector('[data-role="msg"]');
+    const dl = root.querySelector('[data-role="dl"]');
+    const price = root.querySelector('[data-role="price"]');
+    const prev = root.querySelector('[data-role="prev"]');
+    const chg = root.querySelector('[data-role="chg"]');
+    const pct = root.querySelector('[data-role="pct"]');
+    const time = root.querySelector('[data-role="time"]');
+
+    function fmtNum(n) {
+      if (n == null || typeof n !== "number" || Number.isNaN(n)) return labels.na;
+      return n.toLocaleString("zh-TW", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    fetch("/api/quote/" + encodeURIComponent(ticker))
+      .then(function (r) {
+        if (!r.ok) throw new Error("bad");
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d || d.error || d.price == null) throw new Error("bad");
+        if (msg) msg.textContent = "";
+        if (dl) dl.hidden = false;
+        if (price) price.textContent = fmtNum(d.price);
+        if (prev) prev.textContent = fmtNum(d.previousClose);
+        var delta =
+          d.previousClose != null ? d.price - d.previousClose : null;
+        if (chg) {
+          if (delta == null) chg.textContent = labels.na;
+          else {
+            chg.textContent = (delta >= 0 ? "+" : "") + fmtNum(delta);
+            chg.classList.remove("quote-up", "quote-down");
+            chg.classList.add(delta >= 0 ? "quote-up" : "quote-down");
+          }
+        }
+        if (pct && d.previousClose != null && d.previousClose !== 0) {
+          var p = ((d.price - d.previousClose) / d.previousClose) * 100;
+          pct.textContent = (p >= 0 ? "+" : "") + p.toFixed(2) + "%";
+          pct.classList.remove("quote-up", "quote-down");
+          pct.classList.add(p >= 0 ? "quote-up" : "quote-down");
+        } else if (pct) pct.textContent = labels.na;
+        if (time && d.marketTime) {
+          try {
+            time.textContent = new Date(d.marketTime).toLocaleString("zh-TW");
+          } catch (e) {
+            time.textContent = String(d.marketTime);
+          }
+        }
+      })
+      .catch(function () {
+        if (msg) msg.textContent = labels.error;
+        if (dl) dl.hidden = true;
+      });
+  })();
+</script>

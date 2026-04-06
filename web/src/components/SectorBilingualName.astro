@@ -1,0 +1,22 @@
+---
+import Bi from "./Bi.astro";
+import { hasSectorTranslation, sectorZh } from "../lib/sector-i18n";
+
+interface Props {
+  enName: string;
+  class?: string;
+}
+const { enName, class: className } = Astro.props;
+---
+
+<span class:list={["sector-bi-name", className]}>
+  {
+    hasSectorTranslation(enName) ? (
+      <Bi zh={sectorZh(enName)} en={enName} />
+    ) : (
+      <span lang="en" class="sector-en-fallback">
+        {enName}
+      </span>
+    )
+  }
+</span>

@@ -1,0 +1,148 @@
+---
+import { REPORT } from "../lib/ui";
+import {
+  parseValuationPriceLine,
+  type ValuationParsed,
+} from "../lib/parseReport";
+
+interface Props {
+  ticker: string;
+  valuation: ValuationParsed;
+}
+const { ticker, valuation } = Astro.props;
+const { reportPrice, trailingNote, displayFallback } = parseValuationPriceLine(
+  valuation.priceLine
+);
+
+const valKeys = ["peTtm", "forwardPe", "psTtm", "pb", "evEbitda"] as const;
+---
+
+{
+  valuation.labels.length > 0 && (
+    <section
+      class="valuation-section"
+      aria-label={REPORT.valuationAria}
+      data-ticker={ticker}
+    >
+      <h2 class="valuation-heading">{REPORT.valuationAria}</h2>
+      <p class="valuation-caption" data-role="caption">
+        {trailingNote ? (
+          <>
+            <span data-role="cap-status">{REPORT.valuationPriceLoading}</span>
+            <span class="valuation-cap-sep"> · </span>
+            <span class="valuation-cap-tail">{trailingNote}</span>
+          </>
+        ) : (
+          <span data-role="cap-status">{REPORT.valuationPriceLoading}</span>
+        )}
+      </p>
+      <p class="valuation-live-hint" data-role="hint" hidden>
+        {REPORT.valuationLiveNote}
+      </p>
+      <ul class="valuation-chips">
+        {valuation.labels.map((L) => (
+          <li>
+            <span class="chip-label">
+              <span class="chip-zh">{L.labelZh}</span>
+              <span class="chip-en" lang="en">
+                {L.labelEn}
+              </span>
+            </span>
+            <span
+              class="chip-value"
+              data-val-key={L.key}
+              data-val-raw={valuation.metrics[L.key] ?? ""}
+            >
+              {valuation.metrics[L.key] ?? "—"}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+<script is:inline define:vars={{ ticker, reportPrice, trailingNote, displayFallback, REPORT, valKeys }}>
+  (function () {
+    var root = document.querySelector('.valuation-section[data-ticker="' + ticker + '"]');
+    if (!root) return;
+    var cap = root.querySelector('[data-role="caption"]');
+    var hint = root.querySelector('[data-role="hint"]');
+
+    function fmtMoney(n) {
+      return n.toLocaleString("zh-TW", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    function fmtRatio(n) {
+      if (!Number.isFinite(n)) return "—";
+      return n.toLocaleString("zh-TW", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    function parseCell(s) {
+      if (s == null || s === "" || s === "—") return null;
+      var x = parseFloat(String(s).replace(/,/g, ""));
+      return Number.isFinite(x) ? x : null;
+    }
+
+    function setFail() {
+      if (!cap) return;
+      var msg = REPORT.valuationPriceFail || "";
+      cap.textContent = displayFallback ? msg + " " + displayFallback : msg;
+      if (hint) hint.hidden = true;
+    }
+
+    function applyFactor(f) {
+      valKeys.forEach(function (key) {
+        var el = root.querySelector('[data-val-key="' + key + '"]');
+        if (!el) return;
+        var raw = el.getAttribute("data-val-raw");
+        var base = parseCell(raw);
+        if (base == null) return;
+        el.textContent = fmtRatio(base * f);
+      });
+    }
+
+    fetch("/api/quote/" + encodeURIComponent(ticker))
+      .then(function (r) {
+        if (!r.ok) throw new Error("bad");
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d || d.error || d.price == null) throw new Error("bad");
+        var cur = d.price;
+        var curSym = d.currency === "TWD" ? "NT$" : d.currency === "USD" ? "US$" : "";
+        var tStr = "";
+        if (d.marketTime) {
+          try {
+            tStr = new Date(d.marketTime).toLocaleString("zh-TW");
+          } catch (e) {
+            tStr = String(d.marketTime);
+          }
+        }
+        var priceBit =
+          "股價 " +
+          (curSym ? curSym + " " : "") +
+          fmtMoney(cur) +
+          (tStr ? "（延遲行情 · " + tStr + "）" : "（延遲行情）");
+        var tail = trailingNote ? " · " + trailingNote : "";
+        if (cap) {
+          cap.textContent = priceBit + tail;
+        }
+        if (hint) {
+          hint.hidden = !(reportPrice != null && reportPrice > 0);
+        }
+        if (reportPrice != null && reportPrice > 0) {
+          applyFactor(cur / reportPrice);
+        }
+      })
+      .catch(function () {
+        setFail();
+      });
+  })();
+</script>

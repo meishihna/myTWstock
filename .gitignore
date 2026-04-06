@@ -9,3 +9,11 @@ venv/
 _temp_fix_*.py
 enrichment*.json
 .claude/settings.local.json
+
+# Astro / Node（web 子目錄）
+web/node_modules/
+web/dist/
+web/.astro/
+.env
+.env.*
+!.env.example

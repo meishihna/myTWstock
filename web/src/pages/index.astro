@@ -1,0 +1,104 @@
+---
+import Layout from "../layouts/Layout.astro";
+import SectorBilingualName from "../components/SectorBilingualName.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { HOME, SITE } from "../lib/ui";
+
+const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
+let sectors: { name: string; slug: string; count: number }[] = [];
+if (fs.existsSync(idxPath)) {
+  const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+  sectors = idx.sectors ?? [];
+}
+---
+<Layout title={`${SITE.name} — ${HOME.title}`} description={HOME.subtitle}>
+  <div class="hero">
+    <h1 class="hero-title">{HOME.title}</h1>
+    <p class="hero-sub">{HOME.subtitle}</p>
+  </div>
+
+  <div class="search-panel">
+    <label for="q">{HOME.searchLabel}</label>
+    <input
+      type="search"
+      id="q"
+      placeholder={HOME.searchPlaceholder}
+      autocomplete="off"
+    />
+    <div
+      class="search-results"
+      id="results"
+      hidden
+      data-empty-msg={HOME.noResults}
+    >
+    </div>
+  </div>
+
+  <h2 class="home-sector-heading">{HOME.sectorList}</h2>
+  <div class="sector-grid">
+    {
+      sectors.map((s) => (
+        <a class="sector-card" href={`/sectors/${s.slug}`}>
+          <SectorBilingualName enName={s.name} class="sector-card-title" />
+          <span class="count">
+            {s.count} {HOME.filesUnit}
+          </span>
+        </a>
+      ))
+    }
+  </div>
+
+  <script>
+    const input = document.getElementById("q");
+    const box = document.getElementById("results");
+    /** @type {{ ticker: string; name: string; sector: string }[]} */
+    let rows = [];
+    const emptyMsg = box?.dataset.emptyMsg || "";
+
+    fetch("/data/reports-index.json")
+      .then((r) => r.json())
+      .then((idx) => {
+        rows = Object.values(idx.byTicker ?? {}).map((m) => ({
+          ticker: m.ticker,
+          name: m.name,
+          sector: m.sector,
+        }));
+      })
+      .catch(() => {});
+
+    function norm(s) {
+      return s.trim().toLowerCase();
+    }
+
+    input?.addEventListener("input", () => {
+      const q = norm(/** @type {HTMLInputElement} */ (input).value);
+      if (!box) return;
+      if (!q) {
+        box.hidden = true;
+        box.innerHTML = "";
+        return;
+      }
+      const hit = rows.filter(
+        (r) =>
+          r.ticker.includes(q) ||
+          norm(r.name).includes(q) ||
+          norm(r.sector).includes(q)
+      );
+      hit.sort((a, b) => a.ticker.localeCompare(b.ticker));
+      const top = hit.slice(0, 40);
+      if (top.length === 0) {
+        box.hidden = false;
+        box.innerHTML = `<span class='muted'>${emptyMsg}</span>`;
+        return;
+      }
+      box.hidden = false;
+      box.innerHTML = top
+        .map(
+          (r) =>
+            `<a href="/report/${r.ticker}"><strong>${r.ticker}</strong> ${r.name}<span class="muted"> — ${r.sector}</span></a>`
+        )
+        .join("");
+    });
+  </script>
+</Layout>

@@ -1,0 +1,50 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import { SITE, THEMES_PAGE } from "../../lib/ui";
+import fs from "node:fs";
+import path from "node:path";
+
+const themesPath = path.join(process.cwd(), "public/data/themes-index.json");
+type ThemeRow = {
+  slug: string;
+  title: string;
+  companyCount: number;
+  relatedRaw: string;
+};
+let themes: ThemeRow[] = [];
+if (fs.existsSync(themesPath)) {
+  const data = JSON.parse(fs.readFileSync(themesPath, "utf8"));
+  themes = data.themes ?? [];
+}
+
+const pageTitle = `${THEMES_PAGE.title} — ${SITE.name}`;
+---
+<Layout title={pageTitle} description={THEMES_PAGE.lead}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <span>{THEMES_PAGE.nav}</span>
+  </div>
+  <h1 class="page-h1">{THEMES_PAGE.title}</h1>
+  <p class="page-lead">{THEMES_PAGE.lead}</p>
+
+  {
+    themes.length === 0 ? (
+      <p class="page-muted">{THEMES_PAGE.indexEmpty}</p>
+    ) : (
+      <ul class="themes-index-list">
+        {themes.map((t) => (
+          <li>
+            <a href={`/themes/${t.slug}`} class="themes-index-link">
+              <span class="themes-index-title">{t.title}</span>
+              <span class="themes-index-meta">
+                {THEMES_PAGE.countLabel}：{t.companyCount || "—"}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Layout>

@@ -1,0 +1,133 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Bi from "../components/Bi.astro";
+import { DISCOVER_PAGE, SITE } from "../lib/ui";
+
+const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
+---
+<Layout title={pageTitle} description={DISCOVER_PAGE.lead}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <span>{DISCOVER_PAGE.nav}</span>
+  </div>
+  <h1 class="page-h1">{DISCOVER_PAGE.title}</h1>
+  <p class="page-lead">{DISCOVER_PAGE.lead}</p>
+
+  <form class="discover-form" id="discover-form" action="#" method="get">
+    <label class="discover-label" for="discover-q">
+      <Bi zh="關鍵字" en="Keyword" />
+    </label>
+    <div class="discover-row">
+      <input
+        class="discover-input"
+        type="search"
+        id="discover-q"
+        name="q"
+        autocomplete="off"
+        placeholder={DISCOVER_PAGE.placeholder}
+        maxlength="120"
+      />
+      <button class="discover-btn" type="submit">{DISCOVER_PAGE.searchBtn}</button>
+    </div>
+  </form>
+
+  <p class="discover-status" id="discover-status" aria-live="polite"></p>
+  <ul class="discover-results" id="discover-results" hidden></ul>
+
+  <section class="discover-cli-hint" aria-label="CLI">
+    <p>{DISCOVER_PAGE.cliHint}</p>
+    <pre class="discover-pre"><code>{DISCOVER_PAGE.cliCode}</code></pre>
+  </section>
+</Layout>
+
+<script is:inline define:vars={{ DISCOVER_PAGE }}>
+  (function () {
+    var form = document.getElementById("discover-form");
+    var input = document.getElementById("discover-q");
+    var status = document.getElementById("discover-status");
+    var list = document.getElementById("discover-results");
+    if (!form || !input || !status || !list) return;
+
+    function esc(s) {
+      var d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function render(data) {
+      list.innerHTML = "";
+      if (!data.results || data.results.length === 0) {
+        list.hidden = true;
+        status.textContent = DISCOVER_PAGE.noResults;
+        return;
+      }
+      status.textContent = (DISCOVER_PAGE.foundFormat || "").replace(
+        /\{n\}/g,
+        String(data.count)
+      );
+      list.hidden = false;
+      data.results.forEach(function (r) {
+        var li = document.createElement("li");
+        li.className = "discover-hit";
+        var sec =
+          r.sectorSlug && r.sector
+            ? '<a href="/sectors/' +
+              esc(r.sectorSlug) +
+              '">' +
+              esc(r.sector) +
+              "</a>"
+            : esc(r.sector || "");
+        li.innerHTML =
+          '<div class="discover-hit-head"><a href="/report/' +
+          esc(r.ticker) +
+          '"><strong>' +
+          esc(r.ticker) +
+          "</strong> " +
+          esc(r.name) +
+          "</a></div>" +
+          '<div class="discover-hit-meta">' +
+          sec +
+          "</div>" +
+          '<p class="discover-hit-excerpt">' +
+          esc(r.excerpt) +
+          "</p>";
+        list.appendChild(li);
+      });
+    }
+
+    function run(q) {
+      status.textContent = "…";
+      list.hidden = true;
+      fetch("/api/discover?q=" + encodeURIComponent(q))
+        .then(function (r) {
+          if (!r.ok) throw new Error("bad");
+          return r.json();
+        })
+        .then(render)
+        .catch(function () {
+          status.textContent =
+            "無法搜尋（靜態託管無 API 時請用本機 npm run dev / Node adapter，或改用下方 CLI）。";
+          list.hidden = true;
+        });
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var q = (input.value || "").trim();
+      if (q.length < 2) {
+        status.textContent = "請至少輸入 2 個字元。";
+        list.hidden = true;
+        return;
+      }
+      run(q);
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    var initial = params.get("q");
+    if (initial && initial.trim().length >= 2) {
+      input.value = initial;
+      run(initial.trim());
+    }
+  })();
+</script>

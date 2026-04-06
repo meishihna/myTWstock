@@ -1,0 +1,283 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import ChartBars from "../../components/ChartBars.astro";
+import QuoteStrip from "../../components/QuoteStrip.astro";
+import RelationSummary from "../../components/RelationSummary.astro";
+import ValuationSection from "../../components/ValuationSection.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { renderReportMarkdown } from "../../lib/renderReport";
+import {
+  addHeadingAnchors,
+  chronologicalSeries,
+  extractRelatedTw,
+  extractToc,
+  parseAnnualGrossMargin,
+  parseAnnualRevenue,
+  parseQuarterlyGrossMargin,
+  parseQuarterlyRevenue,
+  parseRelationBlocks,
+  parseReportSummary,
+  parseValuation,
+  stripRelationSectionsForBody,
+} from "../../lib/parseReport";
+import { REPORT, SITE } from "../../lib/ui";
+
+export const prerender = true;
+
+const repoRoot = path.join(process.cwd(), "..");
+const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
+
+export function getStaticPaths() {
+  const p = path.join(process.cwd(), "public/data/reports-index.json");
+  if (!fs.existsSync(p)) return [];
+  const idx = JSON.parse(fs.readFileSync(p, "utf8"));
+  return Object.keys(idx.byTicker).map((ticker) => ({
+    params: { ticker },
+  }));
+}
+
+const { ticker } = Astro.params;
+const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+const nameToTicker = idx.nameToTicker as Record<string, string>;
+const meta = idx.byTicker[ticker!] as
+  | {
+      ticker: string;
+      name: string;
+      sector: string;
+      relPath: string;
+      sectorSlug: string;
+    }
+  | undefined;
+
+if (!meta) {
+  return new Response(null, { status: 404 });
+}
+
+const mdPath = path.join(repoRoot, "Pilot_Reports", ...meta.relPath.split("/"));
+const raw = fs.readFileSync(mdPath, "utf8");
+const rawBody = stripRelationSectionsForBody(raw);
+const toc = extractToc(rawBody);
+let html = renderReportMarkdown(rawBody, nameToTicker);
+html = addHeadingAnchors(html, toc);
+
+const summary = parseReportSummary(raw);
+const relationBlocks = parseRelationBlocks(raw);
+const valuation = parseValuation(raw);
+const relatedTw = extractRelatedTw(raw, nameToTicker);
+
+const revChrono = chronologicalSeries(parseAnnualRevenue(raw));
+const revMax = revChrono
+  ? Math.max(...revChrono.values.map((v) => Math.abs(v)), 1)
+  : 1;
+
+const qRevChrono = chronologicalSeries(parseQuarterlyRevenue(raw));
+const qRevMax = qRevChrono
+  ? Math.max(...qRevChrono.values.map((v) => Math.abs(v)), 1)
+  : 1;
+
+const annGmChrono = chronologicalSeries(parseAnnualGrossMargin(raw));
+const annGmMax = annGmChrono
+  ? Math.min(100, Math.max(...annGmChrono.values, 0.01) * 1.12)
+  : 100;
+
+const qGmChrono = chronologicalSeries(parseQuarterlyGrossMargin(raw));
+const qGmMax = qGmChrono
+  ? Math.min(100, Math.max(...qGmChrono.values, 0.01) * 1.12)
+  : 100;
+
+const byTicker = idx.byTicker as Record<
+  string,
+  { ticker: string; name: string; sector: string }
+>;
+const sectorPeers = Object.values(byTicker)
+  .filter((c) => c.sector === meta.sector && c.ticker !== meta.ticker)
+  .sort((a, b) => a.ticker.localeCompare(b.ticker))
+  .slice(0, 18);
+
+const pageTitle = `${meta.ticker} ${meta.name} — ${SITE.name}`;
+const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan coverage (中文 / EN UI)`;
+---
+<Layout title={pageTitle} description={pageDesc}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <a href="/sectors"><Bi zh="產業" en="Industries" /></a>
+    <span class="bc-sep"> / </span>
+    <a href={`/sectors/${meta.sectorSlug}`}>{meta.sector}</a>
+    <span class="bc-sep"> / </span>
+    <span>{meta.ticker}</span>
+  </div>
+
+  <header class="report-hero">
+    <div class="report-hero-main">
+      <h1 class="report-title">{meta.ticker}<span class="dot">·</span>{meta.name}</h1>
+      <p class="report-sector-line">
+        <span class="report-sector-pill">{meta.sector}</span>
+        <span class="report-sector-en" lang="en">GICS-style industry</span>
+      </p>
+    </div>
+  </header>
+
+  {
+    (summary.board ||
+      summary.industry ||
+      summary.marketCap ||
+      summary.enterpriseValue ||
+      summary.note) && (
+      <section class="meta-card-grid" aria-label={REPORT.summaryAria}>
+        {summary.board && (
+          <div class="meta-card">
+            <span class="meta-card-label">
+              <Bi zh="板塊" en="Sector" />
+            </span>
+            <span class="meta-card-value">{summary.board}</span>
+          </div>
+        )}
+        {summary.industry && (
+          <div class="meta-card">
+            <span class="meta-card-label">
+              <Bi zh="產業" en="Industry" />
+            </span>
+            <span class="meta-card-value">{summary.industry}</span>
+          </div>
+        )}
+        {summary.marketCap && (
+          <div class="meta-card">
+            <span class="meta-card-label">
+              <Bi zh="市值" en="Market cap" />
+            </span>
+            <span class="meta-card-value">{summary.marketCap}</span>
+          </div>
+        )}
+        {summary.enterpriseValue && (
+          <div class="meta-card">
+            <span class="meta-card-label">
+              <Bi zh="企業價值" en="Enterprise value" />
+            </span>
+            <span class="meta-card-value">{summary.enterpriseValue}</span>
+          </div>
+        )}
+        {summary.note && (
+          <div class="meta-card meta-card-wide">
+            <span class="meta-card-label">
+              <Bi zh="備註" en="Note" />
+            </span>
+            <span class="meta-card-value">{summary.note}</span>
+          </div>
+        )}
+      </section>
+    )
+  }
+
+  <ValuationSection ticker={meta.ticker} valuation={valuation} />
+
+  <QuoteStrip ticker={meta.ticker} />
+
+  <RelationSummary blocks={relationBlocks} nameToTicker={nameToTicker} />
+
+  <div class="report-charts-grid">
+    {
+      revChrono && revChrono.values.length > 0 && (
+        <ChartBars
+          titleBi={REPORT.annualRevTitle}
+          ariaLabel={REPORT.annualRevAria}
+          labels={revChrono.labels}
+          values={revChrono.values}
+          maxScale={revMax}
+          kind="revenue"
+        />
+      )
+    }
+    {
+      qRevChrono && qRevChrono.values.length > 0 && (
+        <ChartBars
+          titleBi={REPORT.quarterlyRevTitle}
+          ariaLabel={REPORT.quarterlyRevAria}
+          labels={qRevChrono.labels}
+          values={qRevChrono.values}
+          maxScale={qRevMax}
+          kind="revenue"
+        />
+      )
+    }
+    {
+      annGmChrono && annGmChrono.values.length > 0 && (
+        <ChartBars
+          titleBi={REPORT.annualGmTitle}
+          ariaLabel={REPORT.annualGmAria}
+          labels={annGmChrono.labels}
+          values={annGmChrono.values}
+          maxScale={annGmMax}
+          kind="margin"
+        />
+      )
+    }
+    {
+      qGmChrono && qGmChrono.values.length > 0 && (
+        <ChartBars
+          titleBi={REPORT.quarterlyGmTitle}
+          ariaLabel={REPORT.quarterlyGmAria}
+          labels={qGmChrono.labels}
+          values={qGmChrono.values}
+          maxScale={qGmMax}
+          kind="margin"
+        />
+      )
+    }
+  </div>
+
+  <div class="report-layout">
+    <aside class="report-aside">
+      {toc.length > 0 && (
+        <nav class="toc-nav" aria-label={REPORT.tocTitle}>
+          <h2 class="aside-title">{REPORT.tocTitle}</h2>
+          <ul>
+            {toc.map((item) => (
+              <li class:list={[`depth-${item.depth}`]}>
+                <a href={`#${item.id}`}>{item.text}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      {relatedTw.length > 0 && (
+        <nav class="related-nav" aria-label={REPORT.relatedTitle}>
+          <h2 class="aside-title">{REPORT.relatedTitle}</h2>
+          <ul>
+            {relatedTw.map((r) => (
+              <li>
+                <a href={`/report/${r.ticker}`}>
+                  <strong>{r.ticker}</strong> {r.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      {sectorPeers.length > 0 && (
+        <nav class="peers-nav" aria-label={REPORT.peersTitle}>
+          <h2 class="aside-title">{REPORT.peersTitle}</h2>
+          <ul class="peer-list">
+            {sectorPeers.map((p) => (
+              <li>
+                <a href={`/report/${p.ticker}`}>
+                  {p.ticker} {p.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a class="aside-cta peers-more" href={`/sectors/${meta.sectorSlug}`}>
+            {REPORT.peersMore}
+          </a>
+        </nav>
+      )}
+      <div class="aside-links">
+        <a href="/graph" class="aside-cta">{REPORT.graphCta}</a>
+        <p class="aside-hint">{REPORT.graphHint}</p>
+      </div>
+    </aside>
+    <article class="report-body report-body-padded" set:html={html} />
+  </div>
+</Layout>

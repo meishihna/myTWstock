@@ -1,0 +1,19 @@
+{
+  "name": "my-tw-coverage-web",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/build-index.mjs && node scripts/build-wikilink-hub.mjs && node scripts/build-themes-index.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/build-index.mjs && node scripts/build-wikilink-hub.mjs && node scripts/build-themes-index.mjs",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/node": "^8.3.4",
+    "astro": "^4.16.0",
+    "marked": "^15.0.0",
+    "yahoo-finance2": "^3.14.0"
+  }
+}

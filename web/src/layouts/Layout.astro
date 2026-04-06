@@ -1,0 +1,52 @@
+---
+import Bi from "../components/Bi.astro";
+import { DISCOVER_PAGE, SITE, THEMES_PAGE } from "../lib/ui";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = SITE.desc } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Main navigation">
+        <a class="brand" href="/">{SITE.name}</a>
+        <div class="nav-links">
+          <a href="/sectors"><Bi zh="產業" en="Industries" /></a>
+          <a href="/themes">{THEMES_PAGE.nav}</a>
+          <a href="/discover">{DISCOVER_PAGE.nav}</a>
+          <a href="/wiki"><Bi zh="Wikilink 索引" en="Wikilink hub" /></a>
+          <a href="/graph"><Bi zh="供應鏈網路圖" en="Supply-chain graph" /></a>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <p>
+        <Bi zh="資料來源" en="Data source" />：<a
+          href="https://github.com/Timeverse/My-TW-Coverage"
+          target="_blank"
+          rel="noopener">Timeverse / My-TW-Coverage</a
+        >
+      </p>
+    </footer>
+  </body>
+</html>

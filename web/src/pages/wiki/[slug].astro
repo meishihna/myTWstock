@@ -1,0 +1,88 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { SITE, WIKI } from "../../lib/ui";
+
+const hubPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+
+type HubEntry = {
+  label: string;
+  slug: string;
+  count: number;
+  tickers: {
+    ticker: string;
+    name: string;
+    sector: string;
+    sectorSlug: string;
+  }[];
+};
+
+export function getStaticPaths() {
+  const hubJsonPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+  if (!fs.existsSync(hubJsonPath)) return [];
+  const hub = JSON.parse(fs.readFileSync(hubJsonPath, "utf8"));
+  const entries = hub.entries as HubEntry[];
+  return entries.map((e) => ({ params: { slug: e.slug } }));
+}
+
+export const prerender = true;
+
+const { slug } = Astro.params;
+const hub = JSON.parse(fs.readFileSync(hubPath, "utf8"));
+const entry = (hub.entries as HubEntry[]).find((e) => e.slug === slug);
+
+if (!entry) {
+  return Astro.redirect("/wiki");
+}
+
+const pageTitle = `${entry.label} — ${WIKI.nav} — ${SITE.name}`;
+---
+<Layout title={pageTitle} description={`${entry.label} — ${WIKI.lead}`}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <a href="/wiki">{WIKI.nav}</a>
+    <span class="bc-sep"> / </span>
+    <span>{entry.label}</span>
+  </div>
+  <h1 class="page-h1">{entry.label}</h1>
+  <p class="page-lead">
+    {WIKI.count}：<strong>{entry.count}</strong> · {WIKI.companies}：{entry.tickers.length}
+    {WIKI.lead}
+  </p>
+
+  <table class="company-table">
+    <thead>
+      <tr>
+        <th>
+          <Bi zh="代號" en="Ticker" />
+        </th>
+        <th>
+          <Bi zh="公司" en="Company" />
+        </th>
+        <th>
+          <Bi zh="產業" en="Sector" />
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        entry.tickers.map((c) => (
+          <tr>
+            <td>
+              <a href={`/report/${c.ticker}`}>{c.ticker}</a>
+            </td>
+            <td>
+              <a href={`/report/${c.ticker}`}>{c.name}</a>
+            </td>
+            <td>
+              <a href={`/sectors/${c.sectorSlug}`}>{c.sector}</a>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</Layout>

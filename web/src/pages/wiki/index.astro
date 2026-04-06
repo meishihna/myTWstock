@@ -1,0 +1,50 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Bi from "../../components/Bi.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { SITE, WIKI } from "../../lib/ui";
+
+const hubPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+let entries: { label: string; slug: string; count: number }[] = [];
+if (fs.existsSync(hubPath)) {
+  const hub = JSON.parse(fs.readFileSync(hubPath, "utf8"));
+  entries = hub.entries ?? [];
+}
+export const prerender = true;
+---
+<Layout title={`${WIKI.title} — ${SITE.name}`} description={WIKI.lead}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a>
+    <span class="bc-sep"> / </span>
+    <span>{WIKI.nav}</span>
+  </div>
+  <h1 class="page-h1">{WIKI.title}</h1>
+  <p class="page-lead">{WIKI.lead}</p>
+  <p class="page-lead">共 {entries.length} 條索引（Top 500 by mentions）</p>
+
+  <div class="wiki-table-wrap">
+    <table class="company-table wiki-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{WIKI.nav}</th>
+          <th>{WIKI.count}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          entries.map((e, i) => (
+            <tr>
+              <td>{i + 1}</td>
+              <td>
+                <a href={`/wiki/${e.slug}`}>{e.label}</a>
+              </td>
+              <td>{e.count}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</Layout>
