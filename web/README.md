@@ -1,4 +1,4 @@
-# My-TW-Coverage Web（Astro 前端）
+# myTWstock Web（Astro 前端）
 
 依 [規劃](../README.md) 的 Phase A：產業列表、公司報告頁、`[[wikilink]]` 對應台股檔案名時轉為連結、首頁代號／公司名搜尋、內嵌 `network/` 圖。
 

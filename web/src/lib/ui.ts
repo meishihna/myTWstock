@@ -5,9 +5,9 @@ export function bi(zh: string, en: string): string {
 }
 
 export const SITE = {
-  name: "My-TW-Coverage",
-  taglineZh: "台股覆蓋資料庫",
-  taglineEn: "Taiwan listed coverage",
+  name: "myTWstock",
+  taglineZh: "台股研究資料庫",
+  taglineEn: "Taiwan equity research",
   desc: bi("台股研究報告瀏覽", "Browse equity research reports"),
 } as const;
 

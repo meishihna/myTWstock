@@ -1,37 +1,37 @@
-# Taiwan Stock Coverage Database
+# myTWstock｜台股研究資料庫
 
-A structured equity research database covering **1,735 Taiwan-listed companies** (TWSE + OTC) across **99 industry sectors**. Each report contains a business overview, supply chain mapping, customer/supplier relationships, and financial data — all cross-referenced through **4,900+ wikilinks** that form a searchable knowledge graph.
+結構化台股研究資料庫，涵蓋 **1,735 家** 上市櫃公司（上市＋上櫃），分屬 **99 個產業分類**。每份報告含業務簡介、供應鏈位置、客戶／供應商關係與財務數據，並透過 **4,900+ 個 `[[wikilink]]`** 交錯連結，形成可搜尋的知識網路。
 
-## Why This Exists
+## 為什麼要做這個
 
-Taiwan's stock market has 1,800+ listed companies, many of which are critical nodes in global supply chains (semiconductors, electronics, automotive, textiles). Public information is fragmented across Chinese-language filings, investor presentations, and industry reports. This database consolidates that research into a consistent, searchable format.
+台股上市櫃超過 1,800 家，其中許多是全球供應鏈關鍵節點（半導體、電子、汽車、紡織等）。公開資訊分散在中文法說、投資人簡報與產業報告中。本專案將研究整理成**一致、可搜尋**的格式。
 
-**The wikilink graph is the core feature.** Searching `[[Apple]]` reveals 207 Taiwanese companies in Apple's supply chain. Searching `[[CoWoS]]` shows every company involved in TSMC's advanced packaging. Searching `[[光阻液]]` (photoresist) maps every supplier and consumer of that material.
+**Wikilink 網路是核心。** 搜尋 `[[Apple]]` 可看到 207 家與蘋果供應鏈相關的台廠；搜尋 `[[CoWoS]]` 可看到台積電先進封裝生態；搜尋 `[[光阻液]]` 可對應該材料的供應與需求端公司。
 
-## Quick Start
+## 快速開始
 
-### Prerequisites
+### 環境需求
 
 ```bash
 pip install yfinance pandas tabulate
 ```
 
-### Browse Reports
+### 瀏覽報告
 
-Reports are markdown files organized by industry:
+報告為 Markdown，依產業資料夾存放：
 
 ```
 Pilot_Reports/
-├── Semiconductors/           (155 tickers)
-│   ├── 2330_台積電.md        # TSMC
-│   ├── 2454_聯發科.md        # MediaTek
+├── Semiconductors/           (155 檔)
+│   ├── 2330_台積電.md
+│   ├── 2454_聯發科.md
 │   └── ...
-├── Electronic Components/    (267 tickers)
-├── Computer Hardware/        (114 tickers)
-└── ... (99 sector folders)
+├── Electronic Components/    (267 檔)
+├── Computer Hardware/        (114 檔)
+└── ...（共 99 個產業資料夾）
 ```
 
-Each report follows a consistent structure:
+每份報告結構一致，例如：
 
 ```markdown
 # 2330 - [[台積電]]
@@ -42,7 +42,7 @@ Each report follows a consistent structure:
 **市值:** 47,326,857 百萬台幣
 **企業價值:** 44,978,990 百萬台幣
 
-[Traditional Chinese business description with [[wikilinks]]...]
+[繁體中文敘述，內含 [[wikilinks]]...]
 
 ## 供應鏈位置
 **上游:** [[ASML]], [[Applied Materials]], [[SUMCO]]...
@@ -58,43 +58,43 @@ Each report follows a consistent structure:
 ## 財務概況
 ### 估值指標
 | P/E (TTM) | Forward P/E | P/S (TTM) | P/B | EV/EBITDA |
-[Valuation multiples from yfinance]
+（yfinance 估值倍數）
 
 ### 年度/季度財務數據
-[Annual (3yr) and Quarterly (4Q) financial tables with 14 metrics]
+（近 3 年年度表、近 4 季季度表，含 14 項指標）
 ```
 
-### Add a New Ticker
+### 新增一檔股票
 
 ```bash
 python scripts/add_ticker.py 2330 台積電
 python scripts/add_ticker.py 2330 台積電 --sector Semiconductors
 ```
 
-### Update Financial Data
+### 更新財務數據
 
 ```bash
-python scripts/update_financials.py 2330                        # Single ticker
-python scripts/update_financials.py 2330 2454 3034              # Multiple tickers
-python scripts/update_financials.py --batch 101                 # By batch
-python scripts/update_financials.py --sector Semiconductors     # By sector
-python scripts/update_financials.py                             # ALL tickers
+python scripts/update_financials.py 2330                        # 單一檔
+python scripts/update_financials.py 2330 2454 3034              # 多檔
+python scripts/update_financials.py --batch 101                 # 依批次
+python scripts/update_financials.py --sector Semiconductors     # 依產業
+python scripts/update_financials.py                             # 全市場
 ```
 
-### Update Valuation Only (Fast)
+### 僅更新估值（較快）
 
-Refreshes only the 估值指標 table (P/E, Forward P/E, P/S, P/B, EV/EBITDA, stock price) without re-fetching full financial statements. ~3x faster than `update_financials`.
+只刷新「估值指標」表（P/E、Forward P/E、P/S、P/B、EV/EBITDA、股價），不重拉完整財報，速度約為 `update_financials` 的 **3 倍**。
 
 ```bash
-python scripts/update_valuation.py 2330                         # Single ticker
-python scripts/update_valuation.py --batch 101                  # By batch
-python scripts/update_valuation.py --sector Semiconductors      # By sector
-python scripts/update_valuation.py                              # ALL tickers
+python scripts/update_valuation.py 2330
+python scripts/update_valuation.py --batch 101
+python scripts/update_valuation.py --sector Semiconductors
+python scripts/update_valuation.py
 ```
 
-### Update Enrichment Content
+### 更新充實內容（Enrichment）
 
-Prepare a JSON file with enrichment data, then apply:
+先準備 JSON，再套用：
 
 ```bash
 python scripts/update_enrichment.py --data enrichment.json 2330
@@ -102,7 +102,7 @@ python scripts/update_enrichment.py --data enrichment.json --batch 101
 python scripts/update_enrichment.py --data enrichment.json --sector Semiconductors
 ```
 
-JSON format:
+JSON 格式範例：
 
 ```json
 {
@@ -114,207 +114,204 @@ JSON format:
 }
 ```
 
-### Audit Quality
+### 品質稽核
 
 ```bash
-python scripts/audit_batch.py 101 -v      # Single batch
-python scripts/audit_batch.py --all -v    # All batches
+python scripts/audit_batch.py 101 -v      # 單一批次
+python scripts/audit_batch.py --all -v    # 全部批次
 ```
 
-The audit checks: minimum 8 wikilinks, no generic terms in brackets, no placeholders, no English text, metadata completeness, and section depth.
+稽核項目包含：至少 8 個 wikilink、括號內非泛稱、無占位符、無不當英文、metadata 完整、章節深度等。
 
-### Rebuild Wikilink Index
+### 重建 Wikilink 索引
 
 ```bash
 python scripts/build_wikilink_index.py
 ```
 
-Regenerates [WIKILINKS.md](WIKILINKS.md) — a browsable index of all 4,900+ wikilinks categorized by type (Technologies, Materials, Applications, Companies). Run after any enrichment update.
+會重新產生 [WIKILINKS.md](WIKILINKS.md)（依類型分類的 4,900+ wikilink 索引）。在 enrichment 更新後建議重跑。
 
-### Discover Companies by Buzzword
+### 關鍵字反向探索（Discover）
 
-Hear a buzzword on the news? Find every related Taiwan-listed company instantly.
-
-```bash
-python scripts/discover.py "液冷散熱"                    # Search all sectors
-python scripts/discover.py "液冷散熱" --smart            # Auto-detect relevant sectors
-python scripts/discover.py "液冷散熱" --apply            # Tag [[wikilinks]] in reports
-python scripts/discover.py "液冷散熱" --apply --rebuild  # Also rebuild themes + network
-python scripts/discover.py "液冷散熱" --sector Semiconductors  # Limit to specific sector
-```
-
-Results show companies grouped by relationship type (core business, supply chain, customer/supplier) with context snippets. Use `--smart` to auto-filter irrelevant sectors (tech buzzwords skip banks/insurance/real estate).
-
-### Generate Wikilink Network Graph
-
-Interactive D3.js force-directed graph showing wikilink co-occurrences across all tickers. Hover to highlight neighbors, search by name, adjust edge weight threshold.
+聽到新名詞？一次找出資料庫裡所有相關上市櫃公司。
 
 ```bash
-python scripts/build_network.py                    # Default: min 5 co-occurrences
-python scripts/build_network.py --min-weight 10    # Fewer edges, cleaner view
-python scripts/build_network.py --top 200          # Only top 200 nodes
+python scripts/discover.py "液冷散熱"                    # 全產業搜尋
+python scripts/discover.py "液冷散熱" --smart            # 自動篩選較相關產業
+python scripts/discover.py "液冷散熱" --apply            # 在報告中加上 [[wikilink]]
+python scripts/discover.py "液冷散熱" --apply --rebuild  # 並重建主題頁 + 網路圖
+python scripts/discover.py "液冷散熱" --sector Semiconductors  # 限定產業
 ```
 
-Open `network/index.html` in your browser. Node colors: red = Taiwan company, blue = international, green = technology, orange = material, purple = application.
+結果會依關係類型分組並附上下文摘要。`--smart` 會略過與科技題材較無關的產業（如部分金融、不動產）。
 
-### Generate Thematic Investment Screens
+### 產生 Wikilink 網路圖
+
+互動式 D3 力導向圖：共現 wikilink、懸停高亮、搜尋、可調整邊權重門檻。
 
 ```bash
-python scripts/build_themes.py               # Build all 20 themes
-python scripts/build_themes.py "CoWoS"       # Single theme
-python scripts/build_themes.py --list        # List available themes
+python scripts/build_network.py                    # 預設：最少共現 5 次
+python scripts/build_network.py --min-weight 10    # 邊較少、畫面較乾淨
+python scripts/build_network.py --top 200          # 只保留前 200 節點
 ```
 
-Generates [themes/](themes/) — supply chain maps for key investment themes. Each page shows companies grouped by upstream/midstream/downstream role. See [themes/README.md](themes/README.md) for the full index.
+以瀏覽器開啟 `network/index.html`。節點顏色：紅＝台灣公司、藍＝國際公司、綠＝技術、橘＝材料、紫＝應用（依專案設定為準）。
 
-## Token Usage & Cost Guide
+### 產生主題投資頁
 
-Tools fall into two categories: **Python scripts** (free, run locally) and **Claude Code skills** (consume API tokens for AI research).
+```bash
+python scripts/build_themes.py               # 全部 20 個主題
+python scripts/build_themes.py "CoWoS"       # 單一主題
+python scripts/build_themes.py --list        # 列出可用主題
+```
 
-### Free — Python Scripts (No Tokens)
+輸出於 [themes/](themes/)：依**上游／中游／下游**分組的供應鏈地圖。完整索引見 [themes/README.md](themes/README.md)。
 
-These run 100% locally with Python + yfinance. No AI, no API cost.
+## Token 用量與成本說明
 
-| Script | Command | What it does |
+工具分兩類：**Python 腳本**（本機免費）與 **Claude Code 技能**（呼叫 AI 時消耗 API token）。
+
+### 免費｜Python 腳本（不耗 Token）
+
+於本機執行 Python + yfinance，無 AI、無額外 API 費用。
+
+| 腳本 | 指令 | 說明 |
 |---|---|---|
-| Update Financials | `python scripts/update_financials.py [scope]` | Refresh financial tables from yfinance |
-| Update Valuation | `python scripts/update_valuation.py [scope]` | Refresh P/E, P/B, EV/EBITDA only (fast) |
-| Update Enrichment | `python scripts/update_enrichment.py --data <json> [scope]` | Apply pre-prepared enrichment data |
-| Audit | `python scripts/audit_batch.py <batch> -v` | Quality check reports |
-| Discover (search) | `python scripts/discover.py "<buzzword>"` | Scan reports for keyword matches |
-| Build Themes | `python scripts/build_themes.py` | Generate thematic supply chain pages |
-| Build Network | `python scripts/build_network.py` | Generate interactive D3.js graph |
-| Build Wikilink Index | `python scripts/build_wikilink_index.py` | Rebuild WIKILINKS.md |
+| 更新財務 | `python scripts/update_financials.py [範圍]` | 自 yfinance 刷新財務表 |
+| 更新估值 | `python scripts/update_valuation.py [範圍]` | 僅刷新 P/E、P/B、EV/EBITDA 等（快） |
+| 更新充實 | `python scripts/update_enrichment.py --data <json> [範圍]` | 套用預先準備的 enrichment |
+| 稽核 | `python scripts/audit_batch.py <batch> -v` | 報告品質檢查 |
+| Discover | `python scripts/discover.py "<關鍵字>"` | 全文關鍵字搜尋 |
+| 主題頁 | `python scripts/build_themes.py` | 產生主題供應鏈頁 |
+| 網路圖 | `python scripts/build_network.py` | 產生 D3 互動圖 |
+| Wikilink 索引 | `python scripts/build_wikilink_index.py` | 重建 WIKILINKS.md |
 
-### Consumes Tokens — Claude Code Skills (Requires AI)
+### 消耗 Token｜Claude Code 技能（需 AI）
 
-These use Claude AI for web research, content generation, and intelligent enrichment. They require [Claude Code](https://claude.ai/claude-code) and consume API tokens.
+需 [Claude Code](https://claude.ai/claude-code)，並會消耗 API token。
 
-| Slash Command | Token Usage | What it does |
+| 斜線指令 | Token 用量 | 說明 |
 |---|---|---|
-| `/add-ticker 2330 台積電` | Medium | Generate .md + fetch financials + **AI researches** business desc, supply chain, customers |
-| `/update-enrichment 2330` | Medium | **AI re-researches** and rewrites business content (preserves financials) |
-| `/discover 液冷散熱` | Low-High | Scans database (free) → if no results, **AI researches** online and enriches reports |
+| `/add-ticker 2330 台積電` | 中 | 產生 .md + 拉財務 + **AI 研究** 業務／供應鏈／客供 |
+| `/update-enrichment 2330` | 中 | **AI 重新研究** 並改寫業務內容（保留財務表） |
+| `/discover 液冷散熱` | 低～高 | 先掃資料庫（免費）→ 無結果時 **AI 上網** 並充實報告 |
 
-**Token cost drivers:**
-- `/add-ticker`: ~1 web search + content generation per ticker
-- `/update-enrichment`: ~3-5 web searches + content synthesis per ticker
-- `/discover` with results: **zero tokens** (Python scan only)
-- `/discover` without results: varies by research depth (web searches + file edits)
+**成本大致來自：**  
+- `/add-ticker`：每檔約 1 次網搜 + 內容生成  
+- `/update-enrichment`：每檔約 3～5 次網搜 + 綜合  
+- `/discover` 有結果：**0 token**（僅 Python）  
+- `/discover` 無結果：依研究深度而定  
 
-**Tip:** For bulk operations, use Python scripts directly. Use slash commands for individual tickers or when AI research is needed.
+**建議：** 大量批次以 Python 為主；單檔或需要 AI 研究時再用斜線指令。
 
-## Wikilink Graph
+## Wikilink 圖譜
 
-Browse the full index: **[WIKILINKS.md](WIKILINKS.md)**
+完整索引：**[WIKILINKS.md](WIKILINKS.md)**
 
-The database contains **4,900+ unique wikilinks** across three categories:
+資料庫含 **4,900+** 個不重複 wikilink，大致分三類：
 
-| Category | Examples | Purpose |
+| 類別 | 範例 | 用途 |
 |---|---|---|
-| **Companies** | `[[台積電]]`, `[[Apple]]`, `[[Bosch]]` | Map supply chain relationships |
-| **Technologies** | `[[CoWoS]]`, `[[HBM]]`, `[[矽光子]]`, `[[EUV]]` | Find all companies in a technology ecosystem |
-| **Materials** | `[[光阻液]]`, `[[碳化矽]]`, `[[ABF 載板]]` | Track material suppliers and consumers |
+| **公司** | `[[台積電]]`, `[[Apple]]`, `[[Bosch]]` | 供應鏈關係 |
+| **技術** | `[[CoWoS]]`, `[[HBM]]`, `[[矽光子]]`, `[[EUV]]` | 技術生態系參與者 |
+| **材料** | `[[光阻液]]`, `[[碳化矽]]`, `[[ABF 載板]]` | 材料供需 |
 
-### Top Referenced Entities
+### 被引用次數較高的實體（節錄）
 
-| Entity | Mentions | What it reveals |
+| 實體 | 提及次數 | 可看出什麼 |
 |---|---|---|
-| `[[台積電]]` | 469 | Taiwan's semiconductor ecosystem revolves around TSMC |
-| `[[NVIDIA]]` | 277 | AI supply chain — who makes NVIDIA's components |
-| `[[Apple]]` | 207 | Apple's Taiwanese supplier network |
-| `[[AI 伺服器]]` | 237 | AI server supply chain mapping |
-| `[[電動車]]` | 223 | EV component suppliers |
-| `[[5G]]` | 232 | 5G infrastructure companies |
-| `[[PCB]]` | 263 | Printed circuit board ecosystem |
+| `[[台積電]]` | 469 | 台灣半導體生態以台積電為核心 |
+| `[[NVIDIA]]` | 277 | AI 供應鏈與輝達零組件 |
+| `[[Apple]]` | 207 | 蘋果在台供應網路 |
+| `[[AI 伺服器]]` | 237 | AI 伺服器供應鏈 |
+| `[[電動車]]` | 223 | 電動車零組件 |
+| `[[5G]]` | 232 | 5G 基礎建設相關公司 |
+| `[[PCB]]` | 263 | 印刷電路板生態 |
 
-## Project Structure
+## 專案結構
 
 ```
-├── CLAUDE.md                  # Project rules and quality standards
-├── WIKILINKS.md               # Browsable wikilink index (auto-generated)
-├── task.md                    # Batch definitions and progress tracking
-├── requirements.txt           # Python dependencies
+├── CLAUDE.md                  # 專案規則與品質標準
+├── WIKILINKS.md               # Wikilink 索引（自動產生）
+├── task.md                    # 批次定義與進度
+├── requirements.txt           # Python 依賴
 ├── README.md
+├── web/                       # Astro 前端（瀏覽器介面）
 ├── scripts/
-│   ├── utils.py               # Shared utilities (file discovery, wikilink normalization)
-│   ├── add_ticker.py          # Generate new ticker reports
-│   ├── update_financials.py   # Refresh financial tables + valuation multiples
-│   ├── update_enrichment.py   # Update business descriptions from JSON
-│   ├── audit_batch.py         # Quality auditing
-│   ├── update_valuation.py     # Refresh valuation multiples only (fast)
-│   ├── discover.py            # Reverse search: buzzword → related companies
-│   ├── build_wikilink_index.py # Rebuild WIKILINKS.md index
-│   ├── build_themes.py        # Generate thematic investment screens
-│   ├── build_network.py       # Generate interactive network graph
-│   └── generators/            # Historical base report generators
-├── Pilot_Reports/             # 1,735 ticker reports across 99 sectors
-│   ├── Semiconductors/
-│   ├── Electronic Components/
-│   └── ... (99 folders)
-├── network/                   # Interactive wikilink network graph (auto-generated)
-│   ├── index.html             # D3.js visualization (open in browser)
-│   └── graph_data.json        # Raw graph data (339 nodes, 1,452 edges)
-├── themes/                    # Thematic investment screens (auto-generated)
-│   ├── README.md              # Theme index
-│   ├── CoWoS.md               # 39 companies in CoWoS supply chain
-│   ├── AI_伺服器.md            # 148 companies in AI server ecosystem
-│   ├── NVIDIA.md              # 104 companies in NVIDIA supply chain
-│   └── ... (20 themes)
-└── .claude/
-    └── skills/                # Claude Code skill definitions
+│   ├── utils.py
+│   ├── add_ticker.py
+│   ├── update_financials.py
+│   ├── update_enrichment.py
+│   ├── audit_batch.py
+│   ├── update_valuation.py
+│   ├── discover.py
+│   ├── build_wikilink_index.py
+│   ├── build_themes.py
+│   ├── build_network.py
+│   └── generators/
+├── Pilot_Reports/             # 1,735 檔報告，99 產業
+├── network/                   # 互動網路圖（自動產生）
+│   ├── index.html
+│   └── graph_data.json
+├── themes/                    # 主題投資頁（自動產生）
+│   ├── README.md
+│   ├── CoWoS.md
+│   ├── AI_伺服器.md
+│   ├── NVIDIA.md
+│   └── ...（20 個主題）
+└── .claude/skills/            # Claude Code 技能定義
 ```
 
-## Quality Standards
+## 品質標準
 
-Every report is validated against 8 quality rules (defined in `CLAUDE.md`):
+每份報告需符合 `CLAUDE.md` 中 8 項規則（摘要）：
 
-1. **Wikilinks must be specific proper nouns** — no generic terms like 供應商 or 大廠
-2. **Ticker-company identity verification** — filename is ground truth
-3. **Minimum 8 wikilinks per report**
-4. **Financial tables preserved** — never modified during enrichment
-5. **All content in Traditional Chinese**
-6. **No placeholders** in completed reports
-7. **Complete metadata** (sector, industry, market cap, enterprise value)
-8. **Segmented supply chain** — upstream/midstream/downstream by category
+1. Wikilink 須為**具體專有名詞**，不可為泛稱如「供應商」「大廠」  
+2. **代號與公司名**以檔名為準  
+3. 每份至少 **8 個** wikilink  
+4. **財務表**在 enrichment 流程中不可被改壞  
+5. 內容以**繁體中文**為主  
+6. 完稿**不可有占位符**  
+7. **Metadata 完整**（板塊、產業、市值、企業價值）  
+8. 供應鏈須**分段**（上游／中游／下游）
 
-Current audit score: **1,733/1,733 (100%)** pass all quality checks.
+目前稽核：**1,733 / 1,733（100%）** 通過品質檢查。
 
-## Data Sources
+## 資料來源
 
-- **Financial data**: [yfinance](https://github.com/ranaroussi/yfinance) (Yahoo Finance Taiwan)
-- **Business content**: Company IR pages, MOPS filings (公開資訊觀測站), investor conference transcripts (法說會), annual reports (年報)
-- **Supply chain data**: Industry reports, news sources, company disclosures
+- **財務數據**：[yfinance](https://github.com/ranaroussi/yfinance)（Yahoo Finance 台股）  
+- **業務內容**：公司 IR、公開資訊觀測站、法說會、年報等  
+- **供應鏈**：產業報導、新聞、公司揭露  
 
-## Limitations
+## 限制
 
-- Financial data depends on yfinance availability — some OTC stocks may have gaps
-- Business descriptions reflect research as of the enrichment date — they don't auto-update
-- Wikilinks are manually curated — new technologies or companies need manual addition
-- Content is in Traditional Chinese — English speakers will need translation
+- 財務資料依 yfinance 可得性，部分上櫃標的可能缺漏  
+- 業務敘述為研究當下快照，**不會自動更新**  
+- Wikilink 多為人工策展，新技術／新公司需手動或流程補上  
+- 內容以繁中為主，英文讀者需自行翻譯  
 
-## Wikilink Naming Convention
+## Wikilink 命名慣例
 
-| Category | Canonical form | Examples |
+| 類別 | 建議形式 | 範例 |
 |---|---|---|
-| Taiwan companies | Chinese | `[[台積電]]`, `[[鴻海]]`, `[[聯發科]]` |
-| Foreign companies | English | `[[NVIDIA]]`, `[[Samsung]]`, `[[Micron]]` |
-| Materials/substrates | Chinese | `[[碳化矽]]`, `[[氮化鎵]]`, `[[電動車]]` |
-| Industry acronyms | Acronym | `[[PCB]]`, `[[CPO]]`, `[[HBM]]`, `[[CoWoS]]` |
+| 台灣公司 | 中文 | `[[台積電]]`, `[[鴻海]]`, `[[聯發科]]` |
+| 外國公司 | 英文 | `[[NVIDIA]]`, `[[Samsung]]`, `[[Micron]]` |
+| 材料／基板 | 中文 | `[[碳化矽]]`, `[[氮化鎵]]`, `[[電動車]]` |
+| 產業縮寫 | 縮寫 | `[[PCB]]`, `[[CPO]]`, `[[HBM]]`, `[[CoWoS]]` |
 
-Wikilink normalization is built into the enrichment pipeline — aliases are automatically merged to canonical form on every write.
+別名會在寫入流程中盡量**正規化**為慣用寫法。
 
-## Contributing
+## 參與貢獻
 
-Contributions are welcome. When adding or updating ticker reports:
+歡迎 PR／Issue。新增或修改報告時請：
 
-1. Follow the quality rules in `CLAUDE.md`
-2. Run `python scripts/audit_batch.py --all -v` before submitting
-3. Ensure every `[[wikilink]]` is a specific proper noun
-4. Verify the company name matches the ticker number
+1. 遵守 `CLAUDE.md`  
+2. 提交前執行 `python scripts/audit_batch.py --all -v`  
+3. 每個 `[[wikilink]]` 皆為具體專有名詞  
+4. 公司名與代號一致  
 
-## License
+## 授權
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License，詳見 [LICENSE](LICENSE)。
 
-Financial data sourced from Yahoo Finance via yfinance. Business descriptions are original research.
+財務數據經 yfinance 取自 Yahoo Finance；業務描述為專案內研究整理。
