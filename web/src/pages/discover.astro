@@ -97,7 +97,7 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
     }
 
     function run(q) {
-      status.textContent = "…";
+      status.textContent = DISCOVER_PAGE.searching;
       list.hidden = true;
       fetch("/api/discover?q=" + encodeURIComponent(q))
         .then(function (r) {
@@ -106,8 +106,7 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
         })
         .then(render)
         .catch(function () {
-          status.textContent =
-            "無法搜尋（靜態託管無 API 時請用本機 npm run dev / Node adapter，或改用下方 CLI）。";
+          status.textContent = DISCOVER_PAGE.apiError;
           list.hidden = true;
         });
     }
@@ -116,7 +115,7 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
       e.preventDefault();
       var q = (input.value || "").trim();
       if (q.length < 2) {
-        status.textContent = "請至少輸入 2 個字元。";
+        status.textContent = DISCOVER_PAGE.tooShort;
         list.hidden = true;
         return;
       }

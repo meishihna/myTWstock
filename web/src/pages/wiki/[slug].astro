@@ -3,9 +3,10 @@ import Layout from "../../layouts/Layout.astro";
 import Bi from "../../components/Bi.astro";
 import fs from "node:fs";
 import path from "node:path";
-import { SITE, WIKI } from "../../lib/ui";
+import { SITE, WIKI, WIKI_STUB } from "../../lib/ui";
 
 const hubPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+const stubsPath = path.join(process.cwd(), "public/data/wikilink-stubs.json");
 
 type HubEntry = {
   label: string;
@@ -19,70 +20,148 @@ type HubEntry = {
   }[];
 };
 
+type StubEntry = {
+  slug: string;
+  labels: string[];
+  mentions: { ticker: string; name: string }[];
+};
+
 export function getStaticPaths() {
-  const hubJsonPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
-  if (!fs.existsSync(hubJsonPath)) return [];
-  const hub = JSON.parse(fs.readFileSync(hubJsonPath, "utf8"));
-  const entries = hub.entries as HubEntry[];
-  return entries.map((e) => ({ params: { slug: e.slug } }));
+  const slugs = new Set<string>();
+  if (fs.existsSync(hubPath)) {
+    const hub = JSON.parse(fs.readFileSync(hubPath, "utf8"));
+    for (const e of (hub.entries || []) as HubEntry[]) slugs.add(e.slug);
+  }
+  if (fs.existsSync(stubsPath)) {
+    const data = JSON.parse(fs.readFileSync(stubsPath, "utf8"));
+    for (const s of (data.stubs || []) as StubEntry[]) slugs.add(s.slug);
+  }
+  return [...slugs].map((slug) => ({ params: { slug } }));
 }
 
 export const prerender = true;
 
 const { slug } = Astro.params;
-const hub = JSON.parse(fs.readFileSync(hubPath, "utf8"));
-const entry = (hub.entries as HubEntry[]).find((e) => e.slug === slug);
 
-if (!entry) {
+let hubEntries: HubEntry[] = [];
+if (fs.existsSync(hubPath)) {
+  const hub = JSON.parse(fs.readFileSync(hubPath, "utf8"));
+  hubEntries = hub.entries || [];
+}
+
+let stubEntries: StubEntry[] = [];
+if (fs.existsSync(stubsPath)) {
+  const data = JSON.parse(fs.readFileSync(stubsPath, "utf8"));
+  stubEntries = data.stubs || [];
+}
+
+const entry = hubEntries.find((e) => e.slug === slug);
+const stub = stubEntries.find((s) => s.slug === slug);
+
+if (!entry && !stub) {
   return Astro.redirect("/wiki");
 }
 
-const pageTitle = `${entry.label} — ${WIKI.nav} — ${SITE.name}`;
+const isStubOnly = !entry && !!stub;
+const pageTitle = entry
+  ? `${entry.label} — ${WIKI.nav} — ${SITE.name}`
+  : `${stub!.labels[0] ?? slug} — ${WIKI_STUB.nav} — ${SITE.name}`;
+const pageDesc = entry ? `${entry.label} — ${WIKI.lead}` : WIKI_STUB.badge;
 ---
-<Layout title={pageTitle} description={`${entry.label} — ${WIKI.lead}`}>
+<Layout title={pageTitle} description={pageDesc}>
   <div class="breadcrumb" aria-label="Breadcrumb">
     <a href="/"><Bi zh="首頁" en="Home" /></a>
     <span class="bc-sep"> / </span>
     <a href="/wiki">{WIKI.nav}</a>
     <span class="bc-sep"> / </span>
-    <span>{entry.label}</span>
+    <span>{entry?.label ?? stub?.labels[0] ?? slug}</span>
   </div>
-  <h1 class="page-h1">{entry.label}</h1>
-  <p class="page-lead">
-    {WIKI.count}：<strong>{entry.count}</strong> · {WIKI.companies}：{entry.tickers.length}
-    {WIKI.lead}
-  </p>
 
-  <table class="company-table">
-    <thead>
-      <tr>
-        <th>
-          <Bi zh="代號" en="Ticker" />
-        </th>
-        <th>
-          <Bi zh="公司" en="Company" />
-        </th>
-        <th>
-          <Bi zh="產業" en="Sector" />
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      {
-        entry.tickers.map((c) => (
-          <tr>
-            <td>
-              <a href={`/report/${c.ticker}`}>{c.ticker}</a>
-            </td>
-            <td>
-              <a href={`/report/${c.ticker}`}>{c.name}</a>
-            </td>
-            <td>
-              <a href={`/sectors/${c.sectorSlug}`}>{c.sector}</a>
-            </td>
-          </tr>
-        ))
-      }
-    </tbody>
-  </table>
+  {
+    entry && (
+      <>
+        <h1 class="page-h1">{entry.label}</h1>
+        <p class="page-lead">
+          {WIKI.count}：<strong>{entry.count}</strong> · {WIKI.companies}：{entry.tickers.length}
+          {WIKI.lead}
+        </p>
+
+        <table class="company-table">
+          <thead>
+            <tr>
+              <th>
+                <Bi zh="代號" en="Ticker" />
+              </th>
+              <th>
+                <Bi zh="公司" en="Company" />
+              </th>
+              <th>
+                <Bi zh="產業" en="Sector" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {entry.tickers.map((c) => (
+              <tr>
+                <td>
+                  <a href={`/report/${c.ticker}`}>{c.ticker}</a>
+                </td>
+                <td>
+                  <a href={`/report/${c.ticker}`}>{c.name}</a>
+                </td>
+                <td>
+                  <a href={`/sectors/${c.sectorSlug}`}>{c.sector}</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    )
+  }
+
+  {
+    isStubOnly && stub && (
+      <>
+        <p class="wiki-stub-badge">{WIKI_STUB.badge}</p>
+        <h1 class="page-h1">{stub.labels.join(" · ")}</h1>
+        <p class="page-lead muted">
+          {WIKI_STUB.mentions}
+        </p>
+        {stub.labels.length > 1 && (
+          <p class="wiki-stub-aliases">
+            <strong>{WIKI_STUB.aliases}：</strong>
+            {stub.labels.join("、")}
+          </p>
+        )}
+        <table class="company-table">
+          <thead>
+            <tr>
+              <th>
+                <Bi zh="代號" en="Ticker" />
+              </th>
+              <th>
+                <Bi zh="公司" en="Company" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {stub.mentions.map((c) => (
+              <tr>
+                <td>
+                  <a href={`/report/${c.ticker}`}>{c.ticker}</a>
+                </td>
+                <td>
+                  <a href={`/report/${c.ticker}`}>{c.name}</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="wiki-stub-back">
+          <a href="/wiki">{WIKI_STUB.backToWiki}</a>
+        </p>
+      </>
+    )
+  }
 </Layout>

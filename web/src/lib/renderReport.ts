@@ -1,4 +1,5 @@
 import { marked } from "marked";
+import { wikiLinkSlug } from "./wikiSlug";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -18,7 +19,7 @@ const FIN_TABLE_ROW_EN_TO_ZH: Record<string, string> = {
   "Financing Cash Flow": "籌資活動之現金流量",
   "Op Cash Flow": "營業活動之現金流量",
   "R&D Exp": "研發費用",
-  Revenue: "營收",
+  Revenue: "營業收入",
   CAPEX: "資本支出",
 };
 
@@ -43,11 +44,13 @@ function translateFinancialTableFirstColumn(md: string): string {
 }
 
 /**
- * Turn [[label]] into markdown links when label matches a TW ticker report name; else styled span.
+ * Turn [[label]] into /report/{ticker} when listed; else /wiki/{slug}（hub／stub 頁）。
+ * labelToWikiSlug：由 wikilink-hub-top500 + wikilink-stubs 建置時合併，含 hub 的 -2 碰撞後綴。
  */
 export function renderReportMarkdown(
   md: string,
-  nameToTicker: Record<string, string>
+  nameToTicker: Record<string, string>,
+  labelToWikiSlug?: Record<string, string>
 ): string {
   const wiki = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
   const processed = md.replace(wiki, (_m, raw: string) => {
@@ -56,7 +59,8 @@ export function renderReportMarkdown(
     if (t) {
       return `[${label}](/report/${t})`;
     }
-    return `<span class="wikilink-none" title="尚無對應上市公司頁面">${label}</span>`;
+    const slug = labelToWikiSlug?.[label] ?? wikiLinkSlug(label);
+    return `[${label}](/wiki/${slug})`;
   });
   const withZhRows = translateFinancialTableFirstColumn(processed);
   return marked.parse(withZhRows) as string;

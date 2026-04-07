@@ -17,16 +17,18 @@ export const NAV = {
 } as const;
 
 export const HOME = {
-  title: bi("台股覆蓋資料庫", "Taiwan coverage database"),
+  title: bi("台股研究資料庫", "Taiwan equity research database"),
   subtitle: bi(
-    "依產業瀏覽報告，支援代號／公司名搜尋與 wikilink 跳轉",
-    "Browse by sector, search tickers & names, follow wikilinks"
+    "依產業瀏覽研究報告，支援代號／公司名搜尋與 wikilink 跳轉",
+    "Browse sectors, search tickers and names, follow wikilinks"
   ),
   searchLabel: bi("搜尋代號或公司名", "Search ticker or company"),
   searchPlaceholder: "2330、台積電 / TSMC…",
   sectorList: bi("產業列表", "Sectors"),
   filesUnit: bi("檔", "reports"),
-  noResults: bi("沒有符合項目", "No matches"),
+  noResults: bi("沒有符合的項目", "No matches"),
+  indexLoading: bi("正在載入公司索引…", "Loading company index…"),
+  indexError: bi("無法載入搜尋索引，請重新整理頁面。", "Could not load search index. Refresh the page."),
 } as const;
 
 export const REPORT = {
@@ -41,12 +43,83 @@ export const REPORT = {
   valuationAria: bi("估值指標", "Valuation"),
   annualRevTitle: bi("年度營收趨勢（百萬台幣）", "Annual revenue (NT$ millions)"),
   annualRevAria: bi("年度營收柱狀圖", "Annual revenue bars"),
-  quarterlyRevTitle: bi("近四季營收（百萬台幣）", "Last 4 quarters revenue (NT$ millions)"),
+  /** 來自 financials/{ticker}.json，欄位可較 Markdown 表多 */
+  annualRevJsonTitle: bi(
+    "年度營收（結構化資料，多年）",
+    "Annual revenue from structured data (multi-year)"
+  ),
+  annualRevJsonAria: bi(
+    "依 yfinance 匯出之 JSON 年度營收",
+    "Annual revenue bars (financials JSON)"
+  ),
+  sectorPeerRevenueHint: bi(
+    "同產業最近年度營收（百萬台幣）參考：P25 {p25} · 中位數 {p50} · P75 {p75}（樣本 {n} 檔）",
+    "Sector latest annual revenue (NT$M): P25 {p25} · median {p50} · P75 {p75} (n={n})"
+  ),
+  sectorPeerRevenueRank: bi(
+    "本檔最近年度營收約高於同產業 {pct}% 的樣本（僅含已匯出 financials JSON 者）。",
+    "This report’s latest annual revenue is above ~{pct}% of sector peers with financials JSON."
+  ),
+  quarterlyRevTitle: bi("近十六季營收（百萬台幣）", "Last 16 quarters revenue (NT$ millions)"),
   quarterlyRevAria: bi("季度營收柱狀圖", "Quarterly revenue bars"),
   annualGmTitle: bi("年度毛利率（%）", "Annual gross margin (%)"),
   annualGmAria: bi("年度毛利率柱狀圖", "Annual gross margin bars"),
-  quarterlyGmTitle: bi("近四季毛利率（%）", "Last 4 quarters gross margin (%)"),
+  quarterlyGmTitle: bi("近十六季毛利率（%）", "Last 16 quarters gross margin (%)"),
   quarterlyGmAria: bi("季度毛利率柱狀圖", "Quarterly gross margin bars"),
+  chartRevenueToggleLabel: bi(
+    "顯示相對前期變動（%）",
+    "Show change vs prior period (%)"
+  ),
+  annualRevGrowthTitle: bi(
+    "年度營收：相對前一年變動（%）",
+    "Annual revenue YoY change (%)"
+  ),
+  annualRevGrowthAria: bi(
+    "年度營收年增率柱狀圖",
+    "Annual revenue YoY change bars"
+  ),
+  quarterlyRevGrowthTitle: bi(
+    "季度營收：相對前一季變動（%）",
+    "Quarterly revenue QoQ change (%)"
+  ),
+  quarterlyRevGrowthAria: bi(
+    "季度營收季增率柱狀圖",
+    "Quarterly revenue QoQ change bars"
+  ),
+  jsonAnnualRevGrowthTitle: bi(
+    "年度營收（JSON）：相對前一年變動（%）",
+    "Annual revenue YoY from JSON (%)"
+  ),
+  jsonAnnualRevGrowthAria: bi(
+    "JSON 年度營收年增率",
+    "Annual revenue YoY bars from JSON"
+  ),
+  chartMarginToggleLabel: bi(
+    "顯示與前期差（百分點）",
+    "Show change vs prior (percentage points)"
+  ),
+  annualGmPptTitle: bi(
+    "年度毛利率：與前一年差（百分點）",
+    "Annual gross margin YoY change (ppt)"
+  ),
+  annualGmPptAria: bi("毛利率年變動（百分點）柱狀圖", "Gross margin YoY change (ppt) bars"),
+  quarterlyGmPptTitle: bi(
+    "季度毛利率：與前一季差（百分點）",
+    "Quarterly gross margin QoQ change (ppt)"
+  ),
+  quarterlyGmPptAria: bi(
+    "毛利率季變動（百分點）柱狀圖",
+    "Gross margin QoQ change (ppt) bars"
+  ),
+  /** 財務表上方說明（僅中文） */
+  finTableKeyHint:
+    "年度表最多 5 年、季度表最多 16 季（由新到舊）。請用右上角切換「金額」或「占營收%」，同時間只顯示其中一種；金額單位為百萬台幣。",
+  /** 財務表分段切換：金額（僅中文，避免按鈕過寬貼邊） */
+  finTableModeAmount: "金額",
+  /** 財務表分段切換：占營收% */
+  finTableModePct: "占營收%",
+  /** 財務表切換群組（無障礙標籤，僅中文） */
+  finTableModeAria: "切換顯示金額或占營收%",
   tocTitle: bi("目錄", "On this page"),
   relatedTitle: bi("相關台股", "Linked TW listings"),
   peersTitle: bi("同產業其他公司", "Peers in same industry"),
@@ -57,7 +130,7 @@ export const REPORT = {
     "Search names in the graph to see co-mentions"
   ),
   valuationPriceLoading: bi("正在載入延遲行情股價…", "Loading delayed quote…"),
-  valuationPriceFail: bi("無法取得即時股價，下方倍數為報告原文。", "Quote unavailable; ratios are from the report."),
+  valuationPriceFail: bi("無法取得延遲行情股價，下方倍數為報告原文。", "Delayed quote unavailable; ratios are from the report."),
   valuationLiveNote: bi(
     "倍數已依延遲行情股價相對於報告基準股價比例調整（假設財務數字不變）。",
     "Multiples scaled by delayed price vs. the report baseline (fundamentals held constant)."
@@ -114,6 +187,8 @@ export const DISCOVER_PAGE = {
   ),
   placeholder: bi("例如：液冷散熱、CPO、CoWoS…", "e.g. liquid cooling, CPO…"),
   searchBtn: bi("搜尋", "Search"),
+  searching: bi("搜尋中…", "Searching…"),
+  tooShort: bi("請至少輸入 2 個字元。", "Enter at least 2 characters."),
   noResults: bi("資料庫中無匹配報告。", "No matching reports in the database."),
   /** 以 {n} 取代筆數 */
   foundFormat: bi("共 {n} 筆匹配", "{n} matches"),
@@ -122,10 +197,18 @@ export const DISCOVER_PAGE = {
     "To tag wikilinks, rebuild themes/network, or enrich via local scripts / AI, run from repo root:"
   ),
   cliCode: 'python scripts/discover.py "關鍵字"   # 可加 --apply --rebuild',
+  apiError: bi(
+    "搜尋服務暫時無法使用。靜態託管環境沒有 API 時，請以本機執行 npm run dev／preview，或改用下方指令列工具。",
+    "Search API unavailable. Use npm run dev or preview locally, or the CLI below on static hosting."
+  ),
 } as const;
 
 export const FOOTER = {
   source: bi("資料來源", "Data source"),
+  disclaimer: bi(
+    "本網站內容僅供資訊參考，不構成投資建議或買賣邀約。財務與股價資料可能有誤差、延遲或遺漏，使用時請自行查證。",
+    "For information only — not investment advice. Financial and price data may be delayed, incomplete, or inaccurate; verify before acting."
+  ),
 } as const;
 
 /** 延遲行情（Yahoo Finance，需 hybrid + Node 執行 API） */
@@ -136,6 +219,14 @@ export const RELATION = {
   suppliers: bi("主要供應商", "Key suppliers"),
   competitors: bi("主要競爭對手", "Competitors"),
   hint: bi("以下為報告節錄，完整敘述與表格見下方正文。", "Excerpt from the report; full text below."),
+} as const;
+
+export const WIKI_STUB = {
+  nav: bi("實體索引", "Entity index"),
+  badge: bi("非上市公司／無個股報告", "Not a listed TW ticker report"),
+  aliases: bi("詞彙變體", "Label variants"),
+  mentions: bi("提及此主題的上市櫃報告", "Reports that mention this topic"),
+  backToWiki: bi("返回 Wikilink 索引", "Back to wikilink index"),
 } as const;
 
 export const WIKI = {
@@ -156,8 +247,8 @@ export const QUOTE = {
     "Yahoo Finance 免費延遲報價（常見約 15–20 分鐘延遲，僅供參考）",
     "Yahoo Finance delayed (~15–20 min typical; indicative only)"
   ),
-  loading: bi("載入中…", "Loading…"),
-  error: bi("無法取得行情（請稍後再試或檢查網路）", "Quote unavailable"),
+  loading: bi("載入行情資料中…", "Loading quote…"),
+  error: bi("暫時無法取得行情，請稍後再試或檢查網路連線。", "Quote temporarily unavailable. Retry later or check your connection."),
   last: bi("最近價", "Last"),
   prevClose: bi("昨收", "Prev close"),
   change: bi("漲跌", "Change"),

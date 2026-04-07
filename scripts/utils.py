@@ -264,6 +264,27 @@ def fetch_valuation_data(info):
         val = info.get(key)
         valuation[label] = f"{val:.2f}" if val else "N/A"
 
+    roe = info.get("returnOnEquity")
+    if roe is not None and isinstance(roe, (int, float)) and roe == roe:  # not NaN
+        if abs(roe) <= 1.0001:
+            valuation["ROE"] = f"{roe * 100:.2f}%"
+        else:
+            valuation["ROE"] = f"{roe:.2f}%"
+    else:
+        valuation["ROE"] = "N/A"
+
+    beta = info.get("beta")
+    if beta is not None and isinstance(beta, (int, float)) and beta == beta:
+        valuation["Beta"] = f"{beta:.2f}"
+    else:
+        valuation["Beta"] = "N/A"
+
+    de = info.get("debtToEquity")
+    if de is not None and isinstance(de, (int, float)) and de == de:
+        valuation["Debt/Equity"] = f"{de:.2f}"
+    else:
+        valuation["Debt/Equity"] = "N/A"
+
     # Price
     cur_price = info.get("currentPrice")
     valuation["_price"] = f"{cur_price:,.2f}" if cur_price else None
@@ -283,7 +304,16 @@ def fetch_valuation_data(info):
 
 def build_valuation_table(v):
     """Build the 估值指標 markdown section from valuation dict."""
-    headers = ["P/E (TTM)", "Forward P/E", "P/S (TTM)", "P/B", "EV/EBITDA"]
+    headers = [
+        "P/E (TTM)",
+        "Forward P/E",
+        "P/S (TTM)",
+        "P/B",
+        "EV/EBITDA",
+        "ROE",
+        "Beta",
+        "Debt/Equity",
+    ]
     values = [v.get(h, "N/A") for h in headers]
     widths = [max(len(h), len(val)) for h, val in zip(headers, values)]
     header_row = "| " + " | ".join(h.rjust(w) for h, w in zip(headers, widths)) + " |"

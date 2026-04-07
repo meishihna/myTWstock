@@ -1,0 +1,233 @@
+{
+  "ticker": "2816",
+  "updatedAt": "2026-04-07T03:29:05Z",
+  "unit": "Million NTD; margin rows are percent",
+  "valuation": {
+    "P/E (TTM)": 6.68,
+    "Forward P/E": null,
+    "P/S (TTM)": 0.63,
+    "P/B": 0.86,
+    "EV/EBITDA": 1.54,
+    "ROE": 13.56,
+    "Beta": 0.06,
+    "Debt/Equity": 0.25
+  },
+  "annual": {
+    "periods": [
+      "2022-12-31",
+      "2023-12-31",
+      "2024-12-31",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        8500.87,
+        10177.513,
+        11016.347,
+        11076.835
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "R&D Exp": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "General & Admin Exp": [
+        2004.256,
+        2151.752,
+        2340.982,
+        2445.263
+      ],
+      "Operating Income": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Net Income": [
+        -1322.207,
+        1200.346,
+        1221.523,
+        1041.996
+      ],
+      "Net Margin (%)": [
+        -15.553784494998746,
+        11.79409940326286,
+        11.088276358760304,
+        9.406983131914487
+      ],
+      "Op Cash Flow": [
+        -255.368,
+        716.194,
+        -260.133,
+        582.388
+      ],
+      "Investing Cash Flow": [
+        -85.226,
+        -287.938,
+        -69.569,
+        -47.701
+      ],
+      "Financing Cash Flow": [
+        -240.343,
+        -16.36,
+        -16.645,
+        -351.266
+      ],
+      "CAPEX": [
+        -74.996,
+        -56.264,
+        -83.413,
+        -56.882
+      ]
+    }
+  },
+  "quarterly": {
+    "periods": [
+      "2024-09-30",
+      "2024-12-31",
+      "2025-03-31",
+      "2025-06-30",
+      "2025-09-30",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        2637.52,
+        2899.469,
+        2483.707,
+        2670.868,
+        null,
+        2975.7
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "R&D Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "General & Admin Exp": [
+        568.265,
+        628.689,
+        621.686,
+        607.412,
+        null,
+        652.099
+      ],
+      "Operating Income": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Net Income": [
+        145.943,
+        375.33,
+        30.511,
+        194.375,
+        null,
+        444.583
+      ],
+      "Net Margin (%)": [
+        5.533341927265006,
+        12.944784027696105,
+        1.2284460284566578,
+        7.277596646483466,
+        null,
+        14.940450986322546
+      ],
+      "Op Cash Flow": [
+        null,
+        -1072.058,
+        569.296,
+        1443.716,
+        -1053.732,
+        -376.892
+      ],
+      "Investing Cash Flow": [
+        null,
+        -36.889,
+        -10.928,
+        -5.414,
+        -6.324,
+        -25.035
+      ],
+      "Financing Cash Flow": [
+        null,
+        -4.228,
+        -4.142,
+        -3.971,
+        -339.294,
+        -3.859
+      ],
+      "CAPEX": [
+        null,
+        -39.796,
+        -23.14,
+        -4.472,
+        -5.684,
+        -23.586
+      ]
+    }
+  }
+}

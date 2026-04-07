@@ -7,12 +7,13 @@ import { RELATION } from "../lib/ui";
 interface Props {
   blocks: RelationBlocks;
   nameToTicker: Record<string, string>;
+  labelToWikiSlug?: Record<string, string>;
 }
-const { blocks, nameToTicker } = Astro.props;
+const { blocks, nameToTicker, labelToWikiSlug } = Astro.props;
 
 function toHtml(fragment?: string): string {
   if (!fragment?.trim()) return "";
-  return renderReportMarkdown(fragment, nameToTicker);
+  return renderReportMarkdown(fragment, nameToTicker, labelToWikiSlug);
 }
 
 const sections: {

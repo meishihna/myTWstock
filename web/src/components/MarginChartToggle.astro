@@ -1,0 +1,109 @@
+---
+import ChartBars from "./ChartBars.astro";
+
+interface Props {
+  titleAbs: string;
+  titlePpt: string;
+  ariaAbs: string;
+  ariaPpt: string;
+  toggleLabel: string;
+  labels: string[];
+  absValues: (number | null)[];
+  pptValues: (number | null)[];
+  absMax: number;
+  pptMax: number;
+  periodFormat?: "annual" | "quarterly";
+}
+const {
+  titleAbs,
+  titlePpt,
+  ariaAbs,
+  ariaPpt,
+  toggleLabel,
+  labels,
+  absValues,
+  pptValues,
+  absMax,
+  pptMax,
+  periodFormat,
+} = Astro.props;
+
+const denseAxis = labels.length >= 9;
+---
+<section
+  class="revenue-chart-section chart-block chart-margin-toggle"
+  aria-label={ariaAbs}
+  data-margin-chart-toggle
+  data-aria-abs={ariaAbs}
+  data-aria-ppt={ariaPpt}
+>
+  <div class="chart-revenue-toggle-head">
+    <h2 class="section-heading margin-toggle-title margin-toggle-title--abs">
+      {titleAbs}
+    </h2>
+    <h2 class="section-heading margin-toggle-title margin-toggle-title--ppt" hidden>
+      {titlePpt}
+    </h2>
+    <label class="chart-revenue-toggle-label">
+      <input type="checkbox" class="chart-margin-toggle-input" />
+      <span>{toggleLabel}</span>
+    </label>
+  </div>
+  <div class="margin-toggle-pane margin-toggle-pane--abs">
+    <ChartBars
+      embedOnly
+      ariaLabel={ariaAbs}
+      labels={labels}
+      values={absValues}
+      maxScale={absMax}
+      kind="margin"
+      denseAxis={denseAxis}
+      periodFormat={periodFormat}
+    />
+  </div>
+  <div class="margin-toggle-pane margin-toggle-pane--ppt" hidden>
+    <ChartBars
+      embedOnly
+      ariaLabel={ariaPpt}
+      labels={labels}
+      values={pptValues}
+      maxScale={pptMax}
+      kind="marginPpt"
+      denseAxis={denseAxis}
+      periodFormat={periodFormat}
+    />
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll("[data-margin-chart-toggle]").forEach((root) => {
+    const el = root;
+    if (el.dataset.marginToggleBound) return;
+    el.dataset.marginToggleBound = "1";
+    const input = root.querySelector(".chart-margin-toggle-input");
+    if (!(input instanceof HTMLInputElement)) return;
+    const absTitles = root.querySelectorAll(".margin-toggle-title--abs");
+    const pptTitles = root.querySelectorAll(".margin-toggle-title--ppt");
+    const absPanes = root.querySelectorAll(".margin-toggle-pane--abs");
+    const pptPanes = root.querySelectorAll(".margin-toggle-pane--ppt");
+    const absAria = root.getAttribute("data-aria-abs") || "";
+    const pptAria = root.getAttribute("data-aria-ppt") || "";
+    const sync = () => {
+      const p = input.checked;
+      absTitles.forEach((node) => {
+        node.hidden = p;
+      });
+      pptTitles.forEach((node) => {
+        node.hidden = !p;
+      });
+      absPanes.forEach((node) => {
+        node.hidden = p;
+      });
+      pptPanes.forEach((node) => {
+        node.hidden = !p;
+      });
+      root.setAttribute("aria-label", p ? pptAria : absAria);
+    };
+    input.addEventListener("change", sync);
+  });
+</script>

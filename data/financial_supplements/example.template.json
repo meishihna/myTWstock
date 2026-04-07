@@ -1,0 +1,27 @@
+{
+  "annual": {
+    "periods": ["2020-12-31", "2021-12-31"],
+    "series": {
+      "Revenue": [1423770.0, 1587450.0],
+      "Gross Profit": [null, null],
+      "Operating Income": [null, null],
+      "Net Income": [null, null]
+    }
+  },
+  "quarterly": {
+    "periods": [
+      "2022-03-31",
+      "2022-06-30",
+      "2022-09-30",
+      "2022-12-31",
+      "2023-03-31",
+      "2023-06-30",
+      "2023-09-30",
+      "2023-12-31"
+    ],
+    "series": {
+      "Revenue": [null, null, null, null, null, null, null, null],
+      "Gross Profit": [null, null, null, null, null, null, null, null]
+    }
+  }
+}

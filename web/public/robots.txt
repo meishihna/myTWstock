@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+# 開發時無 sitemap。正式建置（npm run build）後會由 postbuild 覆寫為含 Sitemap 的 robots.txt。

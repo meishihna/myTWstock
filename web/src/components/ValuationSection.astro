@@ -14,6 +14,7 @@ const { reportPrice, trailingNote, displayFallback } = parseValuationPriceLine(
   valuation.priceLine
 );
 
+/** 僅倍數欄位：延遲行情換算股價時重算；ROE / Beta / D/E 不應乘價格比 */
 const valKeys = ["peTtm", "forwardPe", "psTtm", "pb", "evEbitda"] as const;
 ---
 

@@ -2,7 +2,8 @@
 update_valuation.py — Refresh ONLY the valuation multiples (估值指標) in ticker reports.
 
 Much faster than update_financials.py since it only fetches stock.info (no financial statements).
-Updates: P/E (TTM), Forward P/E, P/S, P/B, EV/EBITDA, stock price, and period dates.
+Updates: P/E (TTM), Forward P/E, P/S, P/B, EV/EBITDA, ROE, Beta, Debt/Equity,
+stock price, and period dates.
 Preserves all other content including financial tables.
 
 Usage:

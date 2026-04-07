@@ -1,0 +1,111 @@
+---
+import ChartBars from "./ChartBars.astro";
+
+interface Props {
+  titleAbs: string;
+  titleGrowth: string;
+  ariaAbs: string;
+  ariaGrowth: string;
+  toggleLabel: string;
+  labels: string[];
+  absValues: (number | null)[];
+  growthValues: (number | null)[];
+  absMax: number;
+  growthMax: number;
+  periodFormat?: "annual" | "quarterly";
+}
+const {
+  titleAbs,
+  titleGrowth,
+  ariaAbs,
+  ariaGrowth,
+  toggleLabel,
+  labels,
+  absValues,
+  growthValues,
+  absMax,
+  growthMax,
+  periodFormat,
+} = Astro.props;
+
+const denseAxis = labels.length >= 9;
+---
+<section
+  class="revenue-chart-section chart-block chart-revenue-toggle"
+  aria-label={ariaAbs}
+  data-chart-toggle
+  data-aria-abs={ariaAbs}
+  data-aria-growth={ariaGrowth}
+>
+  <div class="chart-revenue-toggle-head">
+    <h2 class="section-heading chart-toggle-title chart-toggle-title--abs">
+      {titleAbs}
+    </h2>
+    <h2 class="section-heading chart-toggle-title chart-toggle-title--growth" hidden>
+      {titleGrowth}
+    </h2>
+    <label class="chart-revenue-toggle-label">
+      <input type="checkbox" class="chart-revenue-toggle-input" />
+      <span>{toggleLabel}</span>
+    </label>
+  </div>
+  <div class="chart-toggle-pane chart-toggle-pane--abs">
+    <ChartBars
+      embedOnly
+      ariaLabel={ariaAbs}
+      labels={labels}
+      values={absValues}
+      maxScale={absMax}
+      kind="revenue"
+      denseAxis={denseAxis}
+      periodFormat={periodFormat}
+    />
+  </div>
+  <div class="chart-toggle-pane chart-toggle-pane--growth" hidden>
+    <ChartBars
+      embedOnly
+      ariaLabel={ariaGrowth}
+      labels={labels}
+      values={growthValues}
+      maxScale={growthMax}
+      kind="revenueGrowth"
+      denseAxis={denseAxis}
+      periodFormat={periodFormat}
+    />
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll("[data-chart-toggle]").forEach((root) => {
+    const el = root;
+    if (el.dataset.revenueToggleBound) return;
+    el.dataset.revenueToggleBound = "1";
+    const input = root.querySelector(
+      ".chart-revenue-toggle-input"
+    );
+    if (!(input instanceof HTMLInputElement)) return;
+    const absTitles = root.querySelectorAll(".chart-toggle-title--abs");
+    const gTitles = root.querySelectorAll(".chart-toggle-title--growth");
+    const absPanes = root.querySelectorAll(".chart-toggle-pane--abs");
+    const gPanes = root.querySelectorAll(".chart-toggle-pane--growth");
+    const absAria = root.getAttribute("data-aria-abs") || "";
+    const growthAria = root.getAttribute("data-aria-growth") || "";
+    const sync = () => {
+      const g = input.checked;
+      absTitles.forEach((el) => {
+        el.hidden = g;
+      });
+      gTitles.forEach((el) => {
+        el.hidden = !g;
+      });
+      absPanes.forEach((el) => {
+        el.hidden = g;
+      });
+      gPanes.forEach((el) => {
+        el.hidden = !g;
+      });
+      root.setAttribute("aria-label", g ? growthAria : absAria);
+    };
+    input.addEventListener("change", sync);
+  });
+</script>

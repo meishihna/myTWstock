@@ -4,10 +4,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/build-index.mjs && node scripts/build-wikilink-hub.mjs && node scripts/build-themes-index.mjs",
+    "predev": "node scripts/build-index.mjs && node scripts/build-wikilink-hub.mjs && node scripts/build-wikilink-stubs.mjs && node scripts/build-themes-index.mjs && node scripts/build-sector-stats.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/build-index.mjs && node scripts/build-wikilink-hub.mjs && node scripts/build-themes-index.mjs",
+    "prebuild": "node scripts/build-index.mjs && node scripts/build-wikilink-hub.mjs && node scripts/build-wikilink-stubs.mjs && node scripts/build-themes-index.mjs && node scripts/build-sector-stats.mjs",
     "build": "astro build",
+    "postbuild": "node scripts/generate-sitemap.mjs",
     "preview": "astro preview"
   },
   "dependencies": {

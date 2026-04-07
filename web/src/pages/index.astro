@@ -31,6 +31,8 @@ if (fs.existsSync(idxPath)) {
       id="results"
       hidden
       data-empty-msg={HOME.noResults}
+      data-index-loading={HOME.indexLoading}
+      data-index-error={HOME.indexError}
     >
     </div>
   </div>
@@ -55,17 +57,27 @@ if (fs.existsSync(idxPath)) {
     /** @type {{ ticker: string; name: string; sector: string }[]} */
     let rows = [];
     const emptyMsg = box?.dataset.emptyMsg || "";
+    const indexLoading = box?.dataset.indexLoading || "";
+    const indexError = box?.dataset.indexError || "";
+    /** @type {"loading" | "ready" | "error"} */
+    let indexState = "loading";
 
     fetch("/data/reports-index.json")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("bad");
+        return r.json();
+      })
       .then((idx) => {
         rows = Object.values(idx.byTicker ?? {}).map((m) => ({
           ticker: m.ticker,
           name: m.name,
           sector: m.sector,
         }));
+        indexState = "ready";
       })
-      .catch(() => {});
+      .catch(() => {
+        indexState = "error";
+      });
 
     function norm(s) {
       return s.trim().toLowerCase();
@@ -79,6 +91,16 @@ if (fs.existsSync(idxPath)) {
         box.innerHTML = "";
         return;
       }
+      if (indexState === "loading") {
+        box.hidden = false;
+        box.innerHTML = `<span class="muted" role="status">${indexLoading}</span>`;
+        return;
+      }
+      if (indexState === "error") {
+        box.hidden = false;
+        box.innerHTML = `<span class="muted" role="alert">${indexError}</span>`;
+        return;
+      }
       const hit = rows.filter(
         (r) =>
           r.ticker.includes(q) ||
@@ -89,7 +111,7 @@ if (fs.existsSync(idxPath)) {
       const top = hit.slice(0, 40);
       if (top.length === 0) {
         box.hidden = false;
-        box.innerHTML = `<span class='muted'>${emptyMsg}</span>`;
+        box.innerHTML = `<span class="muted">${emptyMsg}</span>`;
         return;
       }
       box.hidden = false;

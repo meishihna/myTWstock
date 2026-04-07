@@ -2,11 +2,21 @@
 import Layout from "../../layouts/Layout.astro";
 import Bi from "../../components/Bi.astro";
 import ChartBars from "../../components/ChartBars.astro";
+import MarginChartToggle from "../../components/MarginChartToggle.astro";
+import RevenueChartToggle from "../../components/RevenueChartToggle.astro";
 import QuoteStrip from "../../components/QuoteStrip.astro";
 import RelationSummary from "../../components/RelationSummary.astro";
 import ValuationSection from "../../components/ValuationSection.astro";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  annualRevenueSeriesFromJson,
+  quarterlyMetricSeriesFromJson,
+  tailNullableSeries,
+  tailNullableSeriesPair,
+  type FinancialsJson,
+  type NullableFinancialSeries,
+} from "../../lib/financialsJson";
 import { renderReportMarkdown } from "../../lib/renderReport";
 import {
   addHeadingAnchors,
@@ -21,6 +31,12 @@ import {
   parseReportSummary,
   parseValuation,
   stripRelationSectionsForBody,
+  marginBarScale,
+  maxAbsGrowthScale,
+  maxAbsPptScale,
+  periodOverPeriodGrowthPct,
+  periodOverPeriodMarginPpt,
+  tailRevenueSeries,
 } from "../../lib/parseReport";
 import { REPORT, SITE } from "../../lib/ui";
 
@@ -59,7 +75,26 @@ const mdPath = path.join(repoRoot, "Pilot_Reports", ...meta.relPath.split("/"));
 const raw = fs.readFileSync(mdPath, "utf8");
 const rawBody = stripRelationSectionsForBody(raw);
 const toc = extractToc(rawBody);
-let html = renderReportMarkdown(rawBody, nameToTicker);
+
+const hubJsonPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+const stubsJsonPath = path.join(process.cwd(), "public/data/wikilink-stubs.json");
+const labelToWikiSlug: Record<string, string> = {};
+if (fs.existsSync(stubsJsonPath)) {
+  const st = JSON.parse(fs.readFileSync(stubsJsonPath, "utf8"));
+  for (const s of st.stubs ?? []) {
+    for (const lab of s.labels ?? []) {
+      if (!(lab in labelToWikiSlug)) labelToWikiSlug[lab] = s.slug;
+    }
+  }
+}
+if (fs.existsSync(hubJsonPath)) {
+  const hub = JSON.parse(fs.readFileSync(hubJsonPath, "utf8"));
+  for (const e of hub.entries ?? []) {
+    labelToWikiSlug[e.label] = e.slug;
+  }
+}
+
+let html = renderReportMarkdown(rawBody, nameToTicker, labelToWikiSlug);
 html = addHeadingAnchors(html, toc);
 
 const summary = parseReportSummary(raw);
@@ -67,25 +102,226 @@ const relationBlocks = parseRelationBlocks(raw);
 const valuation = parseValuation(raw);
 const relatedTw = extractRelatedTw(raw, nameToTicker);
 
+/** 柱狀圖與 MD/JSON「近 5 年／近 16 季」對齊：時序舊→新，只取尾端。 */
+const CHART_ANNUAL_PERIODS = 5;
+const CHART_QUARTERLY_PERIODS = 16;
+
 const revChrono = chronologicalSeries(parseAnnualRevenue(raw));
-const revMax = revChrono
-  ? Math.max(...revChrono.values.map((v) => Math.abs(v)), 1)
+const revChronoChart = revChrono
+  ? tailRevenueSeries(revChrono, CHART_ANNUAL_PERIODS)
+  : null;
+const revMax = revChronoChart
+  ? Math.max(...revChronoChart.values.map((v) => Math.abs(v)), 1)
   : 1;
 
 const qRevChrono = chronologicalSeries(parseQuarterlyRevenue(raw));
-const qRevMax = qRevChrono
-  ? Math.max(...qRevChrono.values.map((v) => Math.abs(v)), 1)
-  : 1;
 
 const annGmChrono = chronologicalSeries(parseAnnualGrossMargin(raw));
-const annGmMax = annGmChrono
-  ? Math.min(100, Math.max(...annGmChrono.values, 0.01) * 1.12)
+const annGmChronoChart = annGmChrono
+  ? tailRevenueSeries(annGmChrono, CHART_ANNUAL_PERIODS)
+  : null;
+const annGmMax = annGmChronoChart
+  ? marginBarScale(annGmChronoChart.values)
   : 100;
 
 const qGmChrono = chronologicalSeries(parseQuarterlyGrossMargin(raw));
-const qGmMax = qGmChrono
-  ? Math.min(100, Math.max(...qGmChrono.values, 0.01) * 1.12)
-  : 100;
+
+const annGmPpt =
+  annGmChronoChart && annGmChronoChart.values.length >= 2
+    ? periodOverPeriodMarginPpt(annGmChronoChart.values)
+    : null;
+const annGmPptMax = annGmPpt ? maxAbsPptScale(annGmPpt) : 1;
+
+const finPath = path.join(
+  process.cwd(),
+  "public/data/financials",
+  `${ticker}.json`
+);
+let financialsJson: FinancialsJson | null = null;
+if (fs.existsSync(finPath)) {
+  try {
+    financialsJson = JSON.parse(fs.readFileSync(finPath, "utf8"));
+  } catch {
+    financialsJson = null;
+  }
+}
+const jsonAnnualRev = annualRevenueSeriesFromJson(financialsJson);
+const jsonAnnualChart = jsonAnnualRev
+  ? tailNullableSeries(jsonAnnualRev, CHART_ANNUAL_PERIODS)
+  : null;
+const mdAnnualLen = revChrono?.values.length ?? 0;
+const jsonAnnualFinite =
+  jsonAnnualRev?.values.filter((v) => v != null && Number.isFinite(v)).length ??
+  0;
+/** JSON 年度營收期數不少於 Markdown 表時只畫一張，避免重複 */
+const useJsonForAnnualRevenue = Boolean(
+  jsonAnnualRev &&
+    jsonAnnualFinite >= 2 &&
+    jsonAnnualRev.labels.length >= mdAnnualLen
+);
+const showJsonAnnualRev = useJsonForAnnualRevenue;
+const showMarkdownAnnualRev = Boolean(
+  revChrono &&
+    revChrono.values.length > 0 &&
+    !useJsonForAnnualRevenue
+);
+const jsonRevMax = showJsonAnnualRev && jsonAnnualChart
+  ? Math.max(
+      ...jsonAnnualChart.values
+        .filter((v): v is number => v != null && Number.isFinite(v))
+        .map((v) => Math.abs(v)),
+      1
+    )
+  : 1;
+
+const jsonRevGrowth =
+  jsonAnnualChart && jsonAnnualChart.labels.length >= 2
+    ? periodOverPeriodGrowthPct(jsonAnnualChart.values)
+    : null;
+const jsonRevGrowthMax = jsonRevGrowth
+  ? maxAbsGrowthScale(jsonRevGrowth)
+  : 1;
+
+const annRevGrowth =
+  revChronoChart && revChronoChart.values.length >= 2
+    ? periodOverPeriodGrowthPct(revChronoChart.values)
+    : null;
+const annRevGrowthMax = annRevGrowth
+  ? maxAbsGrowthScale(annRevGrowth)
+  : 1;
+
+const jsonQuarterlyRev = quarterlyMetricSeriesFromJson(
+  financialsJson,
+  "Revenue"
+);
+const jsonQuarterlyGm = quarterlyMetricSeriesFromJson(
+  financialsJson,
+  "Gross Margin (%)"
+);
+const mdQuarterlyLen = qRevChrono?.labels.length ?? 0;
+const mdQuarterlyFinite =
+  qRevChrono?.values.filter((v) => Number.isFinite(v)).length ?? 0;
+const jsonQuarterlyFinite =
+  jsonQuarterlyRev?.values.filter((v) => v != null && Number.isFinite(v))
+    .length ?? 0;
+/** JSON 季資料：期數較 MD 多、或有效點較多、或達 8 季以上時優先 JSON（FinMind 補歷史） */
+const useJsonQuarterlyCharts = Boolean(
+  jsonQuarterlyRev &&
+    jsonQuarterlyGm &&
+    jsonQuarterlyRev.labels.length === jsonQuarterlyGm.labels.length &&
+    jsonQuarterlyFinite >= 2 &&
+    (jsonQuarterlyRev.labels.length >= mdQuarterlyLen ||
+      jsonQuarterlyFinite >= mdQuarterlyFinite ||
+      jsonQuarterlyRev.labels.length >= 8)
+);
+
+let chartQuarterlyRev: NullableFinancialSeries | null = null;
+let chartQuarterlyGm: NullableFinancialSeries | null = null;
+if (useJsonQuarterlyCharts && jsonQuarterlyRev && jsonQuarterlyGm) {
+  const [r, g] = tailNullableSeriesPair(
+    jsonQuarterlyRev,
+    jsonQuarterlyGm,
+    CHART_QUARTERLY_PERIODS
+  );
+  chartQuarterlyRev = r;
+  chartQuarterlyGm = g;
+} else {
+  if (qRevChrono) {
+    chartQuarterlyRev = tailNullableSeries(
+      {
+        labels: qRevChrono.labels,
+        values: qRevChrono.values.map((v) => v),
+      },
+      CHART_QUARTERLY_PERIODS
+    );
+  }
+  if (qGmChrono) {
+    chartQuarterlyGm = tailNullableSeries(
+      {
+        labels: qGmChrono.labels,
+        values: qGmChrono.values.map((v) => v),
+      },
+      CHART_QUARTERLY_PERIODS
+    );
+  }
+}
+
+const quarterlyRevChartOk = Boolean(
+  chartQuarterlyRev &&
+    chartQuarterlyRev.values.some((v) => v != null && Number.isFinite(v))
+);
+const quarterlyGmChartOk = Boolean(
+  chartQuarterlyGm &&
+    chartQuarterlyGm.values.some((v) => v != null && Number.isFinite(v))
+);
+
+const qRevGrowth =
+  chartQuarterlyRev && chartQuarterlyRev.values.length >= 2
+    ? periodOverPeriodGrowthPct(chartQuarterlyRev.values)
+    : null;
+const qRevGrowthMax = qRevGrowth ? maxAbsGrowthScale(qRevGrowth) : 1;
+
+const qRevFinite = chartQuarterlyRev
+  ? chartQuarterlyRev.values.filter(
+      (v): v is number => v != null && Number.isFinite(v)
+    )
+  : [];
+const qRevMax =
+  qRevFinite.length > 0 ? Math.max(...qRevFinite.map((v) => Math.abs(v)), 1) : 1;
+
+const qGmFinite = chartQuarterlyGm
+  ? chartQuarterlyGm.values.filter(
+      (v): v is number => v != null && Number.isFinite(v)
+    )
+  : [];
+const qGmMax =
+  qGmFinite.length > 0 ? marginBarScale(qGmFinite) : 100;
+
+const qGmPpt =
+  chartQuarterlyGm && chartQuarterlyGm.values.length >= 2
+    ? periodOverPeriodMarginPpt(chartQuarterlyGm.values)
+    : null;
+const qGmPptMax = qGmPpt ? maxAbsPptScale(qGmPpt) : 1;
+
+const sectorStatsPath = path.join(
+  process.cwd(),
+  "public/data/sector-stats.json"
+);
+let sectorPeerHintLine: string | null = null;
+let sectorPeerRankLine: string | null = null;
+if (fs.existsSync(sectorStatsPath)) {
+  try {
+    const ss = JSON.parse(fs.readFileSync(sectorStatsPath, "utf8"));
+    const secBlock = ss.sectors?.[meta.sector];
+    const revAgg = secBlock?.revenueLatest;
+    const rank = secBlock?.revenuePercentileRank?.[meta.ticker];
+    if (
+      revAgg &&
+      revAgg.n >= 3 &&
+      revAgg.p25 != null &&
+      revAgg.p50 != null &&
+      revAgg.p75 != null
+    ) {
+      const fmtM = (x: number) =>
+        x.toLocaleString("zh-TW", { maximumFractionDigits: 0 });
+      sectorPeerHintLine = REPORT.sectorPeerRevenueHint.replace(
+        "{p25}",
+        fmtM(revAgg.p25)
+      )
+        .replace("{p50}", fmtM(revAgg.p50))
+        .replace("{p75}", fmtM(revAgg.p75))
+        .replace("{n}", String(revAgg.n));
+    }
+    if (rank != null && Number.isFinite(rank)) {
+      sectorPeerRankLine = REPORT.sectorPeerRevenueRank.replace(
+        "{pct}",
+        String(rank)
+      );
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 const byTicker = idx.byTicker as Record<
   string,
@@ -128,7 +364,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
       summary.note) && (
       <section class="meta-card-grid" aria-label={REPORT.summaryAria}>
         {summary.board && (
-          <div class="meta-card">
+          <div class="meta-card" data-meta="sector">
             <span class="meta-card-label">
               <Bi zh="板塊" en="Sector" />
             </span>
@@ -136,7 +372,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
           </div>
         )}
         {summary.industry && (
-          <div class="meta-card">
+          <div class="meta-card" data-meta="industry">
             <span class="meta-card-label">
               <Bi zh="產業" en="Industry" />
             </span>
@@ -144,7 +380,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
           </div>
         )}
         {summary.marketCap && (
-          <div class="meta-card">
+          <div class="meta-card" data-meta="mcap">
             <span class="meta-card-label">
               <Bi zh="市值" en="Market cap" />
             </span>
@@ -152,7 +388,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
           </div>
         )}
         {summary.enterpriseValue && (
-          <div class="meta-card">
+          <div class="meta-card" data-meta="ev">
             <span class="meta-card-label">
               <Bi zh="企業價值" en="Enterprise value" />
             </span>
@@ -160,7 +396,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
           </div>
         )}
         {summary.note && (
-          <div class="meta-card meta-card-wide">
+          <div class="meta-card meta-card-wide" data-meta="note">
             <span class="meta-card-label">
               <Bi zh="備註" en="Note" />
             </span>
@@ -175,54 +411,165 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
 
   <QuoteStrip ticker={meta.ticker} />
 
-  <RelationSummary blocks={relationBlocks} nameToTicker={nameToTicker} />
+  <RelationSummary
+    blocks={relationBlocks}
+    nameToTicker={nameToTicker}
+    labelToWikiSlug={labelToWikiSlug}
+  />
 
   <div class="report-charts-grid">
     {
-      revChrono && revChrono.values.length > 0 && (
+      showJsonAnnualRev && jsonAnnualChart && jsonRevGrowth && (
+        <RevenueChartToggle
+          titleAbs={REPORT.annualRevTitle}
+          titleGrowth={REPORT.annualRevGrowthTitle}
+          ariaAbs={REPORT.annualRevAria}
+          ariaGrowth={REPORT.annualRevGrowthAria}
+          toggleLabel={REPORT.chartRevenueToggleLabel}
+          labels={jsonAnnualChart.labels}
+          absValues={jsonAnnualChart.values}
+          growthValues={jsonRevGrowth}
+          absMax={jsonRevMax}
+          growthMax={jsonRevGrowthMax}
+          periodFormat="annual"
+        />
+      )
+    }
+    {
+      showJsonAnnualRev && jsonAnnualChart && !jsonRevGrowth && (
         <ChartBars
           titleBi={REPORT.annualRevTitle}
           ariaLabel={REPORT.annualRevAria}
-          labels={revChrono.labels}
-          values={revChrono.values}
-          maxScale={revMax}
+          labels={jsonAnnualChart.labels}
+          values={jsonAnnualChart.values}
+          maxScale={jsonRevMax}
           kind="revenue"
+          denseAxis={jsonAnnualChart.labels.length >= 9}
+          periodFormat="annual"
         />
       )
     }
     {
-      qRevChrono && qRevChrono.values.length > 0 && (
+      showMarkdownAnnualRev && revChronoChart && annRevGrowth && (
+        <RevenueChartToggle
+          titleAbs={REPORT.annualRevTitle}
+          titleGrowth={REPORT.annualRevGrowthTitle}
+          ariaAbs={REPORT.annualRevAria}
+          ariaGrowth={REPORT.annualRevGrowthAria}
+          toggleLabel={REPORT.chartRevenueToggleLabel}
+          labels={revChronoChart.labels}
+          absValues={revChronoChart.values}
+          growthValues={annRevGrowth}
+          absMax={revMax}
+          growthMax={annRevGrowthMax}
+          periodFormat="annual"
+        />
+      )
+    }
+    {
+      showMarkdownAnnualRev && revChronoChart && !annRevGrowth && (
+        <ChartBars
+          titleBi={REPORT.annualRevTitle}
+          ariaLabel={REPORT.annualRevAria}
+          labels={revChronoChart.labels}
+          values={revChronoChart.values}
+          maxScale={revMax}
+          kind="revenue"
+          denseAxis={revChronoChart.labels.length >= 9}
+          periodFormat="annual"
+        />
+      )
+    }
+    {
+      quarterlyRevChartOk && qRevGrowth && (
+        <RevenueChartToggle
+          titleAbs={REPORT.quarterlyRevTitle}
+          titleGrowth={REPORT.quarterlyRevGrowthTitle}
+          ariaAbs={REPORT.quarterlyRevAria}
+          ariaGrowth={REPORT.quarterlyRevGrowthAria}
+          toggleLabel={REPORT.chartRevenueToggleLabel}
+          labels={chartQuarterlyRev!.labels}
+          absValues={chartQuarterlyRev!.values}
+          growthValues={qRevGrowth}
+          absMax={qRevMax}
+          growthMax={qRevGrowthMax}
+          periodFormat="quarterly"
+        />
+      )
+    }
+    {
+      quarterlyRevChartOk && !qRevGrowth && (
         <ChartBars
           titleBi={REPORT.quarterlyRevTitle}
           ariaLabel={REPORT.quarterlyRevAria}
-          labels={qRevChrono.labels}
-          values={qRevChrono.values}
+          labels={chartQuarterlyRev!.labels}
+          values={chartQuarterlyRev!.values}
           maxScale={qRevMax}
           kind="revenue"
+          denseAxis={chartQuarterlyRev!.labels.length >= 9}
+          periodFormat="quarterly"
         />
       )
     }
     {
-      annGmChrono && annGmChrono.values.length > 0 && (
+      annGmChronoChart && annGmChronoChart.values.length > 0 && annGmPpt && (
+        <MarginChartToggle
+          titleAbs={REPORT.annualGmTitle}
+          titlePpt={REPORT.annualGmPptTitle}
+          ariaAbs={REPORT.annualGmAria}
+          ariaPpt={REPORT.annualGmPptAria}
+          toggleLabel={REPORT.chartMarginToggleLabel}
+          labels={annGmChronoChart.labels}
+          absValues={annGmChronoChart.values}
+          pptValues={annGmPpt}
+          absMax={annGmMax}
+          pptMax={annGmPptMax}
+          periodFormat="annual"
+        />
+      )
+    }
+    {
+      annGmChronoChart && annGmChronoChart.values.length > 0 && !annGmPpt && (
         <ChartBars
           titleBi={REPORT.annualGmTitle}
           ariaLabel={REPORT.annualGmAria}
-          labels={annGmChrono.labels}
-          values={annGmChrono.values}
+          labels={annGmChronoChart.labels}
+          values={annGmChronoChart.values}
           maxScale={annGmMax}
           kind="margin"
+          denseAxis={annGmChronoChart.labels.length >= 9}
+          periodFormat="annual"
         />
       )
     }
     {
-      qGmChrono && qGmChrono.values.length > 0 && (
+      quarterlyGmChartOk && qGmPpt && (
+        <MarginChartToggle
+          titleAbs={REPORT.quarterlyGmTitle}
+          titlePpt={REPORT.quarterlyGmPptTitle}
+          ariaAbs={REPORT.quarterlyGmAria}
+          ariaPpt={REPORT.quarterlyGmPptAria}
+          toggleLabel={REPORT.chartMarginToggleLabel}
+          labels={chartQuarterlyGm!.labels}
+          absValues={chartQuarterlyGm!.values}
+          pptValues={qGmPpt}
+          absMax={qGmMax}
+          pptMax={qGmPptMax}
+          periodFormat="quarterly"
+        />
+      )
+    }
+    {
+      quarterlyGmChartOk && !qGmPpt && (
         <ChartBars
           titleBi={REPORT.quarterlyGmTitle}
           ariaLabel={REPORT.quarterlyGmAria}
-          labels={qGmChrono.labels}
-          values={qGmChrono.values}
+          labels={chartQuarterlyGm!.labels}
+          values={chartQuarterlyGm!.values}
           maxScale={qGmMax}
           kind="margin"
+          denseAxis={chartQuarterlyGm!.labels.length >= 9}
+          periodFormat="quarterly"
         />
       )
     }
@@ -273,11 +620,26 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
           </a>
         </nav>
       )}
+      {(sectorPeerHintLine || sectorPeerRankLine) && (
+        <section class="sector-stats-aside" aria-label="Sector context">
+          {sectorPeerHintLine && <p class="aside-hint">{sectorPeerHintLine}</p>}
+          {sectorPeerRankLine && <p class="aside-hint">{sectorPeerRankLine}</p>}
+        </section>
+      )}
       <div class="aside-links">
         <a href="/graph" class="aside-cta">{REPORT.graphCta}</a>
         <p class="aside-hint">{REPORT.graphHint}</p>
       </div>
     </aside>
-    <article class="report-body report-body-padded" set:html={html} />
+    <article
+      class="report-body report-body-padded"
+      data-fin-table-enhanced
+      data-fin-table-hint={REPORT.finTableKeyHint}
+      data-fin-table-mode-amount-label={REPORT.finTableModeAmount}
+      data-fin-table-mode-pct-label={REPORT.finTableModePct}
+      data-fin-table-mode-aria={REPORT.finTableModeAria}
+      set:html={html}
+    />
   </div>
+  <script is:inline src="/scripts/report-financial-tables.js"></script>
 </Layout>

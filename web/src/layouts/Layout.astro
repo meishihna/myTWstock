@@ -1,12 +1,25 @@
 ---
 import Bi from "../components/Bi.astro";
-import { DISCOVER_PAGE, SITE, THEMES_PAGE } from "../lib/ui";
+import { DISCOVER_PAGE, FOOTER, SITE, THEMES_PAGE } from "../lib/ui";
 
 interface Props {
   title: string;
   description?: string;
+  /** 相對於網站根路徑的社群預覽圖 */
+  ogImage?: string;
+  /** 不讓搜尋引擎索引（例如預覽環境） */
+  noIndex?: boolean;
 }
-const { title, description = SITE.desc } = Astro.props;
+const {
+  title,
+  description = SITE.desc,
+  ogImage = "/og-default.svg",
+  noIndex = false,
+} = Astro.props;
+
+const siteBase = Astro.site ?? new URL("/", Astro.url);
+const canonicalUrl = new URL(Astro.url.pathname + Astro.url.search, siteBase);
+const ogImageUrl = new URL(ogImage, siteBase);
 ---
 <!doctype html>
 <html lang="zh-Hant">
@@ -14,7 +27,21 @@ const { title, description = SITE.desc } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    {noIndex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonicalUrl.href} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>{title}</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl.href} />
+    <meta property="og:image" content={ogImageUrl.href} />
+    <meta property="og:locale" content="zh_TW" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl.href} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -40,7 +67,8 @@ const { title, description = SITE.desc } = Astro.props;
       <slot />
     </main>
     <footer class="site-footer">
-      <p>
+      <p class="footer-disclaimer" role="note">{FOOTER.disclaimer}</p>
+      <p class="footer-source">
         <Bi zh="資料來源" en="Data source" />：<a
           href="https://github.com/meishihna/myTWstock"
           target="_blank"

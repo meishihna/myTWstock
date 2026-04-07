@@ -1,0 +1,110 @@
+{
+  "ticker": "5863",
+  "updatedAt": "2026-04-07T04:00:32Z",
+  "unit": "Million NTD; margin rows are percent",
+  "valuation": {
+    "P/E (TTM)": 13.73,
+    "Forward P/E": null,
+    "P/S (TTM)": 2.57,
+    "P/B": 0.58,
+    "EV/EBITDA": null,
+    "ROE": 4.41,
+    "Beta": 0.03,
+    "Debt/Equity": null
+  },
+  "annual": {
+    "periods": [
+      "2022-12-31",
+      "2023-12-31",
+      "2024-12-31",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        1184.214,
+        1040.311,
+        1182.369,
+        1342.301
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "R&D Exp": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "General & Admin Exp": [
+        458.053,
+        447.289,
+        487.072,
+        570.493
+      ],
+      "Operating Income": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "Net Income": [
+        221.369,
+        113.134,
+        251.292,
+        267.453
+      ],
+      "Net Margin (%)": [
+        18.693327388461885,
+        10.875017182361812,
+        21.253263575076815,
+        19.924964668878292
+      ],
+      "Op Cash Flow": [
+        -4699.495,
+        1678.196,
+        493.318,
+        -411.059
+      ],
+      "Investing Cash Flow": [
+        2767.86,
+        -1119.601,
+        68.934,
+        1443.064
+      ],
+      "Financing Cash Flow": [
+        -583.733,
+        -683.034,
+        -300.619,
+        241.504
+      ],
+      "CAPEX": [
+        -22.713,
+        -17.578,
+        -36.951,
+        -35.598
+      ]
+    }
+  },
+  "quarterly": null
+}

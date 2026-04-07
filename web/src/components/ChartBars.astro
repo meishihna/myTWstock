@@ -1,59 +1,177 @@
 ---
-import { formatPercent, formatRevenueShort } from "../lib/parseReport";
+import {
+  formatAxisPeriodForChart,
+  formatCompactQuarterLabel,
+  formatPctChange,
+  formatPercent,
+  formatPptDelta,
+  formatRevenueAxisDense,
+  formatRevenueShort,
+} from "../lib/parseReport";
 
 interface Props {
-  titleBi: string;
+  titleBi?: string;
   ariaLabel: string;
   labels: string[];
-  values: number[];
+  values: number[] | (number | null)[];
   maxScale: number;
-  kind: "revenue" | "margin";
+  kind: "revenue" | "margin" | "revenueGrowth" | "marginPpt";
+  embedOnly?: boolean;
+  /** 近十六季等：短日期 + 旋轉標籤，避免 X 軸文字重疊 */
+  denseAxis?: boolean;
+  /** 年度圖僅顯示年；季度圖顯示 YYYY Qn（與財務表一致） */
+  periodFormat?: "annual" | "quarterly";
 }
-const { titleBi, ariaLabel, labels, values, maxScale, kind } = Astro.props;
+const {
+  titleBi = "",
+  ariaLabel,
+  labels,
+  values,
+  maxScale,
+  kind,
+  embedOnly = false,
+  denseAxis = false,
+  periodFormat,
+} = Astro.props;
 
-const fmt = (v: number) =>
-  kind === "revenue" ? formatRevenueShort(v) : formatPercent(v);
+function fmt(v: number | null): string {
+  if (v === null) return "—";
+  if (kind === "revenue") {
+    return denseAxis ? formatRevenueAxisDense(v) : formatRevenueShort(v);
+  }
+  if (kind === "revenueGrowth") return formatPctChange(v);
+  if (kind === "marginPpt" && denseAxis) {
+    if (!Number.isFinite(v)) return "—";
+    const sign = v > 0 ? "+" : "";
+    return `${sign}${v.toLocaleString("zh-TW", { maximumFractionDigits: 1 })}`;
+  }
+  if (kind === "marginPpt") return formatPptDelta(v);
+  if (kind === "margin" && denseAxis) {
+    return `${v.toLocaleString("zh-TW", { maximumFractionDigits: 1 })}%`;
+  }
+  return formatPercent(v);
+}
 
-/** 表頭多為 YYYY-MM-DD → 單行 2025/03/31，較易一眼讀完 */
 function formatAxisPeriodLabel(label: string | undefined): string {
   if (!label?.trim()) return "";
   const s = label.trim();
+  if (periodFormat) {
+    return formatAxisPeriodForChart(s, periodFormat, {
+      compact: Boolean(denseAxis && periodFormat === "quarterly"),
+    });
+  }
+  if (denseAxis) return formatCompactQuarterLabel(s);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) return `${m[1]}/${m[2]}/${m[3]}`;
   return s;
 }
 
-/** 固定軌道高度（px），柱高用像素計算，避免 % 在 flex 內無參考高度而壓成細線 */
+const barsClass = denseAxis ? "revenue-bars revenue-bars--dense" : "revenue-bars";
+const embedWrapClass = denseAxis
+  ? "chart-bars-embed chart-bars-embed--scroll"
+  : "chart-bars-embed";
+const embedOnlyWrapClass = denseAxis ? embedWrapClass : "chart-bars-embed";
+
 const TRACK_H = 152;
-const barPx = (v: number) => {
+const barPx = (v: number | null) => {
+  if (v === null || !Number.isFinite(v)) return 4;
   const h = (Math.abs(v) / maxScale) * TRACK_H;
-  return Math.max(kind === "revenue" ? 6 : 5, Math.round(h));
+  const minH = kind === "revenue" ? 6 : 5;
+  return Math.max(minH, Math.round(h));
 };
+
+function barClass(v: number | null): string {
+  const parts: string[] = ["revenue-bar"];
+  if (kind === "margin") parts.push("revenue-bar--margin");
+  if (kind === "revenueGrowth" || kind === "marginPpt") {
+    if (v != null && Number.isFinite(v)) {
+      parts.push(v >= 0 ? "revenue-bar--growth-pos" : "revenue-bar--growth-neg");
+    } else {
+      parts.push("revenue-bar--growth-na");
+    }
+  }
+  return parts.join(" ");
+}
 ---
 
-<section class="revenue-chart-section chart-block" aria-label={ariaLabel}>
-  <h2 class="section-heading">{titleBi}</h2>
-  <div class="revenue-bars" role="img" aria-label={ariaLabel}>
-    {
-      values.map((v, i) => {
-        const full = labels[i] ?? "";
-        const shown = formatAxisPeriodLabel(full);
-        return (
-        <div class="revenue-bar-wrap">
-          <div class="revenue-bar-track" style={`height: ${TRACK_H}px`}>
-            <div
-              class:list={["revenue-bar", kind === "margin" && "revenue-bar--margin"]}
-              style={`height: ${barPx(v)}px`}
-              title={`${full}: ${fmt(v)}`}
-            />
+{
+  embedOnly ? (
+    <div class={embedOnlyWrapClass}>
+      <div class={barsClass} role="img" aria-label={ariaLabel}>
+        {labels.map((_, i) => {
+          const v = values[i] ?? null;
+          const full = labels[i] ?? "";
+          const shown = formatAxisPeriodLabel(full);
+          return (
+            <div class="revenue-bar-wrap">
+              <div class="revenue-bar-track" style={`height: ${TRACK_H}px`}>
+                <div
+                  class={barClass(v)}
+                  style={`height: ${barPx(v)}px`}
+                  title={`${full}: ${fmt(v)}`}
+                />
+              </div>
+              <span class="revenue-bar-label" title={`${full} · ${fmt(v)}`}>
+                {shown}
+              </span>
+              <span class="revenue-bar-val">{fmt(v)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : (
+    <section class="revenue-chart-section chart-block" aria-label={ariaLabel}>
+      {titleBi ? <h2 class="section-heading">{titleBi}</h2> : null}
+      {denseAxis ? (
+        <div class={embedWrapClass}>
+          <div class={barsClass} role="img" aria-label={ariaLabel}>
+            {labels.map((_, i) => {
+              const v = values[i] ?? null;
+              const full = labels[i] ?? "";
+              const shown = formatAxisPeriodLabel(full);
+              return (
+                <div class="revenue-bar-wrap">
+                  <div class="revenue-bar-track" style={`height: ${TRACK_H}px`}>
+                    <div
+                      class={barClass(v)}
+                      style={`height: ${barPx(v)}px`}
+                      title={`${full}: ${fmt(v)}`}
+                    />
+                  </div>
+                  <span class="revenue-bar-label" title={`${full} · ${fmt(v)}`}>
+                    {shown}
+                  </span>
+                  <span class="revenue-bar-val">{fmt(v)}</span>
+                </div>
+              );
+            })}
           </div>
-          <span class="revenue-bar-label" title={`${full} · ${fmt(v)}`}>
-            {shown}
-          </span>
-          <span class="revenue-bar-val">{fmt(v)}</span>
         </div>
-        );
-      })
-    }
-  </div>
-</section>
+      ) : (
+        <div class={barsClass} role="img" aria-label={ariaLabel}>
+          {labels.map((_, i) => {
+            const v = values[i] ?? null;
+            const full = labels[i] ?? "";
+            const shown = formatAxisPeriodLabel(full);
+            return (
+              <div class="revenue-bar-wrap">
+                <div class="revenue-bar-track" style={`height: ${TRACK_H}px`}>
+                  <div
+                    class={barClass(v)}
+                    style={`height: ${barPx(v)}px`}
+                    title={`${full}: ${fmt(v)}`}
+                  />
+                </div>
+                <span class="revenue-bar-label" title={`${full} · ${fmt(v)}`}>
+                  {shown}
+                </span>
+                <span class="revenue-bar-val">{fmt(v)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
