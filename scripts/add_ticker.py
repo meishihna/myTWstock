@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils import find_ticker_files, REPORTS_DIR, PROJECT_ROOT
 
 # Import financials fetcher
-from update_financials import fetch_financials, build_financial_section
+from update_financials import fetch_financials, write_financials_store
 
 
 def generate_report(ticker, name, sector=None, industry=None):
@@ -37,7 +37,7 @@ def generate_report(ticker, name, sector=None, industry=None):
             industry = fin_data.get("industry", "Unknown")
         market_cap = fin_data.get("market_cap", "N/A")
         enterprise_value = fin_data.get("enterprise_value", "N/A")
-        fin_section = build_financial_section(fin_data)
+        write_financials_store(ticker, fin_data)
     else:
         if not sector:
             sector = "Unknown"
@@ -45,11 +45,6 @@ def generate_report(ticker, name, sector=None, industry=None):
             industry = "Unknown"
         market_cap = "N/A"
         enterprise_value = "N/A"
-        fin_section = (
-            "## 財務概況 (單位: 百萬台幣, 只有 Margin 為 %)\n"
-            "### 年度關鍵財務數據 (近 3 年)\n無可用數據。\n\n"
-            "### 季度關鍵財務數據 (近 4 季)\n無可用數據。\n"
-        )
 
     content = f"""# {ticker} - [[{name}]]
 
@@ -66,8 +61,7 @@ def generate_report(ticker, name, sector=None, industry=None):
 
 ## 主要客戶及供應商
 *(待enrichment)*
-
-{fin_section}"""
+"""
 
     return content, sector
 

@@ -1,16 +1,16 @@
 {
   "ticker": "5248",
-  "updatedAt": "2026-04-07T03:55:31Z",
+  "updatedAt": "2026-04-07T19:41:28Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 1.24,
-    "P/B": 0.82,
-    "EV/EBITDA": 7.32,
-    "ROE": 3.23,
-    "Beta": -0.01,
-    "Debt/Equity": 26.32
+    "P/S (TTM)": 1.33,
+    "P/B": 0.8,
+    "EV/EBITDA": 17.56,
+    "ROE": -1.82,
+    "Beta": null,
+    "Debt/Equity": 28.91
   },
   "annual": {
     "periods": [

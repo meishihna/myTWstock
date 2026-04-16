@@ -1,10 +1,8 @@
 """
-update_valuation.py — Refresh ONLY the valuation multiples (估值指標) in ticker reports.
+update_valuation.py — Refresh 報告抬頭 **市值／企業價值** metadata，並自 MD 移除舊的 ``### 估值指標`` 表。
 
-Much faster than update_financials.py since it only fetches stock.info (no financial statements).
-Updates: P/E (TTM), Forward P/E, P/S, P/B, EV/EBITDA, ROE, Beta, Debt/Equity,
-stock price, and period dates.
-Preserves all other content including financial tables.
+倍數與股價已改由網頁 **ValuationSection** + financials JSON 顯示，內文不再保留重複的估值 Markdown 表。
+仍使用 Yahoo ``stock.info``（與舊版相同節奏），僅寫入 ``**市值:**``／``**企業價值:**`` 行。
 
 Usage:
   python scripts/update_valuation.py                     # ALL tickers
@@ -24,21 +22,21 @@ import yfinance as yf
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils import (
-    find_ticker_files, parse_scope_args, setup_stdout,
-    fetch_valuation_data, build_valuation_table, update_metadata,
+    find_ticker_files,
+    parse_scope_args,
+    setup_stdout,
+    update_metadata,
 )
 
 
 def fetch_valuation(ticker):
-    """Fetch valuation multiples only. Tries .TW then .TWO."""
+    """Fetch market cap / enterprise value from Yahoo. Tries .TW then .TWO."""
     for suffix in [".TW", ".TWO"]:
         try:
             stock = yf.Ticker(f"{ticker}{suffix}")
             info = stock.info
             if not info or not info.get("currentPrice"):
                 continue
-
-            valuation = fetch_valuation_data(info)
 
             market_cap = (
                 f"{info['marketCap'] / 1_000_000:,.0f}"
@@ -52,7 +50,6 @@ def fetch_valuation(ticker):
             )
 
             return {
-                "valuation": valuation,
                 "market_cap": market_cap,
                 "enterprise_value": enterprise_value,
                 "suffix": suffix,
@@ -63,7 +60,7 @@ def fetch_valuation(ticker):
 
 
 def update_file(filepath, ticker, dry_run=False):
-    """Update only the valuation section in a ticker file."""
+    """Strip legacy 估值指標 MD 表並更新抬頭市值／企業價值。"""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -72,21 +69,13 @@ def update_file(filepath, ticker, dry_run=False):
         print(f"  {ticker}: SKIP (no data)")
         return False
 
-    new_table = build_valuation_table(data["valuation"])
-
-    # Replace existing 估值指標 section (between ### 估值指標 and ### 年度)
+    # 內文不再維護估值表（與報告頁元件重複）；僅清除舊版 MD 區塊
     if "### 估值指標" in content:
         content = re.sub(
             r"### 估值指標.*?(?=\n### 年度)",
-            new_table + "\n",
+            "",
             content,
             flags=re.DOTALL,
-        )
-    elif "## 財務概況" in content:
-        # No valuation section yet — insert before 年度
-        content = content.replace(
-            "### 年度關鍵財務數據",
-            new_table + "\n\n### 年度關鍵財務數據",
         )
 
     content = update_metadata(content, data.get("market_cap"), data.get("enterprise_value"))

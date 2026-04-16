@@ -12,6 +12,7 @@ const FIN_TABLE_ROW_EN_TO_ZH: Record<string, string> = {
   "Net Margin (%)": "淨利率 (%)",
   "Selling & Marketing Exp": "銷售及行銷費用",
   "General & Admin Exp": "一般及管理費用",
+  "Cost of Revenue": "營業成本",
   "Operating Income": "營業利益",
   "Gross Profit": "營業毛利",
   "Net Income": "淨利",
@@ -20,6 +21,7 @@ const FIN_TABLE_ROW_EN_TO_ZH: Record<string, string> = {
   "Op Cash Flow": "營業活動之現金流量",
   "R&D Exp": "研發費用",
   Revenue: "營業收入",
+  EPS: "每股盈餘（元）",
   CAPEX: "資本支出",
 };
 

@@ -72,6 +72,7 @@ npm run preview
 
 - 執行 **`python scripts/update_financials.py`** 更新報告內 `## 財務概況` 時，會同步寫入 **`public/data/financials/{代號}.json`**（預設與 Markdown 同為 **近 5 年**、季度 JSON 最多可較 MD 多幾季）。
 - 腳本會 **自動**向 [FinMind](https://finmind.github.io/) 公開 API 拉台股綜合損益／現金流量，與 Yahoo 合併（**Yahoo 數字優先**），以補滿近 12 季等歷史；環境變數 **`MYTWSTOCK_FINMIND=0`** 可關閉。可選 `data/financial_supplements/{代號}.json` 再覆寫或補缺。
+- **FinMind**：登入後於使用者資訊頁取得 **JWT**，設環境變數 **`FINMIND_TOKEN`**（或 `FINMIND_API_TOKEN`）；腳本會用 [v4](https://finmind.github.io/login/) `Authorization: Bearer …`。未設 token 時可走 [v3](https://finmind.github.io/v3/quickstart/) 並可選 **`FINMIND_USER_ID`** + **`FINMIND_PASSWORD`**。未認證約 **600 次／小時**；認證後配額較高。每檔至少 2 次請求；可設 **`FINMIND_REQUEST_SLEEP_SEC`**。要**每檔都拉 FinMind** 勿用 `MYTWSTOCK_FINMIND_IF_YAHOO_Q_LT` 跳過，或設 **`MYTWSTOCK_FINMIND_FULL=1`**。遇 429 可調 **`FINMIND_429_COOLDOWN_SEC`**。詳見 `scripts/update_financials.py` 開頭。
 - 報告頁年度營收僅 **一張圖**：若 `financials/{代號}.json` 的年度營收期數 **不少於** Markdown 表，則圖表讀 JSON（期數較完整）；否則讀 Markdown，避免與 JSON 重複兩張年度營收圖。
 
 ## Wikilink 行為

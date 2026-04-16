@@ -51,13 +51,25 @@ export type ValuationParsed = {
   labels: { key: string; label: string; labelZh: string; labelEn: string }[];
 };
 
+/** 報告 Markdown 表格欄序（含 ROE）；解析時跳過 ROE，其餘欄位對齊 Beta、D/E */
+const VAL_TABLE_SOURCE_KEYS = [
+  "peTtm",
+  "forwardPe",
+  "psTtm",
+  "pb",
+  "evEbitda",
+  "roe",
+  "beta",
+  "debtEquity",
+] as const;
+
+/** 估值區塊 UI 顯示順序（不含 ROE） */
 const VAL_KEYS = [
   { key: "peTtm", labelZh: "本益比", labelEn: "P/E (TTM)" },
   { key: "forwardPe", labelZh: "前瞻本益比", labelEn: "Forward P/E" },
   { key: "psTtm", labelZh: "股價營收比", labelEn: "P/S (TTM)" },
   { key: "pb", labelZh: "股價淨值比", labelEn: "P/B" },
   { key: "evEbitda", labelZh: "企業價值倍數", labelEn: "EV/EBITDA" },
-  { key: "roe", labelZh: "股東權益報酬率", labelEn: "ROE" },
   { key: "beta", labelZh: "Beta", labelEn: "Beta" },
   { key: "debtEquity", labelZh: "負債權益比", labelEn: "Debt/Equity" },
 ] as const;
@@ -68,7 +80,19 @@ export function parseValuation(md: string): ValuationParsed {
   const priceLine = h ? h[1].trim() : undefined;
 
   const idx = md.indexOf("### 估值指標");
-  if (idx === -1) return { priceLine, metrics, labels: [] };
+  if (idx === -1) {
+    const dashMetrics: Record<string, string> = {};
+    const dashLabels = VAL_KEYS.map((k) => {
+      dashMetrics[k.key] = "—";
+      return {
+        key: k.key,
+        label: `${k.labelZh} ${k.labelEn}`,
+        labelZh: k.labelZh,
+        labelEn: k.labelEn,
+      };
+    });
+    return { priceLine, metrics: dashMetrics, labels: dashLabels };
+  }
 
   const slice = md.slice(idx, Math.min(idx + 1200, md.length));
   const lines = slice.split(/\r?\n/);
@@ -92,14 +116,22 @@ export function parseValuation(md: string): ValuationParsed {
       .split("|")
       .map((c) => c.trim())
       .filter((c) => c.length > 0);
-    const n = Math.min(cells.length, VAL_KEYS.length);
+    const n = Math.min(cells.length, VAL_TABLE_SOURCE_KEYS.length);
     for (let i = 0; i < n; i++) {
-      const k = VAL_KEYS[i]?.key;
-      if (k) metrics[k] = cells[i]!;
+      const k = VAL_TABLE_SOURCE_KEYS[i];
+      if (k === "roe") continue;
+      metrics[k] = cells[i]!;
     }
   }
 
-  const labels = VAL_KEYS.filter((k) => metrics[k.key]).map((k) => ({
+  for (const k of VAL_KEYS) {
+    const v = metrics[k.key];
+    if (v == null || v === "" || v === "-") {
+      metrics[k.key] = "—";
+    }
+  }
+
+  const labels = VAL_KEYS.map((k) => ({
     key: k.key,
     label: `${k.labelZh} ${k.labelEn}`,
     labelZh: k.labelZh,
@@ -188,8 +220,21 @@ function parseFinancialTableColumnSeries(
       const parts = line.split("|").map((c) => c.trim());
       const rawVals = parts.slice(firstDataCol, firstDataCol + labels.length);
       if (rawVals.length < labels.length) return null;
-      const values = rawVals.map((s) => parseFloat(s.replace(/,/g, "")));
-      if (values.some((n) => !Number.isFinite(n))) return null;
+      const values: (number | null)[] = rawVals.map((s) => {
+        const t = s.replace(/,/g, "").trim();
+        if (
+          t === "" ||
+          t === "-" ||
+          t === "—" ||
+          t === "–" ||
+          /^n\/?a$/i.test(t)
+        ) {
+          return null;
+        }
+        const n = parseFloat(t);
+        return Number.isFinite(n) ? n : null;
+      });
+      if (!values.some((n) => n != null && Number.isFinite(n))) return null;
       return { labels, values };
     }
   }
@@ -233,7 +278,7 @@ export function extractRelatedTw(
     .map(([ticker, name]) => ({ ticker, name }));
 }
 
-export type RevenueSeries = { labels: string[]; values: number[] };
+export type RevenueSeries = { labels: string[]; values: (number | null)[] };
 
 /** 年度表之 Revenue 列（表頭順序；欄數由 update_financials 決定）。 */
 export function parseAnnualRevenue(md: string): RevenueSeries | null {
@@ -294,7 +339,7 @@ export function formatRevenueShort(n: number): string {
   }).format(n);
 }
 
-/** 近十二季等密集柱狀圖：期別縮寫為 25Q4（仍用 title 顯示完整 ISO 日期）。 */
+/** 近三十二季等密集柱狀圖：期別縮寫為 25Q4（仍用 title 顯示完整 ISO 日期）。 */
 export function formatCompactQuarterLabel(isoDate: string): string {
   const m = isoDate.trim().match(/^(\d{4})-(\d{2})-\d{2}$/);
   if (!m) return isoDate;
@@ -345,8 +390,12 @@ export function formatAxisPeriodForChart(
 }
 
 /** 毛利率柱狀圖縮放：須含負值絕對值，避免 scale 過小造成長條異常。 */
-export function marginBarScale(values: readonly number[]): number {
-  const finite = values.filter((v) => Number.isFinite(v));
+export function marginBarScale(
+  values: readonly (number | null | undefined)[]
+): number {
+  const finite = values.filter(
+    (v): v is number => v != null && Number.isFinite(v)
+  );
   if (finite.length === 0) return 100;
   const ax = Math.max(...finite.map((v) => Math.abs(v)), 0.01);
   return Math.max(ax * 1.12, 1);
@@ -492,6 +541,17 @@ export function stripRelationSectionsForBody(md: string): string {
   s = s.replace(/(?:^|\n)## 供應鏈位置\s*\n[\s\S]*?(?=\n## )/m, "\n");
   s = s.replace(/(?:^|\n)## 主要客戶及供應商\s*\n[\s\S]*?(?=\n## 財務概況)/m, "\n");
   return s.replace(/^\n+/, "").replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * 移除 `### 估值指標` 與其下 Markdown 表：頁面上方已有估值區塊與 financials JSON，不重複內文表。
+ */
+export function stripValuationMarkdownSubsection(md: string): string {
+  const s = md.replace(
+    /(?:^|\r?\n)###\s*估值指標[^\r\n]*\r?\n[\s\S]*?(?=\r?\n###\s*(?:年度|季度)|\r?\n##\s|$)/,
+    "",
+  );
+  return s.replace(/\n{3,}/g, "\n\n");
 }
 
 export function parseRelationBlocks(md: string): RelationBlocks {

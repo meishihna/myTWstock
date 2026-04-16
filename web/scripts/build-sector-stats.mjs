@@ -1,11 +1,12 @@
 /**
- * 依 reports-index.json + public/data/financials/*.json
- * 計算各產業「最近年度」營收與毛利率分位數（僅含已匯出 JSON 的檔案）。
+ * 依 reports-index.json + data/financials_store/*.json（優先；fallback public/data/financials）
+ * 計算各產業「最近年度」營收與毛利率分位數。
  */
 import {
   existsSync,
-  readdirSync,
   readFileSync,
+  renameSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "path";
@@ -13,9 +14,27 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB = path.join(__dirname, "..");
+const REPO_ROOT = path.join(WEB, "..");
 const IDX = path.join(WEB, "public", "data", "reports-index.json");
-const FIN_DIR = path.join(WEB, "public", "data", "financials");
+const FIN_STORE_DIR = path.join(REPO_ROOT, "data", "financials_store");
+const FIN_PUBLIC_DIR = path.join(WEB, "public", "data", "financials");
 const OUT = path.join(WEB, "public", "data", "sector-stats.json");
+
+function readFinancialsJsonForTicker(ticker) {
+  const storePath = path.join(FIN_STORE_DIR, `${ticker}.json`);
+  const publicPath = path.join(FIN_PUBLIC_DIR, `${ticker}.json`);
+  const p = existsSync(storePath)
+    ? storePath
+    : existsSync(publicPath)
+      ? publicPath
+      : null;
+  if (!p) return null;
+  try {
+    return JSON.parse(readFileSync(p, "utf8"));
+  } catch {
+    return null;
+  }
+}
 
 function latestScalar(periods, series, key) {
   if (!periods?.length || !series?.[key]) return null;
@@ -64,23 +83,19 @@ function main() {
   const sectorRevenues = {};
   const sectorMargins = {};
 
-  if (!existsSync(FIN_DIR)) {
-    console.warn("[sector-stats] financials/ empty — run python scripts/update_financials.py");
+  const hasStore = existsSync(FIN_STORE_DIR);
+  const hasPublic = existsSync(FIN_PUBLIC_DIR);
+  if (!hasStore && !hasPublic) {
+    console.warn(
+      "[sector-stats] data/financials_store 與 public/data/financials 皆無 — run python scripts/update_financials.py"
+    );
   } else {
-    for (const name of readdirSync(FIN_DIR)) {
-      if (!name.endsWith(".json")) continue;
-      const ticker = name.replace(/\.json$/i, "");
+    for (const ticker of Object.keys(byTicker)) {
       const meta = byTicker[ticker];
       if (!meta?.sector) continue;
       const sector = meta.sector;
-      let data;
-      try {
-        data = JSON.parse(
-          readFileSync(path.join(FIN_DIR, name), "utf8")
-        );
-      } catch {
-        continue;
-      }
+      const data = readFinancialsJsonForTicker(ticker);
+      if (!data) continue;
       const ann = data.annual;
       if (!ann?.periods || !ann.series) continue;
       const rev = latestScalar(ann.periods, ann.series, "Revenue");
@@ -126,20 +141,29 @@ function main() {
     };
   }
 
-  writeFileSync(
-    OUT,
-    JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        note:
-          "Based on financials/*.json from update_financials.py; sparse if JSON not generated.",
-        sectors,
-      },
-      null,
-      2
-    ),
-    "utf8"
+  const payload = JSON.stringify(
+    {
+      generatedAt: new Date().toISOString(),
+      note:
+        "Based on data/financials_store (fallback public/data/financials) from update_financials.py.",
+      sectors,
+    },
+    null,
+    2
   );
+  const tmp = `${OUT}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(tmp, payload, "utf8");
+  try {
+    if (existsSync(OUT)) unlinkSync(OUT);
+    renameSync(tmp, OUT);
+  } catch (e) {
+    try {
+      unlinkSync(tmp);
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
   console.log("[sector-stats] wrote", OUT, "| sectors:", Object.keys(sectors).length);
 }
 

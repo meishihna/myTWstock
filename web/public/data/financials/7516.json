@@ -1,13 +1,13 @@
 {
   "ticker": "7516",
-  "updatedAt": "2026-04-07T04:23:49Z",
+  "updatedAt": "2026-04-07T20:09:26Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 8.43,
+    "P/E (TTM)": 8.36,
     "Forward P/E": null,
-    "P/S (TTM)": 0.52,
-    "P/B": 1.68,
-    "EV/EBITDA": 6.83,
+    "P/S (TTM)": 0.51,
+    "P/B": 1.66,
+    "EV/EBITDA": 7.01,
     "ROE": 22.11,
     "Beta": -0.89,
     "Debt/Equity": 82.82

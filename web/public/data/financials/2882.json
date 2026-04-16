@@ -1,13 +1,13 @@
 {
   "ticker": "2882",
-  "updatedAt": "2026-04-07T03:29:56Z",
+  "updatedAt": "2026-04-07T18:09:54Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 10.13,
-    "Forward P/E": 9.61,
-    "P/S (TTM)": 1.29,
-    "P/B": 1.15,
-    "EV/EBITDA": -10.01,
+    "P/E (TTM)": 10.18,
+    "Forward P/E": 9.67,
+    "P/S (TTM)": 1.3,
+    "P/B": 1.16,
+    "EV/EBITDA": -9.99,
     "ROE": null,
     "Beta": null,
     "Debt/Equity": 85.47
@@ -107,6 +107,115 @@
     }
   },
   "quarterly": {
+    "periods": [
+      "2024-12-31",
+      "2025-03-31",
+      "2025-06-30",
+      "2025-09-30",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        56999.52,
+        116213.296,
+        26398.974,
+        117328.452,
+        158356.919
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "R&D Exp": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "General & Admin Exp": [
+        11088.01,
+        9119.611,
+        9778.303,
+        10097.004,
+        11168.981
+      ],
+      "Operating Income": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Net Income": [
+        7452.603,
+        32015.307,
+        13985.004,
+        28621.721,
+        32519.888
+      ],
+      "Net Margin (%)": [
+        13.074852209281762,
+        27.54874709000595,
+        52.97555882285425,
+        24.39452708367788,
+        20.53581757295998
+      ],
+      "Op Cash Flow": [
+        -168963.837,
+        -28858.24,
+        231686.128,
+        46889.958,
+        -61460.674
+      ],
+      "Investing Cash Flow": [
+        -70057.623,
+        10492.131,
+        5032.565,
+        -25011.466,
+        -37722.357
+      ],
+      "Financing Cash Flow": [
+        23745.754,
+        -9526.382,
+        60601.019,
+        -61678.654,
+        -4615.93
+      ],
+      "CAPEX": [
+        -2169.387,
+        -1269.527,
+        -1264.447,
+        -1156.403,
+        -1640.19
+      ]
+    }
+  },
+  "quarterlyCore": {
     "periods": [
       "2024-12-31",
       "2025-03-31",

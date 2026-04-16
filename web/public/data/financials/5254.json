@@ -1,13 +1,13 @@
 {
   "ticker": "5254",
-  "updatedAt": "2026-04-07T03:55:37Z",
+  "updatedAt": "2026-04-07T19:41:34Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 14.38,
+    "P/E (TTM)": 14.29,
     "Forward P/E": null,
     "P/S (TTM)": 1.06,
-    "P/B": 1.79,
-    "EV/EBITDA": 7.99,
+    "P/B": 1.78,
+    "EV/EBITDA": 7.93,
     "ROE": 12.67,
     "Beta": 0.14,
     "Debt/Equity": 13.05

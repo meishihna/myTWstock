@@ -34,7 +34,7 @@ const sections: {
       <p class="relation-summary-hint">{RELATION.hint}</p>
       <div class="relation-accordions">
         {sections.map((s) => (
-          <details class="relation-details" open={s.key === "supplyChain"}>
+          <details class="relation-details">
             <summary class="relation-summary-btn">{s.title}</summary>
             <div class="relation-summary-body prose-rel" set:html={s.html} />
           </details>

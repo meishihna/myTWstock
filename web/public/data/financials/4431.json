@@ -1,16 +1,16 @@
 {
   "ticker": "4431",
-  "updatedAt": "2026-04-07T03:46:47Z",
+  "updatedAt": "2026-04-07T18:28:55Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 0.34,
-    "P/B": 1.11,
-    "EV/EBITDA": -1095.06,
-    "ROE": -14.16,
-    "Beta": 0.46,
-    "Debt/Equity": 36.62
+    "P/S (TTM)": 0.32,
+    "P/B": 1.07,
+    "EV/EBITDA": 6.9,
+    "ROE": -4.33,
+    "Beta": null,
+    "Debt/Equity": 27.88
   },
   "annual": {
     "periods": [

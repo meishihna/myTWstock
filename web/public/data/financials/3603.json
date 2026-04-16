@@ -1,13 +1,13 @@
 {
   "ticker": "3603",
-  "updatedAt": "2026-04-07T03:43:18Z",
+  "updatedAt": "2026-04-07T18:24:32Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 0.83,
-    "P/B": 0.78,
-    "EV/EBITDA": -15.62,
+    "P/S (TTM)": 0.79,
+    "P/B": 0.74,
+    "EV/EBITDA": -15.51,
     "ROE": -12.95,
     "Beta": 0.1,
     "Debt/Equity": 39.67

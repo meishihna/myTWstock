@@ -1,12 +1,12 @@
 {
   "ticker": "3595",
-  "updatedAt": "2026-04-07T03:43:09Z",
+  "updatedAt": "2026-04-07T18:24:22Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 405.19,
+    "P/E (TTM)": 406.32,
     "Forward P/E": null,
-    "P/S (TTM)": 241.36,
-    "P/B": 108.4,
+    "P/S (TTM)": 242.03,
+    "P/B": 108.7,
     "EV/EBITDA": 1639.14,
     "ROE": 3.83,
     "Beta": 1.96,

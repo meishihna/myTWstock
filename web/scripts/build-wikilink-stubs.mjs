@@ -4,8 +4,11 @@
  */
 import {
   existsSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -17,6 +20,39 @@ const REPO = path.join(WEB, "..");
 const REPORTS = path.join(REPO, "Pilot_Reports");
 const IDX = path.join(WEB, "public", "data", "reports-index.json");
 const OUT = path.join(WEB, "public", "data", "wikilink-stubs.json");
+
+function sleepMs(ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    /* sync wait for build script retries */
+  }
+}
+
+/** Windows / OneDrive 常對直接 write 回報 UNKNOWN；先寫 .tmp 再 replace，並短重試。 */
+function writeJsonFile(dest, data, maxAttempts = 5) {
+  const dir = path.dirname(dest);
+  mkdirSync(dir, { recursive: true });
+  const body = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  const tmp = dest + ".tmp";
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      writeFileSync(tmp, body, "utf8");
+      if (existsSync(dest)) unlinkSync(dest);
+      renameSync(tmp, dest);
+      return;
+    } catch (e) {
+      lastErr = e;
+      try {
+        if (existsSync(tmp)) unlinkSync(tmp);
+      } catch {
+        /* ignore */
+      }
+      if (attempt < maxAttempts) sleepMs(120 * attempt);
+    }
+  }
+  throw lastErr;
+}
 
 const WIKI = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
 
@@ -88,7 +124,7 @@ function main() {
     generatedAt: new Date().toISOString(),
     stubs,
   };
-  writeFileSync(OUT, JSON.stringify(payload, null, 2), "utf8");
+  writeJsonFile(OUT, payload);
   console.log("[wikilink-stubs] wrote", OUT, "| stubs:", stubs.length);
 }
 

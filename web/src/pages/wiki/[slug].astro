@@ -27,13 +27,17 @@ type StubEntry = {
 };
 
 export function getStaticPaths() {
+  // Paths must be inlined here: Astro bundles getStaticPaths separately and does
+  // not include sibling module bindings (hubPath/stubsPath) in that chunk.
+  const hubFile = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+  const stubsFile = path.join(process.cwd(), "public/data/wikilink-stubs.json");
   const slugs = new Set<string>();
-  if (fs.existsSync(hubPath)) {
-    const hub = JSON.parse(fs.readFileSync(hubPath, "utf8"));
+  if (fs.existsSync(hubFile)) {
+    const hub = JSON.parse(fs.readFileSync(hubFile, "utf8"));
     for (const e of (hub.entries || []) as HubEntry[]) slugs.add(e.slug);
   }
-  if (fs.existsSync(stubsPath)) {
-    const data = JSON.parse(fs.readFileSync(stubsPath, "utf8"));
+  if (fs.existsSync(stubsFile)) {
+    const data = JSON.parse(fs.readFileSync(stubsFile, "utf8"));
     for (const s of (data.stubs || []) as StubEntry[]) slugs.add(s.slug);
   }
   return [...slugs].map((slug) => ({ params: { slug } }));

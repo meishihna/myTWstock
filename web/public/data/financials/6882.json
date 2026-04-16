@@ -1,13 +1,13 @@
 {
   "ticker": "6882",
-  "updatedAt": "2026-04-07T04:21:34Z",
+  "updatedAt": "2026-04-07T20:07:02Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 1.1,
-    "P/B": 1.13,
-    "EV/EBITDA": -7.61,
+    "P/S (TTM)": 1.11,
+    "P/B": 1.14,
+    "EV/EBITDA": -7.69,
     "ROE": -7.63,
     "Beta": 0.54,
     "Debt/Equity": 3.11

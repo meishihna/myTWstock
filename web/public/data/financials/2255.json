@@ -1,12 +1,12 @@
 {
   "ticker": "2255",
-  "updatedAt": "2026-04-07T03:18:01Z",
+  "updatedAt": "2026-04-07T17:58:56Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 0.5,
-    "P/B": 1.25,
+    "P/S (TTM)": 0.48,
+    "P/B": 1.19,
     "EV/EBITDA": -8.37,
     "ROE": -27.23,
     "Beta": 0.26,

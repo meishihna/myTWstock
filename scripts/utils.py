@@ -5,6 +5,7 @@ Provides: file discovery, batch parsing, scope parsing, wikilink normalization,
 category classification, valuation table rendering, metadata updates.
 """
 
+import math
 import os
 import re
 import sys
@@ -249,13 +250,111 @@ def classify_wikilink(name):
 # Valuation Table Rendering (shared by update_financials and update_valuation)
 # =============================================================================
 
-def fetch_valuation_data(info):
+
+def _approx_roe_from_pb_marketcap_ni(
+    info: dict, latest_net_income_million: float | None
+) -> float | None:
+    """
+    Yahoo 常缺 returnOnEquity。近似：ROE = 淨利 / 股東權益，權益 ≈ 市值 / P/B
+    （priceToBook ≈ 市值／帳面權益）。淨利為年報最近期「百萬台幣」；市值為 yfinance 幣值（與淨利同幣別時成立）。
+    """
+    if latest_net_income_million is None or not math.isfinite(latest_net_income_million):
+        return None
+    pb = _info_float_first(info, "priceToBook")
+    mcap_raw = _info_float_first(info, "marketCap")
+    if pb is None or mcap_raw is None or pb <= 0 or mcap_raw <= 0:
+        return None
+    # 淨利（百萬）→ 絕對幣值；權益 ≈ mcap_raw / pb
+    roe = (latest_net_income_million * 1_000_000.0 * pb) / mcap_raw
+    return roe if math.isfinite(roe) else None
+
+
+def _approx_ps_from_marketcap_revenue(
+    info: dict, latest_revenue_million: float | None
+) -> float | None:
+    """P/S ≈ 市值 / 最近年營收（年報營收為百萬台幣；非嚴格 TTM，僅作缺資料時參考）。"""
+    if latest_revenue_million is None or latest_revenue_million <= 0:
+        return None
+    mcap_raw = _info_float_first(info, "marketCap")
+    if mcap_raw is None or mcap_raw <= 0:
+        return None
+    rev_abs = latest_revenue_million * 1_000_000.0
+    ps = mcap_raw / rev_abs
+    return ps if math.isfinite(ps) and 0 < ps < 1e5 else None
+
+
+def _info_float_first(info: dict, *keys: str) -> float | None:
+    """自 yfinance info 依序嘗試多個鍵，回傳第一個有限數值（可為負）。"""
+    for k in keys:
+        raw = info.get(k)
+        if raw is None:
+            continue
+        try:
+            x = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if x == x and x not in (float("inf"), float("-inf")):
+            return x
+    return None
+
+
+def fetch_valuation_data(
+    info: dict,
+    ttm_eps_from_statements: float | None = None,
+    *,
+    latest_net_income_million: float | None = None,
+    latest_revenue_million: float | None = None,
+):
     """Extract valuation multiples from yfinance info dict.
     Returns dict with display values and metadata.
+
+    ttm_eps_from_statements: optional 近四季 EPS 加總（元／股），當 Yahoo 缺 trailingPE／trailingEps 時
+    用股價／該值推算本益比（僅在 EPS>0 時顯示）。
+
+    latest_net_income_million / latest_revenue_million: 年報 merge 後最近期「百萬台幣」，用於缺 ROE／P/S 時之近似補值。
     """
-    valuation = {}
+    valuation: dict = {}
+
+    # 台股等標的常缺 trailingPE；改以股價 / TTM EPS 推算
+    pe_raw = _info_float_first(info, "trailingPE")
+    if pe_raw is not None and pe_raw > 0:
+        valuation["P/E (TTM)"] = f"{pe_raw:.2f}"
+    else:
+        price = _info_float_first(
+            info,
+            "currentPrice",
+            "regularMarketPrice",
+            "postMarketPrice",
+            "preMarketPrice",
+            "previousClose",
+        )
+        teps = _info_float_first(
+            info,
+            "trailingEps",
+            "epsTrailingTwelveMonths",
+        )
+        # 虧損或缺少 EPS 時本益比無意義，不顯示負倍數
+        computed_pe: float | None = None
+        if (
+            price is not None
+            and price > 0
+            and teps is not None
+            and teps > 1e-12
+        ):
+            computed_pe = price / teps
+        elif (
+            price is not None
+            and price > 0
+            and ttm_eps_from_statements is not None
+            and ttm_eps_from_statements > 1e-12
+        ):
+            computed_pe = price / ttm_eps_from_statements
+        if computed_pe is not None and 0 < computed_pe < 1e4:
+            valuation["P/E (TTM)"] = f"{computed_pe:.2f}"
+        else:
+            valuation["P/E (TTM)"] = "N/A"
+
     for key, label in [
-        ("trailingPE", "P/E (TTM)"),
         ("forwardPE", "Forward P/E"),
         ("priceToSalesTrailing12Months", "P/S (TTM)"),
         ("priceToBook", "P/B"),
@@ -264,8 +363,34 @@ def fetch_valuation_data(info):
         val = info.get(key)
         valuation[label] = f"{val:.2f}" if val else "N/A"
 
-    roe = info.get("returnOnEquity")
-    if roe is not None and isinstance(roe, (int, float)) and roe == roe:  # not NaN
+    if valuation.get("P/S (TTM)") == "N/A":
+        ps_apx = _approx_ps_from_marketcap_revenue(info, latest_revenue_million)
+        if ps_apx is not None:
+            valuation["P/S (TTM)"] = f"{ps_apx:.2f}"
+
+    roe = _info_float_first(info, "returnOnEquity")
+    if roe is None:
+        roe = _info_float_first(
+            info,
+            "fiveYearAvgReturnOnEquity",
+            "threeYearAverageReturnOnEquity",
+        )
+    if roe is None:
+        ni = _info_float_first(
+            info,
+            "netIncomeToCommon",
+            "trailingNetIncomeToCommon",
+        )
+        eq = _info_float_first(
+            info,
+            "totalStockholderEquity",
+            "totalStockholdersEquity",
+        )
+        if ni is not None and eq is not None and eq > 0:
+            roe = ni / eq
+    if roe is None:
+        roe = _approx_roe_from_pb_marketcap_ni(info, latest_net_income_million)
+    if roe is not None and roe == roe:
         if abs(roe) <= 1.0001:
             valuation["ROE"] = f"{roe * 100:.2f}%"
         else:
@@ -285,8 +410,8 @@ def fetch_valuation_data(info):
     else:
         valuation["Debt/Equity"] = "N/A"
 
-    # Price
-    cur_price = info.get("currentPrice")
+    # Price（報告標題用；與本益比推算來源一致）
+    cur_price = _info_float_first(info, "currentPrice", "regularMarketPrice")
     valuation["_price"] = f"{cur_price:,.2f}" if cur_price else None
 
     # Period info

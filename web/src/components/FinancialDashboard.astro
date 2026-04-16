@@ -1,0 +1,1790 @@
+---
+import type { FinancialsJson, IndustryType } from "../lib/financialsJson";
+import {
+  areaFillUnderLineD,
+  bestQuarterlyBlock,
+  buildAnnualKpis,
+  computeLineGeometry,
+  DASHBOARD_ANNUAL_MAX_PERIODS,
+  DASHBOARD_QUARTERLY_MAX_PERIODS,
+  linePathD,
+  tailBlock,
+  withAnnualEpsFromQuarterlySum,
+  type TailedBlock,
+} from "../lib/financialDashboard";
+import {
+  getIndustryConfig,
+  REVENUE_LINE_COLORS,
+  REVENUE_LINE_DASHES,
+  REVENUE_LINE_LABELS,
+  MARGIN_LINE_COLORS,
+  MARGIN_LINE_DASHES,
+  MARGIN_LINE_LABELS,
+} from "../lib/industryConfig";
+
+interface Props {
+  financialsJson: FinancialsJson;
+  companyName: string;
+  ticker: string;
+  industryType?: IndustryType | string;
+}
+
+const { financialsJson, companyName, ticker, industryType } = Astro.props;
+const indCfg = getIndustryConfig(industryType);
+
+const CHART_W = 920;
+const CHART_H = 300;
+const PAD = { l: 62, r: 28, t: 32, b: 52 };
+
+const annual = withAnnualEpsFromQuarterlySum(
+  tailBlock(financialsJson.annual, DASHBOARD_ANNUAL_MAX_PERIODS, "year")!,
+  financialsJson
+);
+const qSrc = bestQuarterlyBlock(financialsJson);
+const quarterly = qSrc
+  ? tailBlock(qSrc, DASHBOARD_QUARTERLY_MAX_PERIODS)
+  : null;
+
+const capexAnnualRow = annual.series.CAPEX ?? [];
+const showCapexEffective =
+  indCfg.showCapexChart &&
+  capexAnnualRow.some((v) => v != null && Number.isFinite(Number(v)));
+
+const annualKpis = buildAnnualKpis(annual, financialsJson.valuation, industryType);
+
+type LineSpec = {
+  name: string;
+  values: (number | null)[];
+  color: string;
+  strokeDasharray?: string;
+};
+
+function lineChartSvg(
+  xLabels: string[],
+  specs: LineSpec[],
+  unit: string,
+  title: string,
+  includeZero = true,
+  opts?: { fillFirstSeriesArea?: boolean }
+) {
+  const seriesList = specs.map((s) => ({ values: s.values }));
+  const geo = computeLineGeometry(
+    xLabels,
+    seriesList,
+    CHART_W,
+    CHART_H,
+    PAD,
+    { includeZero }
+  );
+  const { x, y, minY, maxY } = geo;
+  const bottomY = y(minY);
+  const revenueFillD =
+    opts?.fillFirstSeriesArea && specs[0]
+      ? areaFillUnderLineD(specs[0].values, x, y, bottomY)
+      : undefined;
+  const pointDots = specs.map((s) => {
+    const arr: { cx: number; cy: number; color: string }[] = [];
+    for (let i = 0; i < s.values.length; i++) {
+      const v = s.values[i];
+      if (v == null || !Number.isFinite(v)) continue;
+      arr.push({ cx: x(i), cy: y(v), color: s.color });
+    }
+    return arr;
+  });
+  const paths = specs.map((s) => ({
+    d: linePathD(s.values, x, y),
+    color: s.color,
+    strokeDasharray: s.strokeDasharray,
+    name: s.name,
+  }));
+  const yTicks = 4;
+  const tickVals: number[] = [];
+  for (let i = 0; i <= yTicks; i++) {
+    tickVals.push(minY + ((maxY - minY) * i) / yTicks);
+  }
+  const valueFormat = unit === "%" ? "pct" : "int";
+  const tooltipSpec = {
+    kind: "line" as const,
+    valueFormat,
+    xLabels,
+    series: specs.map((s) => ({ name: s.name, color: s.color, values: s.values })),
+    minY,
+    maxY,
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+  };
+  return {
+    paths,
+    xLabels,
+    minY,
+    maxY,
+    tickVals,
+    y,
+    unit,
+    title,
+    revenueFillD,
+    pointDots,
+    tooltipSpec,
+  };
+}
+
+const annRevProfit = lineChartSvg(
+  annual.xLabels,
+  indCfg.revenueSeries.map((key) => ({
+    name: REVENUE_LINE_LABELS[key] ?? key,
+    values: annual.series[key] ?? [],
+    color: REVENUE_LINE_COLORS[key] ?? "#888",
+    strokeDasharray: REVENUE_LINE_DASHES[key],
+  })),
+  "百萬元",
+  "營收與獲利",
+  true,
+  { fillFirstSeriesArea: true }
+);
+
+const annMargins = lineChartSvg(
+  annual.xLabels,
+  indCfg.marginSeries.map((key) => ({
+    name: MARGIN_LINE_LABELS[key] ?? key,
+    values: annual.series[key] ?? [],
+    color: MARGIN_LINE_COLORS[key] ?? "#888",
+    strokeDasharray: MARGIN_LINE_DASHES[key],
+  })),
+  "%",
+  "利潤率趨勢",
+  true
+);
+
+let qMargins: ReturnType<typeof lineChartSvg> | null = null;
+let qRevGrouped: ReturnType<typeof groupedTwoSvg> | null = null;
+let qRevSimple: ReturnType<typeof barChartMillion> | null = null;
+let qNiBars: ReturnType<typeof barChartNetSigned> | null = null;
+let qEpsBars: ReturnType<typeof barChartMillion> | null = null;
+let qYoy: ReturnType<typeof lineChartSvg> | null = null;
+let qExpenseStack: ReturnType<typeof stackedExpensePctSvg> | null = null;
+
+const NEG_BAR = "#D85A30";
+
+function barChartMillion(
+  xLabels: string[],
+  values: (number | null)[],
+  title: string,
+  barColor: string,
+  barOpts?: {
+    stroke?: string;
+    fillOpacity?: number;
+    tooltipFormat?: "eps" | "int";
+    tooltipLabel?: string;
+  }
+) {
+  const finite = values
+    .map((v, i) => ({ v, i }))
+    .filter((o) => o.v != null && Number.isFinite(o.v!)) as { v: number; i: number }[];
+  let maxV = finite.length ? Math.max(...finite.map((o) => Math.abs(o.v)), 1) : 1;
+  maxV *= 1.08;
+  const hasNegative = values.some((v) => v != null && Number.isFinite(v) && v < 0);
+  const innerW = CHART_W - PAD.l - PAD.r;
+  const innerH = CHART_H - PAD.t - PAD.b;
+  /** 含負值時零線置中，正／負各用半高，避免負柱超出圖底 */
+  const plotHalf = hasNegative ? innerH / 2 : innerH;
+  const baselineY = hasNegative ? PAD.t + plotHalf : PAD.t + innerH;
+  const n = xLabels.length;
+  const gap = 0.2;
+  const bw = (innerW / n) * (1 - gap);
+  const strokePos = barOpts?.stroke ?? barColor;
+  const bars = values.map((v, i) => {
+    if (v == null || !Number.isFinite(v)) return null;
+    const h = (Math.abs(v) / maxV) * plotHalf;
+    const x0 = PAD.l + (innerW * i) / n + (innerW / n - bw) / 2;
+    const pos = v >= 0;
+    const y0 = pos ? baselineY - h : baselineY;
+    return {
+      x: x0,
+      y: y0,
+      w: bw,
+      h: Math.max(h, 2),
+      v,
+      fill: pos ? barColor : NEG_BAR,
+      stroke: pos ? strokePos : NEG_BAR,
+    };
+  });
+  const vf = barOpts?.tooltipFormat === "eps" ? "eps" : "int";
+  const tooltipSpec = {
+    kind: "simpleBar" as const,
+    valueFormat: vf,
+    valueLabel:
+      barOpts?.tooltipLabel ??
+      (barOpts?.tooltipFormat === "eps" ? "EPS" : "淨利"),
+    xLabels,
+    values,
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+  };
+  return {
+    bars,
+    xLabels,
+    maxV,
+    title,
+    barColor,
+    barStroke: strokePos,
+    fillOpacity: barOpts?.fillOpacity ?? 0.55,
+    innerH: innerH + PAD.t,
+    tooltipSpec,
+    baselineY,
+    scaleMax: maxV,
+    hasNegative,
+  };
+}
+
+function barChartNetSigned(
+  xLabels: string[],
+  values: (number | null)[],
+  chartTitle = "季度淨利（Quarterly net income）"
+) {
+  const innerW = CHART_W - PAD.l - PAD.r;
+  const innerH = CHART_H - PAD.t - PAD.b;
+  const n = xLabels.length;
+  let maxV = 1;
+  for (const v of values) {
+    if (v != null && Number.isFinite(v)) maxV = Math.max(maxV, Math.abs(v));
+  }
+  maxV *= 1.08;
+  const hasNegative = values.some((v) => v != null && Number.isFinite(v) && v < 0);
+  const plotHalf = hasNegative ? innerH / 2 : innerH;
+  const baselineY = hasNegative ? PAD.t + plotHalf : PAD.t + innerH;
+  const gap = 0.2;
+  const bw = (innerW / n) * (1 - gap);
+  const bars = values.map((v, i) => {
+    if (v == null || !Number.isFinite(v)) return null;
+    const h = (Math.abs(v) / maxV) * plotHalf;
+    const x0 = PAD.l + (innerW * i) / n + (innerW / n - bw) / 2;
+    const pos = v >= 0;
+    const y0 = pos ? baselineY - h : baselineY;
+    return {
+      x: x0,
+      y: y0,
+      w: bw,
+      h: Math.max(h, 2),
+      fill: pos ? "#7F77DD" : "#D85A30",
+      fillOpacity: 0.33,
+      stroke: pos ? "#7F77DD" : "#D85A30",
+    };
+  });
+  const rawVals = values;
+  const tooltipSpec = {
+    kind: "signedBar" as const,
+    xLabels,
+    values: rawVals,
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+  };
+  return {
+    bars,
+    xLabels,
+    n,
+    title: chartTitle,
+    baselineY,
+    scaleMax: maxV,
+    hasNegative,
+    tooltipSpec,
+  };
+}
+
+function seriesHasFinite(row: (number | null)[] | undefined): boolean {
+  return Boolean(row?.some((v) => v != null && Number.isFinite(v)));
+}
+
+/** 年度 FCF＝營業現金流＋CAPEX（CAPEX 為負）；CAPEX 該年為 null 則該年 FCF 柱不顯示。折線：FCF／營收％ */
+function fcfBarMarginLineSvg(
+  xLabels: string[],
+  ocf: (number | null)[],
+  capex: (number | null)[],
+  revenue: (number | null)[]
+) {
+  const n = xLabels.length;
+  const fcf: (number | null)[] = [];
+  const marginPct: (number | null)[] = [];
+  for (let i = 0; i < n; i++) {
+    const o = ocf[i];
+    const c = capex[i];
+    if (o != null && Number.isFinite(o) && c != null && Number.isFinite(c)) {
+      const f = o + c;
+      fcf.push(f);
+      const r = revenue[i];
+      marginPct.push(
+        r != null && Number.isFinite(r) && r > 0 ? (f / r) * 100 : null
+      );
+    } else {
+      fcf.push(null);
+      marginPct.push(null);
+    }
+  }
+  if (!fcf.some((v) => v != null && Number.isFinite(v))) return null;
+
+  const innerW = CHART_W - PAD.l - PAD.r;
+  const innerH = CHART_H - PAD.t - PAD.b;
+  let maxAbs = 1;
+  for (const v of fcf) {
+    if (v != null && Number.isFinite(v)) maxAbs = Math.max(maxAbs, Math.abs(v));
+  }
+  maxAbs *= 1.08;
+  const hasNegative = fcf.some((v) => v != null && Number.isFinite(v) && v < 0);
+  const plotHalf = hasNegative ? innerH / 2 : innerH;
+  const baselineY = hasNegative ? PAD.t + plotHalf : PAD.t + innerH;
+  const slotW = innerW / n;
+  const gap = 0.22;
+  const bw = slotW * (1 - gap);
+  const bars = fcf.map((v, i) => {
+    if (v == null || !Number.isFinite(v)) return null;
+    const h = (Math.abs(v) / maxAbs) * plotHalf;
+    const pos = v >= 0;
+    const y0 = pos ? baselineY - h : baselineY;
+    const x0 = PAD.l + i * slotW + (slotW - bw) / 2;
+    return {
+      x: x0,
+      y: y0,
+      w: bw,
+      h: Math.max(h, 2),
+      v,
+      fill: pos ? "#5B8FD8" : NEG_BAR,
+      stroke: pos ? "#378ADD" : NEG_BAR,
+    };
+  });
+
+  let lnMin = 0;
+  let lnMax = 1;
+  for (const p of marginPct) {
+    if (p == null || !Number.isFinite(p)) continue;
+    lnMin = Math.min(lnMin, p);
+    lnMax = Math.max(lnMax, p);
+  }
+  const lnPad = (lnMax - lnMin) * 0.12 || 1;
+  lnMin -= lnPad;
+  lnMax += lnPad;
+  const yLine = (p: number) => PAD.t + innerH * (1 - (p - lnMin) / (lnMax - lnMin || 1));
+  const xLine = (i: number) => PAD.l + (i + 0.5) * slotW;
+  const linePts: { cx: number; cy: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = marginPct[i];
+    if (p == null || !Number.isFinite(p)) continue;
+    linePts.push({ cx: xLine(i), cy: yLine(p) });
+  }
+  let lineD = "";
+  for (let k = 0; k < linePts.length; k++) {
+    const pt = linePts[k]!;
+    lineD += k === 0 ? `M ${pt.cx} ${pt.cy}` : ` L ${pt.cx} ${pt.cy}`;
+  }
+
+  const tooltipSpec = {
+    kind: "barWithLine" as const,
+    xLabels,
+    barValues: fcf,
+    lineValues: marginPct,
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+  };
+
+  return {
+    xLabels,
+    bars,
+    baselineY,
+    maxAbs,
+    hasNegative,
+    marginPct,
+    lnMin,
+    lnMax,
+    yLine,
+    lineD,
+    linePts,
+    title: "自由現金流（FCF）與 FCF 占營收比",
+    tooltipSpec,
+  };
+}
+
+/** 三項費用占營收％堆疊柱（由底而上：推銷、研發、管理） */
+function stackedExpensePctSvg(
+  xLabels: string[],
+  revenue: (number | null)[],
+  selling: (number | null)[],
+  rd: (number | null)[],
+  ga: (number | null)[]
+) {
+  const n = xLabels.length;
+  const segA: (number | null)[] = [];
+  const segB: (number | null)[] = [];
+  const segC: (number | null)[] = [];
+  let maxSum = 1;
+  for (let i = 0; i < n; i++) {
+    const r = revenue[i];
+    if (r == null || !Number.isFinite(r) || r <= 0) {
+      segA.push(null);
+      segB.push(null);
+      segC.push(null);
+      continue;
+    }
+    const s = selling[i];
+    const d = rd[i];
+    const g = ga[i];
+    const pa = s != null && Number.isFinite(s) ? (s / r) * 100 : 0;
+    const pb = d != null && Number.isFinite(d) ? (d / r) * 100 : 0;
+    const pc = g != null && Number.isFinite(g) ? (g / r) * 100 : 0;
+    segA.push(pa);
+    segB.push(pb);
+    segC.push(pc);
+    maxSum = Math.max(maxSum, pa + pb + pc);
+  }
+  maxSum *= 1.1;
+  const innerW = CHART_W - PAD.l - PAD.r;
+  const innerH = CHART_H - PAD.t - PAD.b;
+  const slot = innerW / n;
+  const bw = slot * 0.55;
+  const baseY = PAD.t + innerH;
+  type Rect = { x: number; y: number; w: number; h: number; fill: string };
+  const stackRects: Rect[] = [];
+  const categoryCenterX: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const x0 = PAD.l + i * slot + (slot - bw) / 2;
+    categoryCenterX.push(x0 + bw / 2);
+    const a = segA[i];
+    const b = segB[i];
+    const c = segC[i];
+    if (a == null || b == null || c == null) continue;
+    let yCur = baseY;
+    const layers = [
+      { pct: a, fill: "#378ADD" },
+      { pct: b, fill: "#D85A30" },
+      { pct: c, fill: "#888780" },
+    ];
+    for (const { pct, fill } of layers) {
+      if (!(pct > 0)) continue;
+      const h = (pct / maxSum) * innerH;
+      const yTop = yCur - h;
+      stackRects.push({ x: x0, y: yTop, w: bw, h: Math.max(h, 1), fill });
+      yCur = yTop;
+    }
+  }
+  const tickVals = Array.from({ length: 5 }, (_, i) => (maxSum * i) / 4);
+  const tooltipSpec = {
+    kind: "stackedBar" as const,
+    xLabels,
+    segments: [
+      { name: "推銷費用率", color: "#378ADD", values: segA.map((v) => (v == null ? null : v)) },
+      { name: "研發費用率", color: "#D85A30", values: segB.map((v) => (v == null ? null : v)) },
+      { name: "管理費用率", color: "#888780", values: segC.map((v) => (v == null ? null : v)) },
+    ],
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+    categoryCenterX,
+  };
+  return {
+    xLabels,
+    stackRects,
+    maxSum,
+    baseY,
+    tickVals,
+    title: "費用結構（占營收％）",
+    tooltipSpec,
+  };
+}
+
+function yoyPctSeries(vals: (number | null)[], lag: number): (number | null)[] {
+  return vals.map((v, i) => {
+    if (i < lag) return null;
+    const prev = vals[i - lag];
+    if (v == null || prev == null || !Number.isFinite(v) || !Number.isFinite(prev)) return null;
+    if (prev === 0) return null;
+    return ((v / prev - 1) * 100);
+  });
+}
+
+function groupedTwoSvg(
+  xLabels: string[],
+  a: (number | null)[],
+  b: (number | null)[],
+  title: string,
+  nameA: string,
+  nameB: string,
+  colorA = "#378ADD",
+  colorB = "#D85A30"
+) {
+  const innerW = CHART_W - PAD.l - PAD.r;
+  const innerH = CHART_H - PAD.t - PAD.b;
+  const n = xLabels.length;
+  let maxV = 1;
+  for (let i = 0; i < n; i++) {
+    const va = a[i];
+    const vb = b[i];
+    if (va != null && Number.isFinite(va)) maxV = Math.max(maxV, Math.abs(va));
+    if (vb != null && Number.isFinite(vb)) maxV = Math.max(maxV, Math.abs(vb));
+  }
+  maxV *= 1.08;
+  const hasNegative =
+    a.some((v) => v != null && Number.isFinite(v) && v < 0) ||
+    b.some((v) => v != null && Number.isFinite(v) && v < 0);
+  const plotHalf = hasNegative ? innerH / 2 : innerH;
+  const zeroY = hasNegative ? PAD.t + plotHalf : PAD.t + innerH;
+  const slot = innerW / n;
+  const w = slot * 0.32;
+  const bars: { x: number; y: number; w: number; h: number; v: number; color: string }[] = [];
+  const categoryCenterX: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const baseX = PAD.l + i * slot + slot * 0.1;
+    let left = Infinity;
+    let right = -Infinity;
+    const ocf = a[i];
+    const cx = baseX;
+    if (ocf != null && Number.isFinite(ocf)) {
+      const h = (Math.abs(ocf) / maxV) * plotHalf;
+      const pos = ocf >= 0;
+      const y0 = pos ? zeroY - h : zeroY;
+      bars.push({ x: cx, y: y0, w, h, v: ocf, color: colorA });
+      left = Math.min(left, cx);
+      right = Math.max(right, cx + w);
+    }
+    const capex = b[i];
+    const cx2 = baseX + w + slot * 0.06;
+    if (capex != null && Number.isFinite(capex)) {
+      const h = (Math.abs(capex) / maxV) * plotHalf;
+      const pos = capex >= 0;
+      const y0 = pos ? zeroY - h : zeroY;
+      bars.push({ x: cx2, y: y0, w, h, v: capex, color: colorB });
+      left = Math.min(left, cx2);
+      right = Math.max(right, cx2 + w);
+    }
+    const slotMid = PAD.l + (i + 0.5) * slot;
+    categoryCenterX.push(left !== Infinity ? (left + right) / 2 : slotMid);
+  }
+  const tooltipSpec = {
+    kind: "groupedBar" as const,
+    valueFormat: "int" as const,
+    xLabels,
+    series: [
+      { name: nameA, color: colorA, values: [...a] },
+      { name: nameB, color: colorB, values: [...b] },
+    ],
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+    categoryCenterX,
+  };
+  return {
+    bars,
+    xLabels,
+    maxV,
+    title,
+    nameA,
+    nameB,
+    innerH: innerH + PAD.t,
+    innerW,
+    n,
+    tooltipSpec,
+    hasNegative,
+    zeroY,
+    scaleMax: maxV,
+  };
+}
+
+const annCfPair = showCapexEffective
+  ? groupedTwoSvg(
+      annual.xLabels,
+      annual.series["Op Cash Flow"] ?? [],
+      annual.series.CAPEX ?? [],
+      "CAPEX vs 營業現金流",
+      "營業現金流",
+      "CAPEX（絕對值）"
+    )
+  : null;
+
+function tripleCashSvg(xLabels: string[], ocf: (number | null)[], icf: (number | null)[], fcf: (number | null)[]) {
+  const innerW = CHART_W - PAD.l - PAD.r;
+  const innerH = CHART_H - PAD.t - PAD.b;
+  const n = xLabels.length;
+  let maxV = 1;
+  let minV = -1;
+  const all = [ocf, icf, fcf];
+  for (const arr of all) {
+    for (const v of arr) {
+      if (v == null || !Number.isFinite(v)) continue;
+      maxV = Math.max(maxV, v);
+      minV = Math.min(minV, v);
+    }
+  }
+  const range = Math.max(maxV - minV, 1) * 1.1;
+  const mid = (maxV + minV) / 2;
+  const top = mid + range / 2;
+  const bot = mid - range / 2;
+  const yScale = (v: number) => PAD.t + innerH * (1 - (v - bot) / (top - bot || 1));
+  const zeroY = yScale(0);
+  const slot = innerW / n;
+  const w = slot * 0.22;
+  const bars: { x: number; y: number; w: number; h: number; color: string }[] = [];
+  const categoryCenterX: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const base = PAD.l + i * slot + slot * 0.08;
+    let left = Infinity;
+    let right = -Infinity;
+    const vals = [
+      { v: ocf[i], c: "#378ADD", off: 0 },
+      { v: icf[i], c: "#D85A30", off: w + 4 },
+      { v: fcf[i], c: "#888780", off: 2 * w + 8 },
+    ];
+    for (const { v, c, off } of vals) {
+      if (v == null || !Number.isFinite(v)) continue;
+      const bx = base + off;
+      const yTop = yScale(v);
+      const yBot = zeroY;
+      const topY = Math.min(yTop, yBot);
+      const h = Math.abs(yBot - yTop);
+      bars.push({ x: bx, y: topY, w, h, color: c });
+      left = Math.min(left, bx);
+      right = Math.max(right, bx + w);
+    }
+    const slotMid = PAD.l + (i + 0.5) * slot;
+    categoryCenterX.push(left !== Infinity ? (left + right) / 2 : slotMid);
+  }
+  const tooltipSpec = {
+    kind: "tripleBar" as const,
+    xLabels,
+    series: [
+      { name: "營業現金流", color: "#378ADD", values: [...ocf] },
+      { name: "投資現金流", color: "#D85A30", values: [...icf] },
+      { name: "融資現金流", color: "#888780", values: [...fcf] },
+    ],
+    pad: PAD,
+    w: CHART_W,
+    h: CHART_H,
+    categoryCenterX,
+  };
+  return {
+    bars,
+    xLabels,
+    zeroY,
+    top,
+    bot,
+    yScale,
+    title: "現金流量",
+    innerH: innerH + PAD.t,
+    tooltipSpec,
+  };
+}
+
+const annTriple = tripleCashSvg(
+  annual.xLabels,
+  annual.series["Op Cash Flow"] ?? [],
+  annual.series["Investing Cash Flow"] ?? [],
+  annual.series["Financing Cash Flow"] ?? []
+);
+
+const annFcf = showCapexEffective
+  ? fcfBarMarginLineSvg(
+      annual.xLabels,
+      annual.series["Op Cash Flow"] ?? [],
+      annual.series.CAPEX ?? [],
+      annual.series.Revenue ?? []
+    )
+  : null;
+
+if (quarterly) {
+  const gpRow = quarterly.series["Gross Profit"];
+  const hasGp = seriesHasFinite(gpRow);
+  if (hasGp) {
+    qRevGrouped = groupedTwoSvg(
+      quarterly.xLabels,
+      quarterly.series.Revenue ?? [],
+      gpRow ?? [],
+      "季度營收與毛利（Quarterly revenue & gross profit）",
+      REVENUE_LINE_LABELS.Revenue ?? "營收",
+      REVENUE_LINE_LABELS["Gross Profit"] ?? "毛利",
+      REVENUE_LINE_COLORS.Revenue ?? "#378ADD",
+      REVENUE_LINE_COLORS["Gross Profit"] ?? "#1D9E75"
+    );
+  } else {
+    qRevSimple = barChartMillion(
+      quarterly.xLabels,
+      quarterly.series.Revenue ?? [],
+      "季度營收（Quarterly revenue）",
+      "#378ADD",
+      { stroke: "#378ADD", fillOpacity: 0.4, tooltipLabel: "營收（百萬）" }
+    );
+  }
+
+  const marginKeys = indCfg.marginSeries.filter((key) =>
+    seriesHasFinite(quarterly.series[key])
+  );
+  if (marginKeys.length > 0) {
+    qMargins = lineChartSvg(
+      quarterly.xLabels,
+      marginKeys.map((key) => ({
+        name: MARGIN_LINE_LABELS[key] ?? key,
+        values: quarterly.series[key] ?? [],
+        color: MARGIN_LINE_COLORS[key] ?? "#888",
+        strokeDasharray: MARGIN_LINE_DASHES[key],
+      })),
+      "%",
+      "季度利潤率趨勢（Quarterly margin trends）",
+      true
+    );
+  }
+
+  qNiBars = barChartNetSigned(
+    quarterly.xLabels,
+    quarterly.series["Net Income"] ?? [],
+    "季度淨利（Quarterly net income，百萬元）"
+  );
+
+  const qEpsRow = quarterly.series.EPS;
+  if (seriesHasFinite(qEpsRow)) {
+    qEpsBars = barChartMillion(
+      quarterly.xLabels,
+      qEpsRow ?? [],
+      "季度 EPS（Quarterly EPS）",
+      "#BA7517",
+      { stroke: "#BA7517", fillOpacity: 0.35, tooltipFormat: "eps" as const, tooltipLabel: "EPS" }
+    );
+  }
+
+  const rev = quarterly.series.Revenue ?? [];
+  const ni = quarterly.series["Net Income"] ?? [];
+  const eps = quarterly.series.EPS ?? [];
+  const yoySpecs: LineSpec[] = [];
+  const yRev = yoyPctSeries(rev, 4);
+  if (seriesHasFinite(yRev)) {
+    yoySpecs.push({
+      name: "營收 YoY",
+      values: yRev,
+      color: "#378ADD",
+    });
+  }
+  const yNi = yoyPctSeries(ni, 4);
+  if (seriesHasFinite(yNi)) {
+    yoySpecs.push({
+      name: "淨利 YoY",
+      values: yNi,
+      color: "#7F77DD",
+      strokeDasharray: "5 3",
+    });
+  }
+  const yEps = yoyPctSeries(eps, 4);
+  if (seriesHasFinite(yEps)) {
+    yoySpecs.push({
+      name: "EPS YoY",
+      values: yEps,
+      color: "#BA7517",
+      strokeDasharray: "2 2",
+    });
+  }
+  if (yoySpecs.length > 0) {
+    qYoy = lineChartSvg(
+      quarterly.xLabels,
+      yoySpecs,
+      "%",
+      "同比成長率 YoY（Year-over-year growth）",
+      true,
+      { fillFirstSeriesArea: false }
+    );
+  }
+
+  const expKeys = [
+    "Selling & Marketing Exp",
+    "R&D Exp",
+    "General & Admin Exp",
+  ] as const;
+  const showExpenseStack = expKeys.every((k) => !indCfg.hiddenMetricRows.has(k));
+  if (showExpenseStack) {
+    const sRow = quarterly.series["Selling & Marketing Exp"];
+    const rRow = quarterly.series["R&D Exp"];
+    const gRow = quarterly.series["General & Admin Exp"];
+    if (seriesHasFinite(sRow) || seriesHasFinite(rRow) || seriesHasFinite(gRow)) {
+      qExpenseStack = stackedExpensePctSvg(
+        quarterly.xLabels,
+        quarterly.series.Revenue ?? [],
+        sRow ?? [],
+        rRow ?? [],
+        gRow ?? []
+      );
+    }
+  }
+}
+
+const fmtM = (n: number) => n.toLocaleString("zh-TW", { maximumFractionDigits: 0 });
+const INNER_H = CHART_H - PAD.t - PAD.b;
+const PLOT_BOTTOM = CHART_H - PAD.b;
+const PLOT_R = CHART_W - PAD.r;
+
+function linearBarTicks(maxV: number, steps = 4): number[] {
+  if (!maxV || !Number.isFinite(maxV)) return [0];
+  return Array.from({ length: steps + 1 }, (_, i) => (maxV * i) / steps);
+}
+
+const annFcfBarHalfSpan = annFcf?.hasNegative ? INNER_H / 2 : INNER_H;
+const annFcfYTickMarks =
+  annFcf == null
+    ? []
+    : annFcf.hasNegative
+      ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
+          const v = frac * annFcf.maxAbs;
+          const yy = annFcf.baselineY - (v / annFcf.maxAbs) * annFcfBarHalfSpan;
+          return { v, yy };
+        })
+      : linearBarTicks(annFcf.maxAbs).map((tv) => ({
+          v: tv,
+          yy: PLOT_BOTTOM - (tv / annFcf.maxAbs) * INNER_H,
+        }));
+const annFcfLineYTickMarks =
+  annFcf == null
+    ? []
+    : Array.from({ length: 5 }, (_, i) => {
+        const t = i / 4;
+        const p = annFcf.lnMin + (annFcf.lnMax - annFcf.lnMin) * t;
+        return { p, yy: annFcf.yLine(p) };
+      });
+
+const cfPairYTickMarks = annCfPair == null
+  ? []
+  : annCfPair.hasNegative
+    ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
+        const v = frac * annCfPair.scaleMax;
+        const yy = annCfPair.zeroY - (v / annCfPair.scaleMax) * (INNER_H / 2);
+        return { v, yy };
+      })
+    : linearBarTicks(annCfPair.maxV).map((tv) => ({
+        v: tv,
+        yy: PLOT_BOTTOM - (tv / annCfPair.maxV) * INNER_H,
+      }));
+const qRevGroupedYTickMarks =
+  qRevGrouped == null
+    ? []
+    : qRevGrouped.hasNegative
+      ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
+          const v = frac * qRevGrouped.scaleMax;
+          const yy = qRevGrouped.zeroY - (v / qRevGrouped.scaleMax) * (INNER_H / 2);
+          return { v, yy };
+        })
+      : linearBarTicks(qRevGrouped.maxV).map((tv) => ({
+          v: tv,
+          yy: PLOT_BOTTOM - (tv / qRevGrouped.maxV) * INNER_H,
+        }));
+
+const qRevSimpleHalfSpan = qRevSimple?.hasNegative ? INNER_H / 2 : INNER_H;
+const qRevSimpleYTickMarks =
+  qRevSimple == null
+    ? []
+    : qRevSimple.hasNegative
+      ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
+          const v = frac * qRevSimple.scaleMax;
+          const yy = qRevSimple.baselineY - (v / qRevSimple.scaleMax) * qRevSimpleHalfSpan;
+          return { v, yy };
+        })
+      : linearBarTicks(qRevSimple.maxV).map((tv) => ({
+          v: tv,
+          yy: PLOT_BOTTOM - (tv / qRevSimple.maxV) * INNER_H,
+        }));
+
+const qEpsHalfSpan = qEpsBars?.hasNegative ? INNER_H / 2 : INNER_H;
+const qEpsYTickMarks =
+  qEpsBars == null
+    ? []
+    : qEpsBars.hasNegative
+      ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
+          const v = frac * qEpsBars.scaleMax;
+          const yy = qEpsBars.baselineY - (v / qEpsBars.scaleMax) * qEpsHalfSpan;
+          return { v, yy };
+        })
+      : linearBarTicks(qEpsBars.maxV).map((tv) => ({
+          v: tv,
+          yy: PLOT_BOTTOM - (tv / qEpsBars.maxV) * INNER_H,
+        }));
+
+const kpiPrimary = annualKpis.primary;
+const kpiSecondary = annualKpis.secondary;
+
+/** Astro 模板內不可寫 <= 或 a < b，< 會被當成標籤 */
+function noPositiveMax(maxV: number) {
+  return !maxV || !(maxV > 0);
+}
+
+const qNiYTickMarks =
+  qNiBars == null
+    ? []
+    : (() => {
+        const span = qNiBars.hasNegative ? INNER_H / 2 : INNER_H;
+        return [-1, -0.5, 0, 0.5, 1]
+          .map((frac) => {
+            const v = frac * qNiBars.scaleMax;
+            const yy = qNiBars.baselineY - (v / qNiBars.scaleMax) * span;
+            return { v, yy };
+          })
+          .filter((o) => o.yy >= PAD.t - 4 && o.yy <= PLOT_BOTTOM + 4);
+      })();
+---
+
+<div class="fin-dash-shell">
+<section class="fin-dash" aria-label="完整財務圖表" data-fin-dash>
+  <h2 class="fin-dash__sr">
+    {companyName}（{ticker}）完整財務趨勢儀表板，包含年報與季報的營收、利潤率、現金流、CAPEX、EPS、ROE 走勢圖
+  </h2>
+  <header class="fin-dash__head">
+    <span class="fin-dash__title-line">{companyName} {ticker}</span>
+    <span class="fin-dash__sub">完整財務儀表板｜單位：百萬新台幣（比率為 %；EPS 為元／股）</span>
+  </header>
+
+  <div class="fin-dash__kpi-row fin-dash__kpi-row--3">
+    {
+      kpiPrimary.map((c) => (
+        <div
+          class:list={[
+            "fin-dash__kpi-card",
+            c.emphasize && "fin-dash__kpi-card--emphasize",
+            c.trend === "up" && "fin-dash__kpi-card--up",
+            c.trend === "down" && "fin-dash__kpi-card--down",
+          ]}
+        >
+          <span class="fin-dash__kpi-label">{c.label}</span>
+          <span class="fin-dash__kpi-value">{c.value}</span>
+          {c.delta && <span class="fin-dash__kpi-delta">{c.delta}</span>}
+          {c.note && <span class="fin-dash__kpi-note">{c.note}</span>}
+        </div>
+      ))
+    }
+  </div>
+  {
+    kpiSecondary.length > 0 && (
+      <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
+        {kpiSecondary.map((c) => (
+          <div
+            class:list={[
+              "fin-dash__kpi-card",
+              c.trend === "up" && "fin-dash__kpi-card--up",
+              c.trend === "down" && "fin-dash__kpi-card--down",
+            ]}
+          >
+            <span class="fin-dash__kpi-label">{c.label}</span>
+            <span class="fin-dash__kpi-value">{c.value}</span>
+            {c.delta && <span class="fin-dash__kpi-delta">{c.delta}</span>}
+            {c.note && <span class="fin-dash__kpi-note">{c.note}</span>}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  <div class="fin-dash__tabs" role="tablist">
+    <button type="button" class="fin-dash__tab is-active" role="tab" aria-selected="true" data-fin-tab="annual">
+      年報（近{DASHBOARD_ANNUAL_MAX_PERIODS}年）
+    </button>
+    <button
+      type="button"
+      class="fin-dash__tab"
+      role="tab"
+      aria-selected="false"
+      data-fin-tab="quarterly"
+      disabled={!quarterly}
+    >
+      {quarterly
+        ? `季報（${quarterly.periods.length}季）`
+        : `季報（近${DASHBOARD_QUARTERLY_MAX_PERIODS}季）`}
+    </button>
+  </div>
+
+  <div class="fin-dash__panel is-active" data-fin-panel="annual">
+    <figure class="fin-dash__chart">
+      <p class="fin-dash__sl">{annRevProfit.title}（{annRevProfit.unit}）</p>
+      <ul class="fin-dash__legend">
+        {annRevProfit.paths.map((p) => (
+          <li>
+            <span class="fin-dash__leg-dot" style={`background:${p.color}`} />
+            {p.name}
+          </li>
+        ))}
+      </ul>
+      <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--tall">
+        <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+          {annRevProfit.tickVals.map((tv) => {
+            const yy = annRevProfit.y(tv);
+            return (
+              <g>
+                <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
+                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                  {fmtM(tv)}
+                </text>
+              </g>
+            );
+          })}
+          {annRevProfit.revenueFillD && (
+            <path d={annRevProfit.revenueFillD} fill="#378ADD" fill-opacity="0.14" stroke="none" />
+          )}
+          {annRevProfit.paths.map((p) => (
+            <path
+              d={p.d}
+              fill="none"
+              stroke={p.color}
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              stroke-dasharray={p.strokeDasharray}
+            />
+          ))}
+          {annRevProfit.pointDots.flatMap((dots) =>
+            dots.map((d) => <circle cx={d.cx} cy={d.cy} r="3.5" fill={d.color} />)
+          )}
+          {annRevProfit.xLabels.map((lab, i) => {
+            const xi = PAD.l + ((CHART_W - PAD.l - PAD.r) * i) / Math.max(1, annRevProfit.xLabels.length - 1);
+            return (
+              <text class="fin-dash__xtick" x={xi} y={CHART_H - 18} text-anchor="middle">
+                {lab}
+              </text>
+            );
+          })}
+        </svg>
+        <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annRevProfit.tooltipSpec)} />
+      </div>
+    </figure>
+
+    <figure class="fin-dash__chart">
+      <p class="fin-dash__sl">{annMargins.title}（{annMargins.unit}）</p>
+      <ul class="fin-dash__legend">
+        {annMargins.paths.map((p) => (
+          <li>
+            <span class="fin-dash__leg-dot" style={`background:${p.color}`} />
+            {p.name}
+          </li>
+        ))}
+      </ul>
+      <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--mar">
+        <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+          {annMargins.tickVals.map((tv) => {
+            const yy = annMargins.y(tv);
+            return (
+              <g>
+                <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
+                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                  {tv.toFixed(1)}%
+                </text>
+              </g>
+            );
+          })}
+          {annMargins.paths.map((p) => (
+            <path
+              d={p.d}
+              fill="none"
+              stroke={p.color}
+              stroke-width="2"
+              stroke-dasharray={p.strokeDasharray}
+            />
+          ))}
+          {annMargins.pointDots.flatMap((dots) =>
+            dots.map((d) => <circle cx={d.cx} cy={d.cy} r="3.5" fill={d.color} />)
+          )}
+          {annMargins.xLabels.map((lab, i) => {
+            const xi = PAD.l + ((CHART_W - PAD.l - PAD.r) * i) / Math.max(1, annMargins.xLabels.length - 1);
+            return (
+              <text class="fin-dash__xtick" x={xi} y={CHART_H - 18} text-anchor="middle">
+                {lab}
+              </text>
+            );
+          })}
+        </svg>
+        <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annMargins.tooltipSpec)} />
+      </div>
+    </figure>
+
+    <figure class="fin-dash__chart">
+      <p class="fin-dash__sl">{annTriple.title}（百萬元）</p>
+      <ul class="fin-dash__legend">
+        <li><span class="fin-dash__leg-dot" style="background:#378ADD" />營業</li>
+        <li><span class="fin-dash__leg-dot" style="background:#D85A30" />投資</li>
+        <li><span class="fin-dash__leg-dot" style="background:#888780" />融資</li>
+      </ul>
+      <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--triple">
+        <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+          {Array.from({ length: 5 }, (_, i) => {
+            const t = i / 4;
+            const v = annTriple.bot + (annTriple.top - annTriple.bot) * t;
+            const yy = annTriple.yScale(v);
+            return (
+              <g>
+                <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                  {fmtM(v)}
+                </text>
+              </g>
+            );
+          })}
+          <line
+            class="fin-dash__grid fin-dash__grid--zero"
+            x1={PAD.l}
+            x2={CHART_W - PAD.r}
+            y1={annTriple.zeroY}
+            y2={annTriple.zeroY}
+          />
+          {annTriple.bars.map((b) => (
+            <rect
+              x={b.x}
+              y={b.y}
+              width={b.w}
+              height={Math.max(b.h, 1)}
+              rx={2}
+              fill={b.color}
+              fill-opacity="0.33"
+              stroke={b.color}
+              stroke-width="1.5"
+            />
+          ))}
+          {annTriple.xLabels.map((lab, i) => (
+            <text
+              class="fin-dash__xtick"
+              x={annTriple.tooltipSpec.categoryCenterX[i]!}
+              y={CHART_H - 14}
+              text-anchor="middle"
+            >
+              {lab}
+            </text>
+          ))}
+        </svg>
+        <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annTriple.tooltipSpec)} />
+      </div>
+    </figure>
+
+    {annCfPair && (
+    <figure class="fin-dash__chart">
+      <p class="fin-dash__sl">{annCfPair.title}（百萬元）</p>
+      <ul class="fin-dash__legend">
+        <li>
+          <span class="fin-dash__leg-dot" style="background:#378ADD" />{annCfPair.nameA}
+        </li>
+        <li>
+          <span class="fin-dash__leg-dot" style="background:#D85A30" />{annCfPair.nameB}
+        </li>
+      </ul>
+      <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--cf">
+        <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+          {
+            annCfPair.hasNegative && (
+              <line
+                class="fin-dash__grid fin-dash__grid--zero"
+                x1={PAD.l}
+                x2={PLOT_R}
+                y1={annCfPair.zeroY}
+                y2={annCfPair.zeroY}
+              />
+            )
+          }
+          {cfPairYTickMarks.map(({ v, yy }) => {
+            if (!annCfPair.hasNegative && noPositiveMax(annCfPair.maxV)) return null;
+            return (
+              <g>
+                <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                  {fmtM(v)}
+                </text>
+              </g>
+            );
+          })}
+          {annCfPair.bars.map((b) => (
+            <rect
+              x={b.x}
+              y={b.y}
+              width={b.w}
+              height={Math.max(b.h, 2)}
+              rx={3}
+              fill={b.color}
+              fill-opacity="0.33"
+              stroke={b.color}
+              stroke-width="1.5"
+            />
+          ))}
+          {annCfPair.xLabels.map((lab, i) => (
+            <text
+              class="fin-dash__xtick"
+              x={annCfPair.tooltipSpec.categoryCenterX[i]!}
+              y={CHART_H - 14}
+              text-anchor="middle"
+            >
+              {lab}
+            </text>
+          ))}
+        </svg>
+        <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annCfPair.tooltipSpec)} />
+      </div>
+    </figure>
+    )}
+
+    {annFcf && (
+      <figure class="fin-dash__chart">
+        <p class="fin-dash__sl">{annFcf.title}</p>
+        <ul class="fin-dash__legend">
+          <li><span class="fin-dash__leg-dot" style="background:#5B8FD8" />FCF（百萬元）</li>
+          <li><span class="fin-dash__leg-dot" style="background:#E8C84A" />FCF 占營收％</li>
+        </ul>
+        <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--cf">
+          <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+            <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+            <line class="fin-dash__axis-spine" x1={PLOT_R} y1={PAD.t} x2={PLOT_R} y2={PLOT_BOTTOM} />
+            {
+              annFcf.hasNegative && (
+                <line
+                  class="fin-dash__grid fin-dash__grid--zero"
+                  x1={PAD.l}
+                  x2={PLOT_R}
+                  y1={annFcf.baselineY}
+                  y2={annFcf.baselineY}
+                />
+              )
+            }
+            {annFcfYTickMarks.map(({ v, yy }) => {
+              if (!annFcf.hasNegative && noPositiveMax(annFcf.maxAbs)) return null;
+              return (
+                <g>
+                  <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                  <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                    {fmtM(v)}
+                  </text>
+                </g>
+              );
+            })}
+            {annFcfLineYTickMarks.map(({ p, yy }) => (
+              <text class="fin-dash__ytick" x={CHART_W - PAD.r + 6} y={yy + 4} text-anchor="start" fill="#e8c84a">
+                {p.toFixed(1)}%
+              </text>
+            ))}
+            {annFcf.bars.map((b) =>
+              b ? (
+                <rect
+                  x={b.x}
+                  y={b.y}
+                  width={b.w}
+                  height={Math.max(b.h, 2)}
+                  rx={3}
+                  fill={b.fill}
+                  fill-opacity="0.45"
+                  stroke={b.stroke}
+                  stroke-width="1.5"
+                />
+              ) : null
+            )}
+            {annFcf.lineD ? (
+              <path
+                d={annFcf.lineD}
+                fill="none"
+                stroke="#E8C84A"
+                stroke-width="2.25"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
+            ) : null}
+            {annFcf.linePts.map((pt) => (
+              <circle cx={pt.cx} cy={pt.cy} r="3.5" fill="#E8C84A" />
+            ))}
+            {annFcf.xLabels.map((lab, i) => {
+              const slotW = (CHART_W - PAD.l - PAD.r) / annFcf.xLabels.length;
+              const xi = PAD.l + (i + 0.5) * slotW;
+              return (
+                <text class="fin-dash__xtick" x={xi} y={CHART_H - 14} text-anchor="middle">
+                  {lab}
+                </text>
+              );
+            })}
+          </svg>
+          <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annFcf.tooltipSpec)} />
+        </div>
+      </figure>
+    )}
+  </div>
+
+  {
+    quarterly && qNiBars && (qRevGrouped || qRevSimple) && (
+      <div class="fin-dash__panel" data-fin-panel="quarterly" hidden>
+        {qRevGrouped && (
+          <figure class="fin-dash__chart">
+            <p class="fin-dash__sl">{qRevGrouped.title}（百萬元）</p>
+            <ul class="fin-dash__legend">
+              <li>
+                <span class="fin-dash__leg-dot" style="background:#378ADD" />{qRevGrouped.nameA}
+              </li>
+              <li>
+                <span class="fin-dash__leg-dot" style="background:#1D9E75" />{qRevGrouped.nameB}
+              </li>
+            </ul>
+            <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--tall">
+              <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+                {
+                  qRevGrouped.hasNegative && (
+                    <line
+                      class="fin-dash__grid fin-dash__grid--zero"
+                      x1={PAD.l}
+                      x2={PLOT_R}
+                      y1={qRevGrouped.zeroY}
+                      y2={qRevGrouped.zeroY}
+                    />
+                  )
+                }
+                {qRevGroupedYTickMarks.map(({ v, yy }) => {
+                  if (!qRevGrouped.hasNegative && noPositiveMax(qRevGrouped.maxV)) return null;
+                  return (
+                    <g>
+                      <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                        {fmtM(v)}
+                      </text>
+                    </g>
+                  );
+                })}
+                {qRevGrouped.bars.map((b) => (
+                  <rect
+                    x={b.x}
+                    y={b.y}
+                    width={b.w}
+                    height={Math.max(b.h, 2)}
+                    rx={3}
+                    fill={b.color}
+                    fill-opacity="0.33"
+                    stroke={b.color}
+                    stroke-width="1.5"
+                  />
+                ))}
+                {qRevGrouped.xLabels.map((lab, i) => {
+                  const xi = qRevGrouped.tooltipSpec.categoryCenterX[i]!;
+                  const yTick = CHART_H - 12;
+                  return (
+                    <text
+                      class="fin-dash__xtick fin-dash__xtick--dense"
+                      x={xi}
+                      y={yTick}
+                      text-anchor="middle"
+                      transform={`rotate(-42 ${xi} ${yTick})`}
+                    >
+                      {lab}
+                    </text>
+                  );
+                })}
+              </svg>
+              <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qRevGrouped.tooltipSpec)} />
+            </div>
+          </figure>
+        )}
+
+        {qRevSimple && (
+          <figure class="fin-dash__chart">
+            <p class="fin-dash__sl">{qRevSimple.title}（百萬元）</p>
+            <ul class="fin-dash__legend">
+              <li>
+                <span class="fin-dash__leg-dot" style="background:#378ADD" />營收
+              </li>
+            </ul>
+            <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--tall">
+              <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+                {
+                  qRevSimple.hasNegative && (
+                    <line
+                      class="fin-dash__grid fin-dash__grid--zero"
+                      x1={PAD.l}
+                      x2={PLOT_R}
+                      y1={qRevSimple.baselineY}
+                      y2={qRevSimple.baselineY}
+                    />
+                  )
+                }
+                {qRevSimpleYTickMarks.map(({ v, yy }) => {
+                  if (!qRevSimple.hasNegative && noPositiveMax(qRevSimple.maxV)) return null;
+                  return (
+                    <g>
+                      <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                        {fmtM(v)}
+                      </text>
+                    </g>
+                  );
+                })}
+                {qRevSimple.bars.map((b) =>
+                  b ? (
+                    <rect
+                      x={b.x}
+                      y={b.y}
+                      width={b.w}
+                      height={Math.max(b.h, 2)}
+                      rx={3}
+                      fill={b.fill}
+                      fill-opacity={qRevSimple.fillOpacity}
+                      stroke={b.stroke}
+                      stroke-width="1.5"
+                    />
+                  ) : null
+                )}
+                {qRevSimple.xLabels.map((lab, i) => {
+                  const slot = (CHART_W - PAD.l - PAD.r) / qRevSimple.xLabels.length;
+                  const xi = PAD.l + slot * i + slot / 2;
+                  const yTick = CHART_H - 12;
+                  return (
+                    <text
+                      class="fin-dash__xtick fin-dash__xtick--dense"
+                      x={xi}
+                      y={yTick}
+                      text-anchor="end"
+                      transform={`rotate(-42 ${xi} ${yTick})`}
+                    >
+                      {lab}
+                    </text>
+                  );
+                })}
+              </svg>
+              <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qRevSimple.tooltipSpec)} />
+            </div>
+          </figure>
+        )}
+
+        {qMargins && (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">{qMargins.title}（{qMargins.unit}）</p>
+          <ul class="fin-dash__legend">
+            {qMargins.paths.map((p) => (
+              <li>
+                <span class="fin-dash__leg-dot" style={`background:${p.color}`} />
+                {p.name}
+              </li>
+            ))}
+          </ul>
+          <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--mar">
+            <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+              <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+              {qMargins.tickVals.map((tv) => {
+                const yy = qMargins.y(tv);
+                return (
+                  <g>
+                    <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
+                    <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                      {tv.toFixed(1)}%
+                    </text>
+                  </g>
+                );
+              })}
+              {qMargins.paths.map((p) => (
+                <path
+                  d={p.d}
+                  fill="none"
+                  stroke={p.color}
+                  stroke-width="2"
+                  stroke-dasharray={p.strokeDasharray}
+                />
+              ))}
+              {qMargins.pointDots.flatMap((dots) =>
+                dots.map((d) => <circle cx={d.cx} cy={d.cy} r="3.5" fill={d.color} />)
+              )}
+              {qMargins.xLabels.map((lab, i) => {
+                const xi = PAD.l + ((CHART_W - PAD.l - PAD.r) * i) / Math.max(1, qMargins.xLabels.length - 1);
+                return (
+                  <text
+                    class="fin-dash__xtick fin-dash__xtick--dense"
+                    x={xi}
+                    y={CHART_H - 12}
+                    text-anchor="end"
+                    transform={`rotate(-42 ${xi} ${CHART_H - 12})`}
+                  >
+                    {lab}
+                  </text>
+                );
+              })}
+            </svg>
+            <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qMargins.tooltipSpec)} />
+          </div>
+        </figure>
+        )}
+
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">{qNiBars.title}</p>
+          <ul class="fin-dash__legend">
+            <li>
+              <span class="fin-dash__leg-dot" style="background:#7F77DD" />淨利（負值標紅）
+            </li>
+          </ul>
+          <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--qni">
+            <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+              <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+              <line
+                class="fin-dash__grid fin-dash__grid--zero"
+                x1={PAD.l}
+                x2={CHART_W - PAD.r}
+                y1={qNiBars.baselineY}
+                y2={qNiBars.baselineY}
+              />
+              {qNiYTickMarks.map(({ v, yy }) => (
+                <g>
+                  <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                  <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                    {fmtM(v)}
+                  </text>
+                </g>
+              ))}
+              {qNiBars.bars.map((b) =>
+                b ? (
+                  <rect
+                    x={b.x}
+                    y={b.y}
+                    width={b.w}
+                    height={b.h}
+                    rx={3}
+                    fill={b.fill}
+                    fill-opacity={b.fillOpacity}
+                    stroke={b.stroke}
+                    stroke-width="1.5"
+                  />
+                ) : null
+              )}
+              {qNiBars.xLabels.map((lab, i) => {
+                const slot = (CHART_W - PAD.l - PAD.r) / qNiBars.n;
+                const xi = PAD.l + slot * i + slot / 2;
+                return (
+                  <text
+                    class="fin-dash__xtick fin-dash__xtick--dense"
+                    x={xi}
+                    y={CHART_H - 12}
+                    text-anchor="end"
+                    transform={`rotate(-42 ${xi} ${CHART_H - 12})`}
+                  >
+                    {lab}
+                  </text>
+                );
+              })}
+            </svg>
+            <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qNiBars.tooltipSpec)} />
+          </div>
+        </figure>
+
+        {qEpsBars && (
+          <figure class="fin-dash__chart">
+            <p class="fin-dash__sl">{qEpsBars.title}</p>
+            <ul class="fin-dash__legend">
+              <li>
+                <span class="fin-dash__leg-dot" style="background:#BA7517" />EPS（元／股）
+              </li>
+            </ul>
+            <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--qni">
+              <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+                {
+                  qEpsBars.hasNegative && (
+                    <line
+                      class="fin-dash__grid fin-dash__grid--zero"
+                      x1={PAD.l}
+                      x2={PLOT_R}
+                      y1={qEpsBars.baselineY}
+                      y2={qEpsBars.baselineY}
+                    />
+                  )
+                }
+                {qEpsYTickMarks.map(({ v, yy }) => {
+                  if (!qEpsBars.hasNegative && noPositiveMax(qEpsBars.maxV)) return null;
+                  return (
+                    <g>
+                      <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                        {v.toFixed(2)} 元
+                      </text>
+                    </g>
+                  );
+                })}
+                {qEpsBars.bars.map((b) =>
+                  b ? (
+                    <rect
+                      x={b.x}
+                      y={b.y}
+                      width={b.w}
+                      height={Math.max(b.h, 2)}
+                      rx={3}
+                      fill={b.fill}
+                      fill-opacity={qEpsBars.fillOpacity}
+                      stroke={b.stroke}
+                      stroke-width="1.5"
+                    />
+                  ) : null
+                )}
+                {qEpsBars.xLabels.map((lab, i) => {
+                  const slot = (CHART_W - PAD.l - PAD.r) / qEpsBars.xLabels.length;
+                  const xi = PAD.l + slot * i + slot / 2;
+                  const yTick = CHART_H - 12;
+                  return (
+                    <text
+                      class="fin-dash__xtick fin-dash__xtick--dense"
+                      x={xi}
+                      y={yTick}
+                      text-anchor="end"
+                      transform={`rotate(-42 ${xi} ${yTick})`}
+                    >
+                      {lab}
+                    </text>
+                  );
+                })}
+              </svg>
+              <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qEpsBars.tooltipSpec)} />
+            </div>
+          </figure>
+        )}
+
+        {qYoy && (
+          <figure class="fin-dash__chart">
+            <p class="fin-dash__sl">{qYoy.title}（{qYoy.unit}）</p>
+            <ul class="fin-dash__legend">
+              {qYoy.paths.map((p) => (
+                <li>
+                  <span class="fin-dash__leg-dot" style={`background:${p.color}`} />
+                  {p.name}
+                </li>
+              ))}
+            </ul>
+            <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--mar">
+              <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+                {qYoy.tickVals.map((tv) => {
+                  const yy = qYoy.y(tv);
+                  return (
+                    <g>
+                      <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
+                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                        {tv.toFixed(1)}%
+                      </text>
+                    </g>
+                  );
+                })}
+                {qYoy.paths.map((p) => (
+                  <path
+                    d={p.d}
+                    fill="none"
+                    stroke={p.color}
+                    stroke-width="2"
+                    stroke-dasharray={p.strokeDasharray}
+                  />
+                ))}
+                {qYoy.pointDots.flatMap((dots) =>
+                  dots.map((d) => <circle cx={d.cx} cy={d.cy} r="3.5" fill={d.color} />)
+                )}
+                {qYoy.xLabels.map((lab, i) => {
+                  const xi = PAD.l + ((CHART_W - PAD.l - PAD.r) * i) / Math.max(1, qYoy.xLabels.length - 1);
+                  const yTick = CHART_H - 12;
+                  return (
+                    <text
+                      class="fin-dash__xtick fin-dash__xtick--dense"
+                      x={xi}
+                      y={yTick}
+                      text-anchor="end"
+                      transform={`rotate(-42 ${xi} ${yTick})`}
+                    >
+                      {lab}
+                    </text>
+                  );
+                })}
+              </svg>
+              <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qYoy.tooltipSpec)} />
+            </div>
+          </figure>
+        )}
+
+        {qExpenseStack && (
+          <figure class="fin-dash__chart">
+            <p class="fin-dash__sl">{qExpenseStack.title}</p>
+            <ul class="fin-dash__legend">
+              <li><span class="fin-dash__leg-dot" style="background:#378ADD" />推銷費用率</li>
+              <li><span class="fin-dash__leg-dot" style="background:#D85A30" />研發費用率</li>
+              <li><span class="fin-dash__leg-dot" style="background:#888780" />管理費用率</li>
+            </ul>
+            <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--triple">
+              <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+                <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+                {qExpenseStack.tickVals.map((tv) => {
+                  const yy = qExpenseStack.baseY - (tv / qExpenseStack.maxSum) * INNER_H;
+                  return (
+                    <g>
+                      <line class="fin-dash__grid" x1={PAD.l} x2={PLOT_R} y1={yy} y2={yy} />
+                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                        {tv.toFixed(1)}%
+                      </text>
+                    </g>
+                  );
+                })}
+                {qExpenseStack.stackRects.map((r) => (
+                  <rect
+                    x={r.x}
+                    y={r.y}
+                    width={r.w}
+                    height={r.h}
+                    rx={2}
+                    fill={r.fill}
+                    fill-opacity="0.85"
+                    stroke={r.fill}
+                    stroke-width="1"
+                  />
+                ))}
+                {qExpenseStack.xLabels.map((lab, i) => {
+                  const xi = qExpenseStack.tooltipSpec.categoryCenterX[i]!;
+                  const yTick = CHART_H - 12;
+                  return (
+                    <text
+                      class="fin-dash__xtick fin-dash__xtick--dense"
+                      x={xi}
+                      y={yTick}
+                      text-anchor="end"
+                      transform={`rotate(-42 ${xi} ${yTick})`}
+                    >
+                      {lab}
+                    </text>
+                  );
+                })}
+              </svg>
+              <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(qExpenseStack.tooltipSpec)} />
+            </div>
+          </figure>
+        )}
+      </div>
+    )
+  }
+</section>
+</div>
+
+<script is:inline src="/scripts/fin-dash-charts.js"></script>
+
+<script>
+  (function () {
+    const root = document.querySelector("[data-fin-dash]");
+    if (!root) return;
+    const tabs = root.querySelectorAll("[data-fin-tab]");
+    const panels = root.querySelectorAll("[data-fin-panel]");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const key = tab.getAttribute("data-fin-tab");
+        if (!key || tab.hasAttribute("disabled")) return;
+        tabs.forEach((t) => {
+          const on = t.getAttribute("data-fin-tab") === key;
+          t.classList.toggle("is-active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        panels.forEach((p) => {
+          const match = p.getAttribute("data-fin-panel") === key;
+          p.classList.toggle("is-active", match);
+          if (match) p.removeAttribute("hidden");
+          else p.setAttribute("hidden", "");
+        });
+      });
+    });
+  })();
+</script>

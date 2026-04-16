@@ -1,27 +1,27 @@
 :root {
   --layout-max: min(88rem, calc(100vw - 2.5rem));
-  --bg: #0c1017;
-  --bg-mid: #121a24;
-  --surface: #1a2332;
-  --surface-elevated: #1f2a3d;
-  --border: #2d3a4d;
-  --border-subtle: rgba(45, 58, 77, 0.65);
-  --text: #e7ecf3;
-  --text-secondary: #b8c9dc;
-  --muted: #8b9cb3;
+  --bg: #000000;
+  --bg-mid: #000000;
+  --surface: #0e0e0e;
+  --surface-elevated: #161616;
+  --border: #2a2a2a;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --text: #ececec;
+  --text-secondary: #b3b3b3;
+  --muted: #8a8a8a;
   --accent: #5b9fd4;
   --accent-hover: #7cb8e8;
   --accent-soft: rgba(91, 159, 212, 0.14);
   --accent-glow: rgba(91, 159, 212, 0.22);
   --accent-data: #9fd4ff;
-  --text-heading: #c8d8eb;
+  --text-heading: #f0f0f0;
   --link-report: #7dd3c0;
   --wikilink-none: #c4a574;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
-  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.55);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --duration: 0.18s;
@@ -38,6 +38,7 @@
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  background-color: var(--bg);
 }
 
 body {
@@ -45,19 +46,9 @@ body {
   min-height: 100vh;
   font-family: var(--font-body);
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse 120% 80% at 50% -30%, rgba(91, 159, 212, 0.12), transparent 55%),
-    radial-gradient(ellipse 90% 60% at 100% 50%, rgba(125, 211, 192, 0.05), transparent 50%),
-    linear-gradient(180deg, var(--bg-mid) 0%, var(--bg) 45%, var(--bg) 100%);
-  background-attachment: fixed;
+  background-image: none;
   color: var(--text);
   line-height: 1.6;
-}
-
-@media (max-width: 768px) {
-  body {
-    background-attachment: scroll;
-  }
 }
 
 /* Bilingual label: 中文（English） */
@@ -92,7 +83,7 @@ body {
   top: 0;
   z-index: 10;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(26, 35, 50, 0.78);
+  background: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--shadow-sm);
@@ -161,7 +152,7 @@ body {
   text-align: center;
   color: var(--muted);
   font-size: 0.85rem;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.2));
+  background: var(--bg);
 }
 
 .footer-disclaimer {
@@ -423,6 +414,9 @@ a:focus-visible {
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm), var(--shadow-inset);
   transition: border-color var(--duration) var(--ease-out);
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .search-panel:focus-within {
@@ -471,9 +465,12 @@ a:focus-visible {
   margin-top: 0.75rem;
   font-size: 0.95rem;
   max-height: 16rem;
+  max-width: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   border-top: 1px solid var(--border);
   padding-top: 0.5rem;
+  box-sizing: border-box;
 }
 
 .search-results a {
@@ -483,6 +480,9 @@ a:focus-visible {
   border-radius: var(--radius-sm);
   color: var(--link-report);
   text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   transition:
     background-color var(--duration) var(--ease-out),
     color var(--duration) var(--ease-out);
@@ -840,6 +840,17 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.report-fin-data-unavailable {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid rgba(91, 159, 212, 0.28);
+  background: rgba(91, 159, 212, 0.08);
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
 .meta-card[data-meta="note"] .meta-card-value {
   font-family: var(--font-body);
   font-size: 1.02rem;
@@ -858,12 +869,12 @@ a:focus-visible {
 }
 
 .valuation-section {
-  background: linear-gradient(135deg, var(--accent-soft), transparent 55%);
-  border: 1px solid var(--border);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
-  padding: 1.1rem 1.25rem;
+  padding: 1.15rem 1.2rem 1.25rem;
   margin-bottom: 1.5rem;
-  box-shadow: var(--shadow-sm), var(--shadow-inset);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 .valuation-caption {
@@ -880,35 +891,133 @@ a:focus-visible {
   line-height: 1.45;
 }
 
+.valuation-interact-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .valuation-chips {
   list-style: none;
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.65rem 0.75rem;
+  max-width: 52rem;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.7rem 0.65rem;
 }
 
+/* 第一列 4 張、第二列 3 張（置中填滿 12 欄） */
 .valuation-chips li {
-  flex: 0 1 auto;
-  min-width: 6.75rem;
-  max-width: 11rem;
+  grid-column: span 3;
+  min-width: 0;
+  display: flex;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.valuation-chips li:nth-child(n + 5) {
+  grid-column: span 4;
+}
+
+.valuation-chip {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0;
-  padding: 0.8rem 0.95rem 0.85rem;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-left: 2px solid rgba(91, 159, 212, 0.45);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--duration) var(--ease-out);
+  padding: 0.75rem 0.9rem 0.8rem;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  transition:
+    border-color 0.2s var(--ease-out),
+    background 0.2s ease,
+    transform 0.2s var(--ease-out),
+    box-shadow 0.22s ease;
 }
 
-.valuation-chips li:hover {
-  border-color: rgba(91, 159, 212, 0.28);
-  border-left-color: rgba(125, 200, 255, 0.65);
+.valuation-chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.valuation-chip:focus {
+  outline: none;
+}
+
+.valuation-chip:focus-visible {
+  border-color: rgba(120, 170, 255, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(120, 170, 255, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.valuation-chip:hover,
+.valuation-chip:focus-visible,
+.valuation-chip--tip-open {
+  z-index: 6;
+}
+
+/* 自訂說明氣泡（有 data-tooltip 時） */
+.valuation-chip[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%) translateY(-6px);
+  width: max-content;
+  max-width: min(18.5rem, calc(100vw - 2.5rem));
+  padding: 0.55rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-align: left;
+  color: #e8e8e8;
+  background: rgba(22, 22, 26, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .valuation-chip[data-tooltip]:hover::after,
+  .valuation-chip[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.valuation-chip--tip-open[data-tooltip]::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
 }
 
 .valuation-chips .chip-label {
@@ -939,14 +1048,26 @@ a:focus-visible {
   width: 100%;
   margin: 0;
   padding: 0.55rem 0 0;
-  border-top: 1px solid rgba(45, 58, 77, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-family: var(--font-display);
-  font-size: 1.28rem;
+  font-size: 1.35rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.03em;
   color: #ffffff;
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+@media (max-width: 640px) {
+  .valuation-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+  }
+
+  .valuation-chips li,
+  .valuation-chips li:nth-child(n + 5) {
+    grid-column: auto;
+  }
 }
 
 .revenue-chart-section {
@@ -991,6 +1112,15 @@ a:focus-visible {
   align-items: flex-end;
   justify-content: center;
   flex-shrink: 0;
+  /* 淺灰水平參考線（約 5 條，與 fin-dash 格線色調一致） */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(210, 218, 230, 0.16) 0,
+    rgba(210, 218, 230, 0.16) 1px,
+    transparent 1px,
+    transparent 38px
+  );
+  border-radius: 4px;
 }
 
 .revenue-bar {
@@ -1101,98 +1231,73 @@ a:focus-visible {
 
   .fin-table-mode-switch {
     width: 100%;
+    justify-content: center;
   }
 }
 
 .fin-table-toolbar-tools {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.5rem 0.75rem;
   max-width: 100%;
+  justify-content: flex-end;
 }
 
-/* 金額 / 占營收%：滑塊式分段切換 */
-.fin-table-mode-switch {
-  --fin-switch-pad: 6px;
-  --fin-switch-gap: 4px;
-  position: relative;
-  display: inline-flex;
-  align-items: stretch;
+/* 當季／累積 與 金額／占營收% 兩組切換之間的直向分隔線 */
+.fin-table-toolbar-sep {
   flex-shrink: 0;
-  padding: var(--fin-switch-pad);
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 42%),
-    linear-gradient(145deg, rgba(15, 23, 42, 0.55) 0%, rgba(26, 35, 50, 0.95) 100%);
-  border: 1px solid color-mix(in srgb, var(--border) 88%, var(--accent) 12%);
-  box-shadow:
-    var(--shadow-inset),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
-    0 3px 14px rgba(0, 0, 0, 0.32),
-    0 0 0 1px rgba(0, 0, 0, 0.2);
-  gap: var(--fin-switch-gap);
+  width: 1px;
+  height: 1.25rem;
+  align-self: center;
+  margin: 0 0.125rem;
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 1px;
 }
 
-.fin-table-mode-switch::before {
-  content: "";
-  position: absolute;
-  top: var(--fin-switch-pad);
-  bottom: var(--fin-switch-pad);
-  left: var(--fin-switch-pad);
-  /* 與 flex + gap 兩格等寬：(內寬 − 左右 padding − 中間 gap) / 2 */
-  width: calc(
-    (100% - (2 * var(--fin-switch-pad) + var(--fin-switch-gap))) / 2
-  );
-  border-radius: 999px;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--accent) 88%, #fff) 0%,
-    color-mix(in srgb, var(--accent) 45%, #0c1929) 100%
-  );
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
-    0 1px 0 rgba(255, 255, 255, 0.22) inset,
-    0 6px 20px var(--accent-glow),
-    0 2px 8px rgba(0, 0, 0, 0.35);
-  transition: transform 0.32s var(--ease-out);
-}
-
-.fin-table-mode-switch--pct::before {
-  transform: translateX(calc(100% + var(--fin-switch-gap)));
+/* 金額 / 占營收%：與財務儀表板「年報／季報」相同的雙膠囊切換（fin-dash__tab） */
+.fin-table-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .fin-table-mode-btn {
   appearance: none;
   -webkit-appearance: none;
-  position: relative;
-  z-index: 1;
-  flex: 1 1 0;
-  min-width: 6.75rem;
-  border: none;
   margin: 0;
-  padding: 0.65rem 1.5rem;
-  min-height: 2.5rem;
+  padding: 0.4rem 1rem;
+  min-height: 0;
   box-sizing: border-box;
-  font-family: var(--font-display);
+  font-family: inherit;
   font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   color: var(--muted);
   background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   cursor: pointer;
   transition:
-    color 0.22s var(--ease-out),
-    text-shadow 0.22s var(--ease-out),
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
     transform 0.18s var(--ease-out);
   white-space: nowrap;
   text-align: center;
 }
 
 .fin-table-mode-btn:hover:not(.is-active) {
-  color: var(--text-secondary);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .fin-table-mode-btn:active {
@@ -1200,43 +1305,25 @@ a:focus-visible {
 }
 
 .fin-table-mode-btn.is-active {
-  color: #f6f9fc;
-  font-weight: 700;
-  text-shadow: 0 0 20px color-mix(in srgb, var(--accent-data) 45%, transparent);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 500;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* 費用列單季為負（MOPS 反累計／年末調整）；金額模式另加 * */
+.fin-table-amount-pct td.fin-expense-ye-adj {
+  font-style: italic;
 }
 
 .fin-table-mode-btn:focus-visible {
   outline: 2px solid var(--accent-hover);
   outline-offset: 3px;
-  z-index: 2;
-}
-
-@supports not (color: color-mix(in srgb, white, black)) {
-  .fin-table-mode-switch {
-    border-color: var(--border);
-  }
-
-  .fin-table-mode-switch::before {
-    background: linear-gradient(165deg, #6dade0 0%, #3d7cad 100%);
-    box-shadow:
-      0 0 0 1px rgba(91, 159, 212, 0.35),
-      0 1px 0 rgba(255, 255, 255, 0.2) inset,
-      0 6px 18px rgba(91, 159, 212, 0.25),
-      0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-
-  .fin-table-mode-btn.is-active {
-    text-shadow: 0 0 16px rgba(159, 212, 255, 0.35);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fin-table-mode-switch::before {
-    transition: none;
-  }
-
   .fin-table-mode-btn {
-    transition: color 0.12s ease;
+    transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
   }
 
   .fin-table-mode-btn:active {
@@ -1847,6 +1934,9 @@ a:focus-visible {
 /* 關鍵字探索 */
 .discover-form {
   margin: 1rem 0 0.5rem;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .discover-label {
@@ -1925,6 +2015,9 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .discover-hit {
@@ -1933,6 +2026,10 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
   transition:
     border-color var(--duration) var(--ease-out),
     box-shadow var(--duration) var(--ease-out);
@@ -1946,6 +2043,8 @@ a:focus-visible {
 .discover-hit-head a {
   color: var(--link-report);
   text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .discover-hit-head a:hover {
@@ -1956,6 +2055,13 @@ a:focus-visible {
   font-size: 0.82rem;
   color: var(--muted);
   margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.discover-hit-meta a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .discover-hit-excerpt {
@@ -1964,6 +2070,8 @@ a:focus-visible {
   color: var(--text-secondary);
   line-height: 1.45;
   opacity: 0.95;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .discover-cli-hint {
@@ -2002,6 +2110,7 @@ a:focus-visible {
   .discover-hit,
   .meta-card,
   .valuation-chips li,
+  .valuation-chip,
   .revenue-bar,
   .site-footer a {
     transition: none !important;

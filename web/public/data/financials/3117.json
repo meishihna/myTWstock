@@ -1,12 +1,12 @@
 {
   "ticker": "3117",
-  "updatedAt": "2026-04-07T03:34:39Z",
+  "updatedAt": "2026-04-07T18:14:35Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 0.26,
-    "P/B": 2.75,
+    "P/S (TTM)": 0.27,
+    "P/B": 2.81,
     "EV/EBITDA": -24.52,
     "ROE": -74.7,
     "Beta": 0.06,

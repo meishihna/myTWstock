@@ -1,16 +1,16 @@
 {
   "ticker": "2938",
-  "updatedAt": "2026-04-07T03:30:48Z",
+  "updatedAt": "2026-04-07T18:10:42Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 19.45,
+    "P/E (TTM)": 19.92,
     "Forward P/E": null,
-    "P/S (TTM)": 0.6,
-    "P/B": 0.7,
-    "EV/EBITDA": 6.94,
-    "ROE": 8.19,
-    "Beta": -0.16,
-    "Debt/Equity": 111.41
+    "P/S (TTM)": 0.65,
+    "P/B": 0.71,
+    "EV/EBITDA": 4.81,
+    "ROE": 3.45,
+    "Beta": null,
+    "Debt/Equity": 111.73
   },
   "annual": {
     "periods": [

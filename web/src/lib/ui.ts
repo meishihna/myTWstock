@@ -60,11 +60,11 @@ export const REPORT = {
     "本檔最近年度營收約高於同產業 {pct}% 的樣本（僅含已匯出 financials JSON 者）。",
     "This report’s latest annual revenue is above ~{pct}% of sector peers with financials JSON."
   ),
-  quarterlyRevTitle: bi("近十六季營收（百萬台幣）", "Last 16 quarters revenue (NT$ millions)"),
+  quarterlyRevTitle: bi("近三十二季營收（百萬台幣）", "Last 32 quarters revenue (NT$ millions)"),
   quarterlyRevAria: bi("季度營收柱狀圖", "Quarterly revenue bars"),
   annualGmTitle: bi("年度毛利率（%）", "Annual gross margin (%)"),
   annualGmAria: bi("年度毛利率柱狀圖", "Annual gross margin bars"),
-  quarterlyGmTitle: bi("近十六季毛利率（%）", "Last 16 quarters gross margin (%)"),
+  quarterlyGmTitle: bi("近三十二季毛利率（%）", "Last 32 quarters gross margin (%)"),
   quarterlyGmAria: bi("季度毛利率柱狀圖", "Quarterly gross margin bars"),
   chartRevenueToggleLabel: bi(
     "顯示相對前期變動（%）",
@@ -113,13 +113,19 @@ export const REPORT = {
   ),
   /** 財務表上方說明（僅中文） */
   finTableKeyHint:
-    "年度表最多 5 年、季度表最多 16 季（由新到舊）。請用右上角切換「金額」或「占營收%」，同時間只顯示其中一種；金額單位為百萬台幣。",
+    "年度表最多 8 年、季度表最多 32 季（有 financials JSON 時由 JSON 欄位重建）；欄位由新到舊（最新在左）。「當季合併」：各欄皆為該季單季數據，EPS 為該季每股盈餘（元／股）。「累積合併」：同日曆年內自第一季起逐季加總（例：Q2 欄＝Q1＋Q2）；EPS 為同年單季 EPS 加總之近似值（股數各季不同時與財報加權 EPS 可能不同）。可切換「金額」或「占營收%」。金額單位百萬台幣；假設來源季表為單季口徑。三項費用若單季金額為負且附「*」，多為公開資訊觀測站累計口徑反累計後之年末調整／重分類，可將滑鼠移至該格查看說明。",
   /** 財務表分段切換：金額（僅中文，避免按鈕過寬貼邊） */
   finTableModeAmount: "金額",
   /** 財務表分段切換：占營收% */
   finTableModePct: "占營收%",
   /** 財務表切換群組（無障礙標籤，僅中文） */
   finTableModeAria: "切換顯示金額或占營收%",
+  /** 季度表：單季合併口徑 */
+  finTableConsolidationSingle: "當季合併",
+  /** 季度表：同日曆年累積 YTD */
+  finTableConsolidationYtd: "累積合併",
+  /** 季度表當季／累積切換（無障礙） */
+  finTableConsolidationAria: "切換當季合併或累積合併財務數據",
   tocTitle: bi("目錄", "On this page"),
   relatedTitle: bi("相關台股", "Linked TW listings"),
   peersTitle: bi("同產業其他公司", "Peers in same industry"),
@@ -134,6 +140,11 @@ export const REPORT = {
   valuationLiveNote: bi(
     "倍數已依延遲行情股價相對於報告基準股價比例調整（假設財務數字不變）。",
     "Multiples scaled by delayed price vs. the report baseline (fundamentals held constant)."
+  ),
+  /** 估值卡片互動說明（鍵盤可聚焦；觸控裝置可點按顯示說明） */
+  valuationInteractHint: bi(
+    "將游標移至卡片或鍵盤聚焦可查看說明；觸控裝置可點按卡片切換說明。",
+    "Hover or focus a card for a short definition; tap to toggle on touch devices."
   ),
 } as const;
 

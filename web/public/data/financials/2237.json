@@ -1,12 +1,12 @@
 {
   "ticker": "2237",
-  "updatedAt": "2026-04-07T03:17:30Z",
+  "updatedAt": "2026-04-07T17:58:21Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 23.11,
+    "P/E (TTM)": 23.45,
     "Forward P/E": null,
-    "P/S (TTM)": 2.26,
-    "P/B": 3.38,
+    "P/S (TTM)": 2.29,
+    "P/B": 3.43,
     "EV/EBITDA": 52.54,
     "ROE": 3.97,
     "Beta": 0.2,

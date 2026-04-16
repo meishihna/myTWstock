@@ -1,6 +1,6 @@
 {
   "ticker": "6737",
-  "updatedAt": "2026-04-07T04:18:21Z",
+  "updatedAt": "2026-04-07T20:03:29Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
     "P/E (TTM)": 11.82,
@@ -107,6 +107,70 @@
     }
   },
   "quarterly": {
+    "periods": [
+      "2025-03-31",
+      "2025-06-30"
+    ],
+    "series": {
+      "Revenue": [
+        767.95,
+        781.278
+      ],
+      "Gross Profit": [
+        188.179,
+        171.737
+      ],
+      "Gross Margin (%)": [
+        24.504069275343447,
+        21.981548181313183
+      ],
+      "Selling & Marketing Exp": [
+        44.05,
+        36.352
+      ],
+      "R&D Exp": [
+        16.683,
+        20.008
+      ],
+      "General & Admin Exp": [
+        59.733,
+        59.475
+      ],
+      "Operating Income": [
+        67.713,
+        55.902
+      ],
+      "Operating Margin (%)": [
+        8.817370922586106,
+        7.155199557647854
+      ],
+      "Net Income": [
+        41.046,
+        97.054
+      ],
+      "Net Margin (%)": [
+        5.344879223907807,
+        12.422466778790648
+      ],
+      "Op Cash Flow": [
+        207.307,
+        -20.273
+      ],
+      "Investing Cash Flow": [
+        -31.427,
+        26.951
+      ],
+      "Financing Cash Flow": [
+        -170.343,
+        -155.122
+      ],
+      "CAPEX": [
+        -4.541,
+        -6.414
+      ]
+    }
+  },
+  "quarterlyCore": {
     "periods": [
       "2025-03-31",
       "2025-06-30"

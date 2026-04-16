@@ -1,15 +1,15 @@
 {
   "ticker": "6027",
-  "updatedAt": "2026-04-07T04:01:21Z",
+  "updatedAt": "2026-04-07T19:48:03Z",
   "unit": "Million NTD; margin rows are percent",
   "valuation": {
-    "P/E (TTM)": 10.91,
+    "P/E (TTM)": 10.59,
     "Forward P/E": null,
-    "P/S (TTM)": 16.5,
-    "P/B": 0.7,
+    "P/S (TTM)": 4.32,
+    "P/B": 0.66,
     "EV/EBITDA": null,
-    "ROE": -3.54,
-    "Beta": 0.27,
+    "ROE": 6.42,
+    "Beta": 0.23,
     "Debt/Equity": 0.41
   },
   "annual": {

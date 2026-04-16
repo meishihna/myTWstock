@@ -7,11 +7,13 @@ import RevenueChartToggle from "../../components/RevenueChartToggle.astro";
 import QuoteStrip from "../../components/QuoteStrip.astro";
 import RelationSummary from "../../components/RelationSummary.astro";
 import ValuationSection from "../../components/ValuationSection.astro";
+import FinancialDashboard from "../../components/FinancialDashboard.astro";
+import { normalizeIndustryTypeForDashboard } from "../../lib/industryConfig";
 import fs from "node:fs";
 import path from "node:path";
 import {
   annualRevenueSeriesFromJson,
-  quarterlyMetricSeriesFromJson,
+  quarterlyRevGmSeriesPairFromJson,
   tailNullableSeries,
   tailNullableSeriesPair,
   type FinancialsJson,
@@ -31,13 +33,16 @@ import {
   parseReportSummary,
   parseValuation,
   stripRelationSectionsForBody,
+  stripValuationMarkdownSubsection,
   marginBarScale,
   maxAbsGrowthScale,
   maxAbsPptScale,
   periodOverPeriodGrowthPct,
   periodOverPeriodMarginPpt,
   tailRevenueSeries,
+  type ValuationParsed,
 } from "../../lib/parseReport";
+import { showFinancialDashboard } from "../../lib/financialDashboard";
 import { REPORT, SITE } from "../../lib/ui";
 
 export const prerender = true;
@@ -73,7 +78,7 @@ if (!meta) {
 
 const mdPath = path.join(repoRoot, "Pilot_Reports", ...meta.relPath.split("/"));
 const raw = fs.readFileSync(mdPath, "utf8");
-const rawBody = stripRelationSectionsForBody(raw);
+const rawBody = stripValuationMarkdownSubsection(stripRelationSectionsForBody(raw));
 const toc = extractToc(rawBody);
 
 const hubJsonPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
@@ -97,14 +102,13 @@ if (fs.existsSync(hubJsonPath)) {
 let html = renderReportMarkdown(rawBody, nameToTicker, labelToWikiSlug);
 html = addHeadingAnchors(html, toc);
 
-const summary = parseReportSummary(raw);
+const summaryMd = parseReportSummary(raw);
 const relationBlocks = parseRelationBlocks(raw);
-const valuation = parseValuation(raw);
 const relatedTw = extractRelatedTw(raw, nameToTicker);
 
-/** 柱狀圖與 MD/JSON「近 5 年／近 16 季」對齊：時序舊→新，只取尾端。 */
-const CHART_ANNUAL_PERIODS = 5;
-const CHART_QUARTERLY_PERIODS = 16;
+/** 柱狀圖近 8 年／近 32 季（與 financials JSON 上限一致；內文季表由 report-financial-tables.js 重建）。 */
+const CHART_ANNUAL_PERIODS = 8;
+const CHART_QUARTERLY_PERIODS = 32;
 
 const revChrono = chronologicalSeries(parseAnnualRevenue(raw));
 const revChronoChart = revChrono
@@ -132,19 +136,139 @@ const annGmPpt =
     : null;
 const annGmPptMax = annGmPpt ? maxAbsPptScale(annGmPpt) : 1;
 
-const finPath = path.join(
+const finStorePath = path.join(
+  repoRoot,
+  "data/financials_store",
+  `${ticker}.json`
+);
+const finPublicPath = path.join(
   process.cwd(),
   "public/data/financials",
   `${ticker}.json`
 );
 let financialsJson: FinancialsJson | null = null;
-if (fs.existsSync(finPath)) {
+const finReadPath = fs.existsSync(finStorePath)
+  ? finStorePath
+  : fs.existsSync(finPublicPath)
+    ? finPublicPath
+    : null;
+if (finReadPath) {
   try {
-    financialsJson = JSON.parse(fs.readFileSync(finPath, "utf8"));
+    financialsJson = JSON.parse(fs.readFileSync(finReadPath, "utf8"));
   } catch {
     financialsJson = null;
   }
 }
+
+const finDashIndustryType = normalizeIndustryTypeForDashboard(
+  financialsJson?.industryType ?? "general",
+);
+
+const fj = financialsJson as Record<string, unknown> | null;
+const fmtMCap = (v: unknown): string | null => {
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? `${n.toLocaleString("zh-TW")} 百萬台幣` : null;
+};
+const summary = {
+  board: (fj?.sector as string) ?? summaryMd.board ?? null,
+  industry: (fj?.industry as string) ?? summaryMd.industry ?? null,
+  marketCap: fmtMCap(fj?.marketCap) ?? summaryMd.marketCap ?? null,
+  enterpriseValue: fmtMCap(fj?.enterpriseValue) ?? summaryMd.enterpriseValue ?? null,
+  note: summaryMd.note ?? null,
+};
+
+/** 板塊／產業：null、空字串、N/A 顯示為「—」，不顯示字面 N/A */
+function metaDisplayField(v: unknown): string {
+  if (v == null) return "—";
+  const s = String(v).trim();
+  if (!s) return "—";
+  const u = s.toUpperCase();
+  if (u === "N/A" || u === "NA" || u === "NONE") return "—";
+  return s;
+}
+const sectorDisplay = metaDisplayField(summary.board);
+const industryDisplay = metaDisplayField(summary.industry);
+
+const valuation: ValuationParsed = fj?.valuation
+  ? (() => {
+      const vRaw = fj.valuation as Record<string, unknown>;
+      /** 與 ValuationSection／parseReport VAL_KEYS 一致，不含 ROE 小卡 */
+      const JSON_TO_KEY: [string, string, string, string][] = [
+        ["P/E (TTM)", "peTtm", "本益比", "P/E (TTM)"],
+        ["Forward P/E", "forwardPe", "前瞻本益比", "Forward P/E"],
+        ["P/S (TTM)", "psTtm", "股價營收比", "P/S (TTM)"],
+        ["P/B", "pb", "股價淨值比", "P/B"],
+        ["EV/EBITDA", "evEbitda", "企業價值倍數", "EV/EBITDA"],
+        ["Beta", "beta", "Beta", "Beta"],
+        ["Debt/Equity", "debtEquity", "負債權益比", "Debt/Equity"],
+      ];
+      const jsonValHas = (raw: unknown) =>
+        raw != null &&
+        raw !== "" &&
+        String(raw).trim().toLowerCase() !== "null" &&
+        String(raw).trim().toUpperCase() !== "N/A";
+      /** OTC 等：P/E、P/B、P/S 為 null 時不產生該小卡 */
+      const HIDE_WHEN_NULL = new Set(["P/E (TTM)", "P/B", "P/S (TTM)"]);
+      const rows = JSON_TO_KEY.filter(([jsonKey]) => {
+        if (!HIDE_WHEN_NULL.has(jsonKey)) return true;
+        return jsonValHas(vRaw[jsonKey]);
+      });
+      const metrics: Record<string, string> = {};
+      for (const [jsonKey, camelKey] of rows) {
+        const v = vRaw[jsonKey];
+        const has = jsonValHas(v);
+        metrics[camelKey] = has ? String(v) : "—";
+      }
+      const labels = rows.map(([, key, labelZh, labelEn]) => ({
+        key,
+        label: `${labelZh} ${labelEn}`,
+        labelZh,
+        labelEn,
+      }));
+      const parts: string[] = [];
+      if (vRaw["_price"]) parts.push(`股價 $${vRaw["_price"]}`);
+      if (vRaw["_ttm_end"]) parts.push(`TTM 截至 ${vRaw["_ttm_end"]}`);
+      if (vRaw["_fwd_end"]) parts.push(`Forward 預估至 ${vRaw["_fwd_end"]}`);
+      const priceLine = parts.length ? parts.join(" | ") : undefined;
+      return { metrics, labels, priceLine };
+    })()
+  : parseValuation(raw);
+
+/** 季度表「累積合併」用；與 Markdown 單季表同期別對齊 */
+const quarterlyYtdJsonForTable =
+  financialsJson?.quarterlyYtd?.periods?.length &&
+  financialsJson.quarterlyYtd.series
+    ? JSON.stringify(financialsJson.quarterlyYtd)
+    : "";
+/** 年表 EPS 修正：以單季 EPS 加總對齊 Yahoo 年報誤植 */
+const quarterlyBlockForAnnualEpsFix =
+  financialsJson?.quarterly?.series?.EPS &&
+  financialsJson.quarterly.periods?.length
+    ? financialsJson.quarterly
+    : financialsJson?.quarterlyCore?.series?.EPS &&
+        financialsJson.quarterlyCore.periods?.length
+      ? financialsJson.quarterlyCore
+      : null;
+const quarterlyJsonForReportTable = quarterlyBlockForAnnualEpsFix
+  ? JSON.stringify(quarterlyBlockForAnnualEpsFix)
+  : "";
+/** 內文季表欄位：優先完整 quarterly（期數最多），供 report-financial-tables.js 重建（至多 32 欄） */
+const quarterlyDisplayJsonForTable =
+  financialsJson?.quarterly?.periods?.length && financialsJson.quarterly.series
+    ? JSON.stringify(financialsJson.quarterly)
+    : quarterlyJsonForReportTable;
+const annualJsonForTable =
+  financialsJson?.annual?.periods?.length && financialsJson.annual.series
+    ? JSON.stringify(financialsJson.annual)
+    : "";
+const finDashOk = showFinancialDashboard(financialsJson);
+const finDataUnavailable =
+  financialsJson != null &&
+  !(
+    Array.isArray(financialsJson.annual?.periods) &&
+    (financialsJson.annual?.periods?.length ?? 0) > 0
+  );
 const jsonAnnualRev = annualRevenueSeriesFromJson(financialsJson);
 const jsonAnnualChart = jsonAnnualRev
   ? tailNullableSeries(jsonAnnualRev, CHART_ANNUAL_PERIODS)
@@ -190,14 +314,8 @@ const annRevGrowthMax = annRevGrowth
   ? maxAbsGrowthScale(annRevGrowth)
   : 1;
 
-const jsonQuarterlyRev = quarterlyMetricSeriesFromJson(
-  financialsJson,
-  "Revenue"
-);
-const jsonQuarterlyGm = quarterlyMetricSeriesFromJson(
-  financialsJson,
-  "Gross Margin (%)"
-);
+const { rev: jsonQuarterlyRev, gm: jsonQuarterlyGm } =
+  quarterlyRevGmSeriesPairFromJson(financialsJson);
 const mdQuarterlyLen = qRevChrono?.labels.length ?? 0;
 const mdQuarterlyFinite =
   qRevChrono?.values.filter((v) => Number.isFinite(v)).length ?? 0;
@@ -356,58 +474,54 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
     </div>
   </header>
 
-  {
-    (summary.board ||
-      summary.industry ||
-      summary.marketCap ||
-      summary.enterpriseValue ||
-      summary.note) && (
-      <section class="meta-card-grid" aria-label={REPORT.summaryAria}>
-        {summary.board && (
-          <div class="meta-card" data-meta="sector">
-            <span class="meta-card-label">
-              <Bi zh="板塊" en="Sector" />
-            </span>
-            <span class="meta-card-value">{summary.board}</span>
-          </div>
-        )}
-        {summary.industry && (
-          <div class="meta-card" data-meta="industry">
-            <span class="meta-card-label">
-              <Bi zh="產業" en="Industry" />
-            </span>
-            <span class="meta-card-value">{summary.industry}</span>
-          </div>
-        )}
-        {summary.marketCap && (
-          <div class="meta-card" data-meta="mcap">
-            <span class="meta-card-label">
-              <Bi zh="市值" en="Market cap" />
-            </span>
-            <span class="meta-card-value">{summary.marketCap}</span>
-          </div>
-        )}
-        {summary.enterpriseValue && (
-          <div class="meta-card" data-meta="ev">
-            <span class="meta-card-label">
-              <Bi zh="企業價值" en="Enterprise value" />
-            </span>
-            <span class="meta-card-value">{summary.enterpriseValue}</span>
-          </div>
-        )}
-        {summary.note && (
-          <div class="meta-card meta-card-wide" data-meta="note">
-            <span class="meta-card-label">
-              <Bi zh="備註" en="Note" />
-            </span>
-            <span class="meta-card-value">{summary.note}</span>
-          </div>
-        )}
-      </section>
-    )
-  }
+  <section class="meta-card-grid" aria-label={REPORT.summaryAria}>
+    <div class="meta-card" data-meta="sector">
+      <span class="meta-card-label">
+        <Bi zh="板塊" en="Sector" />
+      </span>
+      <span class="meta-card-value">{sectorDisplay}</span>
+    </div>
+    <div class="meta-card" data-meta="industry">
+      <span class="meta-card-label">
+        <Bi zh="產業" en="Industry" />
+      </span>
+      <span class="meta-card-value">{industryDisplay}</span>
+    </div>
+    {summary.marketCap && (
+      <div class="meta-card" data-meta="mcap">
+        <span class="meta-card-label">
+          <Bi zh="市值" en="Market cap" />
+        </span>
+        <span class="meta-card-value">{summary.marketCap}</span>
+      </div>
+    )}
+    {summary.enterpriseValue && (
+      <div class="meta-card" data-meta="ev">
+        <span class="meta-card-label">
+          <Bi zh="企業價值" en="Enterprise value" />
+        </span>
+        <span class="meta-card-value">{summary.enterpriseValue}</span>
+      </div>
+    )}
+    {summary.note && (
+      <div class="meta-card meta-card-wide" data-meta="note">
+        <span class="meta-card-label">
+          <Bi zh="備註" en="Note" />
+        </span>
+        <span class="meta-card-value">{summary.note}</span>
+      </div>
+    )}
+  </section>
 
   <ValuationSection ticker={meta.ticker} valuation={valuation} />
+
+  {
+    finDataUnavailable && (
+      <p class="report-fin-data-unavailable" role="status">
+        本檔財務數據暫無法取得，可能因資料源尚未覆蓋或公司近期有重大變動。
+      </p>
+    )
+  }
 
   <QuoteStrip ticker={meta.ticker} />
 
@@ -417,6 +531,16 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
     labelToWikiSlug={labelToWikiSlug}
   />
 
+  {finDashOk && financialsJson && (
+    <FinancialDashboard
+      financialsJson={financialsJson}
+      companyName={meta.name}
+      ticker={meta.ticker}
+      industryType={finDashIndustryType}
+    />
+  )}
+
+  {!finDashOk && (
   <div class="report-charts-grid">
     {
       showJsonAnnualRev && jsonAnnualChart && jsonRevGrowth && (
@@ -574,6 +698,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
       )
     }
   </div>
+  )}
 
   <div class="report-layout">
     <aside class="report-aside">
@@ -638,6 +763,14 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
       data-fin-table-mode-amount-label={REPORT.finTableModeAmount}
       data-fin-table-mode-pct-label={REPORT.finTableModePct}
       data-fin-table-mode-aria={REPORT.finTableModeAria}
+      data-fin-table-consolidation-single-label={REPORT.finTableConsolidationSingle}
+      data-fin-table-consolidation-ytd-label={REPORT.finTableConsolidationYtd}
+      data-fin-table-consolidation-aria={REPORT.finTableConsolidationAria}
+      data-fin-quarterly-ytd-json={quarterlyYtdJsonForTable}
+      data-fin-quarterly-json={quarterlyJsonForReportTable}
+      data-fin-quarterly-display-json={quarterlyDisplayJsonForTable}
+      data-fin-annual-json={annualJsonForTable}
+      data-fin-industry-type={finDashIndustryType}
       set:html={html}
     />
   </div>

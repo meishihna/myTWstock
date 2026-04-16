@@ -17,3 +17,6 @@ web/.astro/
 .env
 .env.*
 !.env.example
+
+# MOPS 全市場季報快取（可很大）
+data/mops_cache/*.json

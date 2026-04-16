@@ -4,6 +4,7 @@ import {
   parseValuationPriceLine,
   type ValuationParsed,
 } from "../lib/parseReport";
+import { valuationHintForKey } from "../lib/valuationTooltips";
 
 interface Props {
   ticker: string;
@@ -14,17 +15,15 @@ const { reportPrice, trailingNote, displayFallback } = parseValuationPriceLine(
   valuation.priceLine
 );
 
-/** 僅倍數欄位：延遲行情換算股價時重算；ROE / Beta / D/E 不應乘價格比 */
+/** 僅倍數欄位：延遲行情換算股價時重算；Beta / D/E 不應乘價格比 */
 const valKeys = ["peTtm", "forwardPe", "psTtm", "pb", "evEbitda"] as const;
 ---
 
-{
-  valuation.labels.length > 0 && (
-    <section
-      class="valuation-section"
-      aria-label={REPORT.valuationAria}
-      data-ticker={ticker}
-    >
+<section
+  class="valuation-section"
+  aria-label={REPORT.valuationAria}
+  data-ticker={ticker}
+>
       <h2 class="valuation-heading">{REPORT.valuationAria}</h2>
       <p class="valuation-caption" data-role="caption">
         {trailingNote ? (
@@ -40,28 +39,38 @@ const valKeys = ["peTtm", "forwardPe", "psTtm", "pb", "evEbitda"] as const;
       <p class="valuation-live-hint" data-role="hint" hidden>
         {REPORT.valuationLiveNote}
       </p>
+      <p class="valuation-interact-hint">{REPORT.valuationInteractHint}</p>
       <ul class="valuation-chips">
-        {valuation.labels.map((L) => (
-          <li>
-            <span class="chip-label">
-              <span class="chip-zh">{L.labelZh}</span>
-              <span class="chip-en" lang="en">
-                {L.labelEn}
-              </span>
-            </span>
-            <span
-              class="chip-value"
-              data-val-key={L.key}
-              data-val-raw={valuation.metrics[L.key] ?? ""}
-            >
-              {valuation.metrics[L.key] ?? "—"}
-            </span>
-          </li>
-        ))}
+        {valuation.labels.map((L) => {
+          const hint = valuationHintForKey(L.key);
+          const valDisp = valuation.metrics[L.key] ?? "—";
+          return (
+            <li>
+              <button
+                type="button"
+                class="valuation-chip"
+                data-tooltip={hint || undefined}
+                title={hint || undefined}
+              >
+                <span class="chip-label">
+                  <span class="chip-zh">{L.labelZh}</span>
+                  <span class="chip-en" lang="en">
+                    {L.labelEn}
+                  </span>
+                </span>
+                <span
+                  class="chip-value"
+                  data-val-key={L.key}
+                  data-val-raw={valuation.metrics[L.key] ?? ""}
+                >
+                  {valDisp}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
-    </section>
-  )
-}
+</section>
 
 <script is:inline define:vars={{ ticker, reportPrice, trailingNote, displayFallback, REPORT, valKeys }}>
   (function () {
@@ -145,5 +154,32 @@ const valKeys = ["peTtm", "forwardPe", "psTtm", "pb", "evEbitda"] as const;
       .catch(function () {
         setFail();
       });
+
+    root.querySelectorAll(".valuation-chip").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        try {
+          if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+        } catch (err1) {}
+        if (!btn.getAttribute("data-tooltip")) return;
+        e.stopPropagation();
+        var wasOpen = btn.classList.contains("valuation-chip--tip-open");
+        root.querySelectorAll(".valuation-chip--tip-open").forEach(function (b) {
+          b.classList.remove("valuation-chip--tip-open");
+        });
+        if (!wasOpen) btn.classList.add("valuation-chip--tip-open");
+      });
+    });
+
+    document.addEventListener(
+      "click",
+      function (ev) {
+        if (!root.contains(ev.target)) return;
+        if (ev.target.closest && ev.target.closest(".valuation-chip")) return;
+        root.querySelectorAll(".valuation-chip--tip-open").forEach(function (b) {
+          b.classList.remove("valuation-chip--tip-open");
+        });
+      },
+      true
+    );
   })();
 </script>

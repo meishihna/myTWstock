@@ -1,0 +1,368 @@
+/* 完整財務儀表板 — 與全站黑底一致（不再另做全寬色塊，避免橫向捲軸） */
+.fin-dash-shell {
+  background: transparent;
+  padding: 0.25rem 0 1.5rem;
+  box-sizing: border-box;
+}
+
+.fin-dash {
+  /* KPI 年增／年變：綠漲紅跌（與附圖一致） */
+  --fd-pos: #4ade80;
+  --fd-neg: #f87171;
+  --fd-tick: #d2d2d2;
+  /* 淺灰參考格線（深底上可讀） */
+  --fd-grid: rgba(210, 218, 230, 0.22);
+  --fd-text: #f5f5f5;
+  --fd-muted: #9a9a9a;
+
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0;
+  color: var(--fd-text);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.fin-dash__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fin-dash__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem 0 0.25rem;
+  margin: 0;
+}
+
+.fin-dash__title-line {
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.fin-dash__sub {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--fd-muted);
+}
+
+.fin-dash__kpi-row {
+  display: grid;
+  gap: 0.7rem 0.65rem;
+  margin: 1.1rem 0 1.5rem;
+}
+
+.fin-dash__kpi-row--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fin-dash__kpi-row--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+/* 與報告頁「估值指標」卡片同系：深底、細邊、主數字置中區塊 */
+.fin-dash__kpi-card {
+  min-height: 6.75rem;
+  padding: 0.75rem 0.9rem 0.8rem;
+  border-radius: 10px;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.fin-dash__kpi-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #181818;
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+/* 上排：營收／毛利率／EPS 主數字再略大 */
+.fin-dash__kpi-card--emphasize .fin-dash__kpi-value {
+  font-size: 1.65rem;
+}
+
+.fin-dash__kpi-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a8a8a8;
+  margin: 0;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.fin-dash__kpi-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 0.35rem 0 0.4rem;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: #ffffff;
+  line-height: 1.15;
+}
+
+.fin-dash__kpi-delta {
+  margin-top: auto;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  color: var(--fd-muted);
+}
+
+.fin-dash__kpi-card--up .fin-dash__kpi-delta {
+  color: var(--fd-pos);
+}
+
+.fin-dash__kpi-card--down .fin-dash__kpi-delta {
+  color: var(--fd-neg);
+}
+
+.fin-dash__kpi-note {
+  margin-top: auto;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--fd-muted);
+  line-height: 1.35;
+}
+
+.fin-dash__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.35rem;
+}
+
+.fin-dash__tab {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  padding: 0.4rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--fd-muted);
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.fin-dash__tab:hover:not(:disabled) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.fin-dash__tab.is-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 500;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.fin-dash__tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.fin-dash__panel[hidden] {
+  display: none;
+}
+
+.fin-dash__panel.is-active:not([hidden]) {
+  display: block;
+}
+
+.fin-dash__sl {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ececec;
+  margin: 0 0 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.fin-dash__chart {
+  position: relative;
+  width: 100%;
+  margin-bottom: 2.25rem;
+}
+
+.fin-dash__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--fd-muted);
+}
+
+.fin-dash__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fin-dash__leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.fin-dash__canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 250px;
+}
+
+.fin-dash__canvas-wrap--tall {
+  height: 280px;
+}
+
+.fin-dash__canvas-wrap--mar {
+  height: 230px;
+}
+
+.fin-dash__canvas-wrap--short {
+  height: 200px;
+}
+
+.fin-dash__canvas-wrap--cf {
+  height: 220px;
+}
+
+.fin-dash__canvas-wrap--triple {
+  height: 230px;
+}
+
+.fin-dash__canvas-wrap--qni {
+  height: 210px;
+}
+
+.fin-dash__canvas-wrap--hover {
+  cursor: crosshair;
+}
+
+.fin-dash__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.fin-dash__axis-spine {
+  stroke: rgba(255, 255, 255, 0.58);
+  stroke-width: 1.25;
+  shape-rendering: crispEdges;
+}
+
+.fin-dash__grid {
+  stroke: var(--fd-grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.fin-dash__grid--axis,
+.fin-dash__grid--zero {
+  stroke: rgba(210, 218, 230, 0.32);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.fin-dash__crosshair {
+  stroke: rgba(255, 255, 255, 0.38) !important;
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.fin-dash__ytick {
+  fill: var(--fd-tick);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-dash__xtick {
+  fill: var(--fd-tick);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-dash__xtick--dense {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Hover 工具提示 */
+.fin-dash__tooltip {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 10px 14px;
+  background: rgba(18, 18, 18, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ececec;
+  pointer-events: none;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.fin-dash__tooltip strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .fin-dash__kpi-row--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fin-dash__kpi-row--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .fin-dash__kpi-row--4,
+  .fin-dash__kpi-row--3 {
+    grid-template-columns: 1fr;
+  }
+}
