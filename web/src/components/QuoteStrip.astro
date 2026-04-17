@@ -1,110 +1,600 @@
 ---
+import { getPrice } from "../lib/priceCache";
+import { buildCandlestickChart } from "../lib/priceChartSvg";
 import { QUOTE } from "../lib/ui";
 
 interface Props {
   ticker: string;
+  peTtm?: string;
+  pb?: string;
+  evEbitda?: string;
 }
-const { ticker } = Astro.props;
 
-const labels = {
-  loading: QUOTE.loading,
-  error: QUOTE.error,
-  last: QUOTE.last,
-  prevClose: QUOTE.prevClose,
-  change: QUOTE.change,
-  pct: QUOTE.pct,
-  asOf: QUOTE.asOf,
-  na: QUOTE.na,
-};
+const {
+  ticker,
+  peTtm = "—",
+  pb = "—",
+  evEbitda = "—",
+} = Astro.props;
+
+const priceData = await getPrice(ticker);
+const chart =
+  priceData && priceData.close.length >= 2
+    ? buildCandlestickChart(
+        priceData.dates,
+        priceData.open,
+        priceData.high,
+        priceData.low,
+        priceData.close,
+        priceData.volume,
+        priceData.ma5,
+        priceData.ma10,
+        priceData.ma20,
+        660,
+        320,
+        62,
+        10,
+        8,
+        5,
+      )
+    : null;
+
+/** 最後一根＝最新收盤；前一根＝前一交易日收盤（與 K 線一致，用於當日漲跌與昨收） */
+const nClose = priceData?.close.length ?? 0;
+const headlineClose =
+  nClose >= 1 && priceData ? priceData.close[nClose - 1]! : null;
+const prevSessionClose =
+  nClose >= 2 && priceData ? priceData.close[nClose - 2]! : null;
+const dayChange =
+  headlineClose != null && prevSessionClose != null
+    ? Math.round((headlineClose - prevSessionClose) * 100) / 100
+    : null;
+const dayChangePct =
+  dayChange != null &&
+  prevSessionClose != null &&
+  prevSessionClose !== 0
+    ? Math.round((dayChange / prevSessionClose) * 10000) / 100
+    : null;
+
+const badgeUp = dayChange != null && dayChange > 0;
+const badgeDown = dayChange != null && dayChange < 0;
+const badgeClass = badgeUp ? "up" : badgeDown ? "down" : "flat";
+
+function showMetric(s: string): boolean {
+  const t = String(s).trim();
+  if (!t || t === "—") return false;
+  const u = t.toUpperCase();
+  return u !== "N/A" && u !== "NA";
+}
+
+function fmtPrice(n: number): string {
+  return n.toLocaleString("zh-TW", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/** Proposal C 成交量列（B / M / K） */
+function fmtVolLine(v: number): string {
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(0) + "K";
+  return String(Math.round(v));
+}
+
+let timeDisplay = "";
+if (priceData?.marketTime) {
+  try {
+    timeDisplay = new Date(priceData.marketTime).toLocaleString("zh-TW", {
+      timeZone: "Asia/Taipei",
+    });
+  } catch {
+    timeDisplay = "";
+  }
+} else if (priceData?.dates?.length) {
+  timeDisplay = priceData.dates[priceData.dates.length - 1] ?? "";
+}
+
+const high90 = priceData ? Math.max(...priceData.high) : null;
+const low90 = priceData ? Math.min(...priceData.low) : null;
+
+const lastOpen =
+  nClose >= 1 && priceData ? priceData.open[nClose - 1]! : null;
+const lastVol =
+  nClose >= 1 && priceData ? priceData.volume[nClose - 1]! : null;
+
+const currentInRange =
+  headlineClose ?? (priceData?.latest ?? 0);
+const rangeSpan =
+  high90 != null && low90 != null ? high90 - low90 : 0;
+let currentPctInRange = 50;
+if (rangeSpan > 0 && high90 != null && low90 != null) {
+  currentPctInRange = Math.round(
+    ((currentInRange - low90) / rangeSpan) * 100,
+  );
+  currentPctInRange = Math.max(0, Math.min(100, currentPctInRange));
+}
+
+const chgBigStr =
+  dayChange == null
+    ? "—"
+    : dayChange === 0
+      ? fmtPrice(0)
+      : (dayChange > 0 ? "+" : "-") + fmtPrice(Math.abs(dayChange));
+const chgPctStr =
+  dayChangePct == null
+    ? "—"
+    : (dayChangePct === 0
+        ? "0.00"
+        : (dayChangePct > 0 ? "+" : "-") +
+          Math.abs(dayChangePct).toFixed(2)) + "%";
+
+const hoverZoneW = chart
+  ? chart.svgWidth - chart.leftPad - chart.rightPad
+  : 0;
 ---
-<section class="quote-strip" aria-label={QUOTE.title} data-ticker={ticker}>
-  <div class="quote-strip-head">
-    <h2 class="quote-strip-title">{QUOTE.title}</h2>
-    <p class="quote-strip-note">{QUOTE.sourceNote}</p>
-  </div>
-  <p class="quote-strip-msg" data-role="msg">{labels.loading}</p>
-  <dl class="quote-strip-dl" data-role="dl" hidden>
-    <div class="quote-strip-row">
-      <dt>{labels.last}</dt>
-      <dd data-role="price">{labels.na}</dd>
-    </div>
-    <div class="quote-strip-row">
-      <dt>{labels.prevClose}</dt>
-      <dd data-role="prev">{labels.na}</dd>
-    </div>
-    <div class="quote-strip-row">
-      <dt>{labels.change}</dt>
-      <dd data-role="chg">{labels.na}</dd>
-    </div>
-    <div class="quote-strip-row">
-      <dt>{labels.pct}</dt>
-      <dd data-role="pct">{labels.na}</dd>
-    </div>
-    <div class="quote-strip-row quote-strip-row--full">
-      <dt>{labels.asOf}</dt>
-      <dd data-role="time">{labels.na}</dd>
-    </div>
-  </dl>
+
+<section class="quote-widget-wrap" aria-label={QUOTE.title}>
+  <h2 class="quote-widget-sr-only">{QUOTE.title}</h2>
+
+  {
+    priceData && chart ? (
+      <div class="quote-widget">
+        <div class="quote-top">
+          <div class="quote-price-block">
+            <div class="quote-price">
+              {headlineClose != null
+                ? fmtPrice(headlineClose)
+                : fmtPrice(priceData.latest)}
+            </div>
+            <div class="quote-sub">NT$ · {ticker}.TW</div>
+          </div>
+          <div class="quote-top-spacer" aria-hidden="true" />
+          <div class="quote-change-block">
+            <div class={`quote-chg-big ${badgeClass}`}>{chgBigStr}</div>
+            <div class={`quote-chg-pct ${badgeClass}`}>{chgPctStr}</div>
+          </div>
+        </div>
+
+        <div class="quote-mid">
+          <div>
+            {QUOTE.midPrev}{" "}
+            <b>
+              {prevSessionClose != null
+                ? fmtPrice(prevSessionClose)
+                : fmtPrice(priceData.prevClose)}
+            </b>
+          </div>
+          <div>
+            {QUOTE.midOpen}{" "}
+            <b>{lastOpen != null ? fmtPrice(lastOpen) : "—"}</b>
+          </div>
+          <div>
+            {QUOTE.peShort}{" "}
+            <b>{showMetric(peTtm) ? peTtm : "—"}</b>
+          </div>
+          <div>
+            {QUOTE.pbShort}{" "}
+            <b>{showMetric(pb) ? pb : "—"}</b>
+          </div>
+          <div>
+            {QUOTE.midVol}{" "}
+            <b>{lastVol != null ? fmtVolLine(lastVol) : "—"}</b>
+          </div>
+          {showMetric(evEbitda) && (
+            <div>
+              {QUOTE.evEbitdaShort} <b>{evEbitda}</b>
+            </div>
+          )}
+        </div>
+
+        <div class="quote-chart" data-ticker={ticker}>
+          <svg
+            class="price-svg"
+            viewBox={`0 0 ${chart.svgWidth} ${chart.svgHeight}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {
+              chart.priceLabels.map((tick) => (
+                <g class="price-grid-row">
+                  <line
+                    x1={chart.leftPad}
+                    y1={tick.y}
+                    x2={chart.svgWidth}
+                    y2={tick.y}
+                    stroke="rgba(255,255,255,0.04)"
+                    stroke-width="0.5"
+                    stroke-dasharray="2,4"
+                  />
+                  <text
+                    x={chart.leftPad - 10}
+                    y={tick.y + 3}
+                    fill="var(--muted)"
+                    font-size="9"
+                    text-anchor="end"
+                    font-family="ui-monospace, monospace"
+                  >
+                    {tick.label}
+                  </text>
+                </g>
+              ))
+            }
+
+            <line
+              x1={chart.leftPad}
+              y1="0"
+              x2={chart.leftPad}
+              y2={chart.priceAreaHeight}
+              stroke="var(--border)"
+              stroke-width="0.5"
+            />
+
+            {
+              chart.candles.map((c) => (
+                <g class="candle-group">
+                  <line
+                    x1={c.x}
+                    y1={c.wickTop}
+                    x2={c.x}
+                    y2={c.wickBottom}
+                    stroke={c.color}
+                    stroke-width="1"
+                  />
+                  <rect
+                    x={c.x - chart.candleWidth / 2}
+                    y={c.bodyTop}
+                    width={chart.candleWidth}
+                    height={Math.max(2, c.bodyBottom - c.bodyTop)}
+                    fill={c.color}
+                    rx="1"
+                  />
+                </g>
+              ))
+            }
+
+            {
+              chart.maPaths.map((mp) => (
+                <path
+                  d={mp.d}
+                  fill="none"
+                  stroke={mp.color}
+                  stroke-width="1.35"
+                  stroke-opacity="0.9"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+              ))
+            }
+
+            {
+              chart.dateLabels.map((dl) => (
+                <text
+                  x={dl.x}
+                  y={chart.dateLabelY}
+                  fill="var(--muted)"
+                  font-size="9"
+                  text-anchor="middle"
+                  font-family="ui-monospace, monospace"
+                >
+                  {dl.label}
+                </text>
+              ))
+            }
+
+            <line
+              x1={chart.leftPad}
+              y1={chart.volumeSeparatorY}
+              x2={chart.svgWidth}
+              y2={chart.volumeSeparatorY}
+              stroke="rgba(255,255,255,0.08)"
+              stroke-width="0.5"
+            />
+
+            {
+              chart.candles.map((c) => (
+                <rect
+                  x={c.x - chart.candleWidth / 2}
+                  y={chart.volumeAreaTop + chart.volumeAreaHeight - c.volHeight}
+                  width={chart.candleWidth}
+                  height={c.volHeight}
+                  fill={c.volColor}
+                  rx="1"
+                />
+              ))
+            }
+
+            <line
+              class="crosshair-v"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2={chart.svgHeight}
+              stroke="rgba(255,255,255,0.28)"
+              stroke-width="0.5"
+              stroke-dasharray="3,3"
+              style="display:none"
+            />
+            <line
+              class="crosshair-h"
+              x1={chart.leftPad}
+              y1="0"
+              x2={chart.svgWidth}
+              y2="0"
+              stroke="rgba(255,255,255,0.28)"
+              stroke-width="0.5"
+              stroke-dasharray="3,3"
+              style="display:none"
+            />
+
+            <rect
+              class="hover-zone"
+              x={chart.leftPad}
+              y="0"
+              width={hoverZoneW}
+              height={chart.svgHeight}
+              fill="transparent"
+              style="cursor:crosshair"
+            />
+          </svg>
+
+          {chart.maPaths.length > 0 && (
+            <div
+              class="quote-ma-legend"
+              aria-label={`${QUOTE.ma5Leg}、${QUOTE.ma10Leg}、${QUOTE.ma20Leg}`}
+            >
+              <span class="quote-ma-legend__item">
+                <span
+                  class="quote-ma-legend__swatch"
+                  style="background:#F0B429"
+                  aria-hidden="true"
+                />
+                {QUOTE.ma5Leg}
+              </span>
+              <span class="quote-ma-legend__item">
+                <span
+                  class="quote-ma-legend__swatch"
+                  style="background:#6BA3E8"
+                  aria-hidden="true"
+                />
+                {QUOTE.ma10Leg}
+              </span>
+              <span class="quote-ma-legend__item">
+                <span
+                  class="quote-ma-legend__swatch"
+                  style="background:#B388FF"
+                  aria-hidden="true"
+                />
+                {QUOTE.ma20Leg}
+              </span>
+            </div>
+          )}
+
+          <div class="price-tooltip" style="display:none">
+            <div class="price-tooltip-date"></div>
+            <div class="price-tooltip-ohlc"></div>
+            <div class="price-tooltip-chg"></div>
+            <div class="price-tooltip-vol"></div>
+          </div>
+        </div>
+
+        <div class="quote-bottom">
+          <div class="quote-range">
+            {low90 != null && high90 != null && (
+              <>
+                <b>{fmtPrice(low90)}</b>
+                <div class="quote-rangebar">
+                  <div class="quote-rangebar-gradient"></div>
+                  <div
+                    class="quote-rangebar-dot"
+                    style={`left: ${currentPctInRange}%`}
+                  ></div>
+                </div>
+                <b>{fmtPrice(high90)}</b>
+                <span class="quote-range-label">{QUOTE.range90Label}</span>
+              </>
+            )}
+          </div>
+          <div class="quote-timestamp">
+            {QUOTE.delayedShort}
+            {timeDisplay ? ` · ${timeDisplay}` : ""}
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div class="quote-error">
+        <p>{QUOTE.error}</p>
+        <p>{QUOTE.chartUnavailable}</p>
+      </div>
+    )
+  }
+
+  {
+    priceData && chart && (
+      <script
+        is:inline
+        define:vars={{
+          ticker,
+          chartDates: priceData.dates,
+          chartOpen: priceData.open,
+          chartHigh: priceData.high,
+          chartLow: priceData.low,
+          chartCloses: priceData.close,
+          chartVolume: priceData.volume,
+          svgWidth: chart.svgWidth,
+          svgHeight: chart.svgHeight,
+          leftPad: chart.leftPad,
+          rightPad: chart.rightPad,
+          slotSvg: chart.slotSvg,
+          candleCount: priceData.close.length,
+          quotePctLabel: QUOTE.pct,
+        }}
+      >
+        document.addEventListener("DOMContentLoaded", function () {
+          var container = document.querySelector(
+            '.quote-chart[data-ticker="' + ticker + '"]',
+          );
+          if (!container || !candleCount) return;
+
+          var svgEl = container.querySelector(".price-svg");
+          var zone = container.querySelector(".hover-zone");
+          var vLine = container.querySelector(".crosshair-v");
+          var hLine = container.querySelector(".crosshair-h");
+          var tooltip = container.querySelector(".price-tooltip");
+          var tooltipDate = container.querySelector(".price-tooltip-date");
+          var tooltipOhlc = container.querySelector(".price-tooltip-ohlc");
+          var tooltipVol = container.querySelector(".price-tooltip-vol");
+          var tooltipChg = container.querySelector(".price-tooltip-chg");
+
+          if (!zone || !svgEl || !vLine || !hLine || !tooltip) return;
+
+          var n = candleCount;
+          var slotW = slotSvg;
+
+          function fmtNum(x) {
+            return x.toLocaleString("zh-TW", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+          }
+
+          function fmtVol(v) {
+            if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
+            if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+            if (v >= 1e3) return (v / 1e3).toFixed(0) + "K";
+            return String(Math.round(v));
+          }
+
+          function hide() {
+            vLine.style.display = "none";
+            hLine.style.display = "none";
+            tooltip.style.display = "none";
+            tooltip.style.left = "";
+            tooltip.style.top = "";
+            tooltip.style.transform = "";
+          }
+
+          function onPointer(ev) {
+            var zrect = zone.getBoundingClientRect();
+            var srect = svgEl.getBoundingClientRect();
+            if (zrect.width <= 0 || srect.height <= 0) return;
+
+            var xIn = ev.clientX - zrect.left;
+            var frac = Math.max(0, Math.min(1, xIn / zrect.width));
+            var idx = Math.min(n - 1, Math.floor(frac * n));
+
+            var candleX = leftPad + idx * slotW + slotW / 2;
+
+            vLine.setAttribute("x1", String(candleX));
+            vLine.setAttribute("x2", String(candleX));
+            vLine.setAttribute("y1", "0");
+            vLine.setAttribute("y2", String(svgHeight));
+            vLine.style.display = "";
+
+            var svgMouseY =
+              ((ev.clientY - srect.top) / srect.height) * svgHeight;
+            svgMouseY = Math.max(0, Math.min(svgHeight, svgMouseY));
+
+            hLine.setAttribute("x1", String(leftPad));
+            hLine.setAttribute("x2", String(svgWidth));
+            hLine.setAttribute("y1", String(svgMouseY));
+            hLine.setAttribute("y2", String(svgMouseY));
+            hLine.style.display = "";
+
+            var o = chartOpen[idx];
+            var h = chartHigh[idx];
+            var l = chartLow[idx];
+            var c = chartCloses[idx];
+            var v = chartVolume[idx];
+            var isUpDay = c >= o;
+            var color = isUpDay ? "#1D9E75" : "#E24B4A";
+
+            if (tooltipDate) tooltipDate.textContent = chartDates[idx] || "";
+            if (tooltipOhlc) {
+              tooltipOhlc.innerHTML =
+                "開 <b>" +
+                fmtNum(o) +
+                "</b>　高 <b style=\"color:" +
+                color +
+                '">' +
+                fmtNum(h) +
+                "</b><br>低 <b style=\"color:" +
+                color +
+                '">' +
+                fmtNum(l) +
+                "</b>　收 <b style=\"color:" +
+                color +
+                '">' +
+                fmtNum(c) +
+                "</b>";
+            }
+            if (tooltipChg) {
+              if (idx > 0) {
+                var prevClose = chartCloses[idx - 1];
+                var dCh =
+                  Math.round((c - prevClose) * 100) / 100;
+                var dPct =
+                  prevClose !== 0
+                    ? Math.round((dCh / prevClose) * 10000) / 100
+                    : 0;
+                var sg = dCh > 0 ? "+" : dCh < 0 ? "-" : "";
+                var chCol =
+                  dCh > 0 ? "#5ee9b5" : dCh < 0 ? "#ff9a9a" : "#a8a8a8";
+                tooltipChg.innerHTML =
+                  quotePctLabel +
+                  ' <b style="color:' +
+                  chCol +
+                  '">' +
+                  sg +
+                  Math.abs(dPct).toFixed(2) +
+                  "%</b>";
+              } else {
+                tooltipChg.innerHTML =
+                  quotePctLabel + ' <span style="color:#888">—</span>';
+              }
+            }
+            if (tooltipVol) tooltipVol.textContent = "量 " + fmtVol(v);
+
+            /**
+             * 互動小卡在十字線「左」或「右」：偏左的 K 棒 → 小卡在右側；偏右 → 小卡在左側。
+             * 以視窗 fixed + translate(-50%,-50%) 置中於游標高度，不壓在當日柱體上。
+             */
+            var cxScreen = srect.left + (candleX / svgWidth) * srect.width;
+            var halfW = 118;
+            var gap = 12;
+            var edge = 10;
+            var midX = srect.left + srect.width * 0.5;
+            var preferRight = cxScreen < midX;
+            var tipCx = preferRight
+              ? cxScreen + halfW + gap
+              : cxScreen - halfW - gap;
+            if (preferRight && tipCx + halfW > window.innerWidth - edge) {
+              tipCx = cxScreen - halfW - gap;
+            } else if (!preferRight && tipCx - halfW < edge) {
+              tipCx = cxScreen + halfW + gap;
+            }
+            tipCx = Math.max(
+              halfW + edge,
+              Math.min(window.innerWidth - halfW - edge, tipCx),
+            );
+
+            var tipCy = Math.max(
+              srect.top + 56,
+              Math.min(srect.bottom - 48, ev.clientY),
+            );
+
+            tooltip.style.display = "block";
+            tooltip.style.left = tipCx + "px";
+            tooltip.style.top = tipCy + "px";
+            tooltip.style.transform = "translate(-50%, -50%)";
+          }
+
+          zone.addEventListener("pointermove", onPointer);
+          zone.addEventListener("pointerdown", onPointer);
+          zone.addEventListener("pointerleave", hide);
+          zone.addEventListener("pointercancel", hide);
+        });
+      </script>
+    )
+  }
 </section>
-
-<script is:inline define:vars={{ ticker, labels }}>
-  (function () {
-    const root = document.querySelector('.quote-strip[data-ticker="' + ticker + '"]');
-    if (!root) return;
-    const msg = root.querySelector('[data-role="msg"]');
-    const dl = root.querySelector('[data-role="dl"]');
-    const price = root.querySelector('[data-role="price"]');
-    const prev = root.querySelector('[data-role="prev"]');
-    const chg = root.querySelector('[data-role="chg"]');
-    const pct = root.querySelector('[data-role="pct"]');
-    const time = root.querySelector('[data-role="time"]');
-
-    function fmtNum(n) {
-      if (n == null || typeof n !== "number" || Number.isNaN(n)) return labels.na;
-      return n.toLocaleString("zh-TW", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-
-    fetch("/api/quote/" + encodeURIComponent(ticker))
-      .then(function (r) {
-        if (!r.ok) throw new Error("bad");
-        return r.json();
-      })
-      .then(function (d) {
-        if (!d || d.error || d.price == null) throw new Error("bad");
-        if (msg) msg.textContent = "";
-        if (dl) dl.hidden = false;
-        if (price) price.textContent = fmtNum(d.price);
-        if (prev) prev.textContent = fmtNum(d.previousClose);
-        var delta =
-          d.previousClose != null ? d.price - d.previousClose : null;
-        if (chg) {
-          if (delta == null) chg.textContent = labels.na;
-          else {
-            chg.textContent = (delta >= 0 ? "+" : "") + fmtNum(delta);
-            chg.classList.remove("quote-up", "quote-down");
-            chg.classList.add(delta >= 0 ? "quote-up" : "quote-down");
-          }
-        }
-        if (pct && d.previousClose != null && d.previousClose !== 0) {
-          var p = ((d.price - d.previousClose) / d.previousClose) * 100;
-          pct.textContent = (p >= 0 ? "+" : "") + p.toFixed(2) + "%";
-          pct.classList.remove("quote-up", "quote-down");
-          pct.classList.add(p >= 0 ? "quote-up" : "quote-down");
-        } else if (pct) pct.textContent = labels.na;
-        if (time && d.marketTime) {
-          try {
-            time.textContent = new Date(d.marketTime).toLocaleString("zh-TW");
-          } catch (e) {
-            time.textContent = String(d.marketTime);
-          }
-        }
-      })
-      .catch(function () {
-        if (msg) msg.textContent = labels.error;
-        if (dl) dl.hidden = true;
-      });
-  })();
-</script>

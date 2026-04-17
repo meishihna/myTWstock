@@ -2,7 +2,13 @@
  * Post-build: scan dist/client for *.html and write sitemap.xml (hybrid-friendly).
  * Run after `astro build`. Uses PUBLIC_SITE_URL or falls back to astro.config site default.
  */
-import { readdirSync, statSync, writeFileSync, existsSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+  existsSync,
+} from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,7 +63,19 @@ const urls = files
   .map(fileToUrl)
   .filter((u) => !/\/404\/?$/.test(u) && !u.includes("/404.html"));
 
-const unique = [...new Set(urls)].sort();
+/** 報告頁改 SSR 後 dist 可能無 /report/*/index.html，從索引補齊 */
+const idxPath = join(webRoot, "public", "data", "reports-index.json");
+let reportUrls = [];
+if (existsSync(idxPath)) {
+  try {
+    const idx = JSON.parse(readFileSync(idxPath, "utf8"));
+    reportUrls = Object.keys(idx.byTicker || {}).map((t) => `${site}/report/${t}`);
+  } catch {
+    console.warn("[sitemap] could not parse reports-index.json");
+  }
+}
+
+const unique = [...new Set([...urls, ...reportUrls])].sort();
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

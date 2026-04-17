@@ -34,7 +34,11 @@ const indCfg = getIndustryConfig(industryType);
 
 const CHART_W = 920;
 const CHART_H = 300;
-const PAD = { l: 62, r: 28, t: 32, b: 52 };
+/**
+ * 左側預留固定寬度給 Y 軸（大位數、EPS「元」等），所有圖共用同一 PAD，
+ * 縱軸與繪圖區左緣在畫面上才能對齊。
+ */
+const PAD = { l: 118, r: 28, t: 32, b: 52 };
 
 const annual = withAnnualEpsFromQuarterlySum(
   tailBlock(financialsJson.annual, DASHBOARD_ANNUAL_MAX_PERIODS, "year")!,
@@ -1011,7 +1015,7 @@ const qNiYTickMarks =
             return (
               <g>
                 <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
-                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                   {fmtM(tv)}
                 </text>
               </g>
@@ -1066,7 +1070,7 @@ const qNiYTickMarks =
             return (
               <g>
                 <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
-                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                   {tv.toFixed(1)}%
                 </text>
               </g>
@@ -1115,7 +1119,7 @@ const qNiYTickMarks =
             return (
               <g>
                 <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                   {fmtM(v)}
                 </text>
               </g>
@@ -1187,7 +1191,7 @@ const qNiYTickMarks =
             return (
               <g>
                 <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                   {fmtM(v)}
                 </text>
               </g>
@@ -1250,7 +1254,7 @@ const qNiYTickMarks =
               return (
                 <g>
                   <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                  <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                  <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                     {fmtM(v)}
                   </text>
                 </g>
@@ -1339,7 +1343,7 @@ const qNiYTickMarks =
                   return (
                     <g>
                       <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                      <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                         {fmtM(v)}
                       </text>
                     </g>
@@ -1407,7 +1411,7 @@ const qNiYTickMarks =
                   return (
                     <g>
                       <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                      <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                         {fmtM(v)}
                       </text>
                     </g>
@@ -1470,7 +1474,7 @@ const qNiYTickMarks =
                 return (
                   <g>
                     <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
-                    <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                    <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                       {tv.toFixed(1)}%
                     </text>
                   </g>
@@ -1529,7 +1533,7 @@ const qNiYTickMarks =
               {qNiYTickMarks.map(({ v, yy }) => (
                 <g>
                   <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                  <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                  <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                     {fmtM(v)}
                   </text>
                 </g>
@@ -1597,7 +1601,7 @@ const qNiYTickMarks =
                   return (
                     <g>
                       <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                      <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                         {v.toFixed(2)} 元
                       </text>
                     </g>
@@ -1660,7 +1664,7 @@ const qNiYTickMarks =
                   return (
                     <g>
                       <line class="fin-dash__grid" x1={PAD.l} x2={CHART_W - PAD.r} y1={yy} y2={yy} />
-                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                      <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                         {tv.toFixed(1)}%
                       </text>
                     </g>
@@ -1716,7 +1720,7 @@ const qNiYTickMarks =
                   return (
                     <g>
                       <line class="fin-dash__grid" x1={PAD.l} x2={PLOT_R} y1={yy} y2={yy} />
-                      <text class="fin-dash__ytick" x={PAD.l - 8} y={yy + 4} text-anchor="end">
+                      <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
                         {tv.toFixed(1)}%
                       </text>
                     </g>

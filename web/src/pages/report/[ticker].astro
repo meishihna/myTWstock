@@ -45,19 +45,11 @@ import {
 import { showFinancialDashboard } from "../../lib/financialDashboard";
 import { REPORT, SITE } from "../../lib/ui";
 
-export const prerender = true;
+/** 即時 Yahoo 走勢／延遲行情：每次請求 SSR，不在 build 時預抓 */
+export const prerender = false;
 
 const repoRoot = path.join(process.cwd(), "..");
 const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
-
-export function getStaticPaths() {
-  const p = path.join(process.cwd(), "public/data/reports-index.json");
-  if (!fs.existsSync(p)) return [];
-  const idx = JSON.parse(fs.readFileSync(p, "utf8"));
-  return Object.keys(idx.byTicker).map((ticker) => ({
-    params: { ticker },
-  }));
-}
 
 const { ticker } = Astro.params;
 const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
@@ -523,7 +515,12 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
     )
   }
 
-  <QuoteStrip ticker={meta.ticker} />
+  <QuoteStrip
+    ticker={meta.ticker}
+    peTtm={valuation.metrics.peTtm}
+    pb={valuation.metrics.pb}
+    evEbitda={valuation.metrics.evEbitda}
+  />
 
   <RelationSummary
     blocks={relationBlocks}

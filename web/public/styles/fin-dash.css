@@ -239,34 +239,14 @@
   display: inline-block;
 }
 
+/**
+ * 所有圖表外層同高，與 SVG viewBox 920×300 + meet 一致縮放，
+ * 否則不同高度會讓左右留白與繪圖區在螢幕上對不齊。
+ */
 .fin-dash__canvas-wrap {
   position: relative;
   width: 100%;
-  height: 250px;
-}
-
-.fin-dash__canvas-wrap--tall {
   height: 280px;
-}
-
-.fin-dash__canvas-wrap--mar {
-  height: 230px;
-}
-
-.fin-dash__canvas-wrap--short {
-  height: 200px;
-}
-
-.fin-dash__canvas-wrap--cf {
-  height: 220px;
-}
-
-.fin-dash__canvas-wrap--triple {
-  height: 230px;
-}
-
-.fin-dash__canvas-wrap--qni {
-  height: 210px;
 }
 
 .fin-dash__canvas-wrap--hover {
@@ -310,6 +290,7 @@
   font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .fin-dash__xtick {

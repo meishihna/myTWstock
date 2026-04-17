@@ -1695,6 +1695,326 @@ a:focus-visible {
   color: #e07a7a !important;
 }
 
+/* 延遲行情：SSR 面積圖 + hover 十字線／tooltip（Style 3） */
+.quote-widget-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.quote-widget-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.quote-widget {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  /* 允許行情 tooltip 以 fixed 伸出圖區，避免裁切；圓角由子區塊視覺收斂 */
+  overflow: visible;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* Proposal C：頂部對角（價格 / 漲跌） */
+.quote-top {
+  padding: 20px 24px 16px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.quote-top-spacer {
+  min-width: 0;
+}
+
+.quote-price-block {
+  min-width: 0;
+}
+
+.quote-price {
+  font-size: 40px;
+  font-weight: 500;
+  color: var(--text-primary, var(--text, #eee));
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "Cascadia Code",
+    "Segoe UI Mono",
+    monospace
+  );
+  letter-spacing: -1px;
+  line-height: 1.05;
+}
+
+.quote-sub {
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--text-tertiary, var(--muted, #666));
+  margin-top: 8px;
+}
+
+.quote-change-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+
+.quote-chg-big {
+  font-size: 24px;
+  font-weight: 500;
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "Cascadia Code",
+    "Segoe UI Mono",
+    monospace
+  );
+}
+
+.quote-chg-pct {
+  font-size: 14px;
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "Cascadia Code",
+    "Segoe UI Mono",
+    monospace
+  );
+}
+
+.quote-chg-big.up,
+.quote-chg-pct.up {
+  color: #1d9e75;
+}
+
+.quote-chg-big.down,
+.quote-chg-pct.down {
+  color: #e24b4a;
+}
+
+.quote-chg-big.flat,
+.quote-chg-pct.flat {
+  color: #888780;
+}
+
+.quote-mid {
+  padding: 10px 24px 12px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--muted, #888));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.quote-mid b {
+  color: var(--text-secondary, #aaa);
+  font-weight: 500;
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "Cascadia Code",
+    "Segoe UI Mono",
+    monospace
+  );
+}
+
+.quote-chart {
+  position: relative;
+  padding: 10px 24px 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02) 0%,
+    transparent 48px
+  );
+}
+
+.price-svg {
+  display: block;
+  width: 100%;
+  height: 320px;
+  shape-rendering: geometricPrecision;
+}
+
+.quote-ma-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.35rem;
+  padding: 8px 24px 2px;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--muted, #888));
+}
+
+.quote-ma-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.quote-ma-legend__swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.price-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  background: #0f0f0f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
+  z-index: 10050;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.price-tooltip-date {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.price-tooltip-ohlc {
+  color: var(--text);
+  font-weight: 500;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.price-tooltip-ohlc b {
+  font-weight: 600;
+}
+
+.price-tooltip-chg {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.price-tooltip-vol {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.quote-bottom {
+  padding: 10px 24px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.quote-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--muted, #666));
+}
+
+.quote-range b {
+  color: var(--text-secondary, #aaa);
+  font-weight: 500;
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "Cascadia Code",
+    "Segoe UI Mono",
+    monospace
+  );
+}
+
+.quote-rangebar {
+  width: 100px;
+  height: 4px;
+  background: #1e1e30;
+  border-radius: 2px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.quote-rangebar-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #e24b4a 0%, #333 50%, #1d9e75 100%);
+  opacity: 0.4;
+}
+
+.quote-rangebar-dot {
+  position: absolute;
+  top: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #eee;
+  border: 2px solid #000000;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+}
+
+.quote-range-label {
+  font-size: 10px;
+  color: var(--text-tertiary, #777);
+  margin-left: 2px;
+}
+
+.quote-timestamp {
+  font-size: 10px;
+  color: var(--text-tertiary, #777);
+  text-align: right;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.quote-error {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.quote-error p {
+  margin: 0 0 0.5rem;
+}
+
+.quote-error p:last-child {
+  margin-bottom: 0;
+}
+
 /* 關係摘要（報告節錄） */
 .relation-summary {
   margin-bottom: 1.5rem;

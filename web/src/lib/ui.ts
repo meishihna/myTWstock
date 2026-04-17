@@ -266,4 +266,23 @@ export const QUOTE = {
   pct: bi("漲跌幅", "Change %"),
   asOf: bi("時間", "As of"),
   na: "—",
+  delayedShort: bi("延遲約 15 分鐘", "delayed ~15 min"),
+  peShort: bi("本益比", "P/E"),
+  pbShort: bi("股價淨值比", "P/B"),
+  evEbitdaShort: bi("企業價值倍數", "EV/EBITDA"),
+  chartTitle: bi("近九十日收盤走勢", "90-day closing price"),
+  chartUnavailable: bi("無法載入走勢資料", "Price chart unavailable"),
+  chartHigh90: bi("近90日高", "90d high"),
+  chartLow90: bi("近90日低", "90d low"),
+  chartAvgVol: bi("區間均量", "Avg volume"),
+  chartLastDate: bi("最後交易日", "Last session"),
+  /** QuoteStrip Proposal C：圖表上方橫列 */
+  midPrev: bi("昨收", "prev"),
+  midOpen: bi("開盤", "open"),
+  midVol: bi("成交量", "vol"),
+  range90Label: bi("90日區間", "90d range"),
+  /** K 線圖均線圖例（與圖上顏色對應） */
+  ma5Leg: bi("5 日均線", "5-day MA"),
+  ma10Leg: bi("10 日均線", "10-day MA"),
+  ma20Leg: bi("20 日均線", "20-day MA"),
 } as const;
