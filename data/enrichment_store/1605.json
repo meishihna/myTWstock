@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "電線電纜",
+        "pct": 55
+      },
+      {
+        "name": "不鏽鋼產品",
+        "pct": 30
+      },
+      {
+        "name": "其他",
+        "pct": 15
+      }
+    ],
+    "geo": null
+  }
+}

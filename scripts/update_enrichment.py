@@ -17,9 +17,19 @@ JSON format:
   "2330": {
     "desc": "Traditional Chinese description with [[wikilinks]]...",
     "supply_chain": "**上游:**\\n- ...\\n**中游:**\\n- ...\\n**下游:**\\n- ...",
-    "cust": "### 主要客戶\\n- ...\\n\\n### 主要供應商\\n- ..."
+    "cust": "### 主要客戶\\n- ...\\n\\n### 主要供應商\\n- ...",
+    "revenue_mix": {
+      "year": "2025",
+      "segments": [
+        {"name": "高效能運算", "pct": 53},
+        {"name": "智慧型手機", "pct": 30}
+      ],
+      "geo": "北美約 68%、亞太約 13%"
+    }
   }
 }
+
+若含 revenue_mix，會合併寫入 data/enrichment_store/{ticker}.json（供報告頁讀取條狀圖）。
 
 When called by Claude via /update-enrichment skill, Claude:
 1. Researches tickers via web search
@@ -34,6 +44,25 @@ import json
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils import find_ticker_files, parse_scope_args, PROJECT_ROOT, normalize_wikilinks
+
+
+def merge_enrichment_store(ticker, data):
+    """Persist revenue_mix into data/enrichment_store/{ticker}.json."""
+    if "revenue_mix" not in data or data["revenue_mix"] is None:
+        return
+    store_dir = os.path.join(PROJECT_ROOT, "data", "enrichment_store")
+    os.makedirs(store_dir, exist_ok=True)
+    out_path = os.path.join(store_dir, f"{ticker}.json")
+    merged = {}
+    if os.path.isfile(out_path):
+        try:
+            with open(out_path, "r", encoding="utf-8") as f:
+                merged = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            merged = {}
+    merged["revenue_mix"] = data["revenue_mix"]
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(merged, f, ensure_ascii=False, indent=2)
 
 
 def apply_enrichment(filepath, ticker, data):
@@ -84,6 +113,8 @@ def apply_enrichment(filepath, ticker, data):
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
+
+    merge_enrichment_store(ticker, data)
 
     try:
         print(f"  {ticker}: ENRICHED ({os.path.basename(filepath)})")

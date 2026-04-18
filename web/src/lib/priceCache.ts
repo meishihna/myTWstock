@@ -1,7 +1,19 @@
 /**
  * Yahoo Finance Chart v8 — 近 90 根可見日線（OHLCV）＋ 5/10/20 日均線；
  * 多抓約 20 根暖身以便第一根 K 線即有完整 MA。僅記憶體快取（5 分鐘 TTL），不落檔。
+ *
+ * quoteSummary 若用裸 fetch 會需 Crumb；持股／殖利率改走 yahoo-finance2。
  */
+
+import YahooFinance from "yahoo-finance2";
+
+let _yahooFinance: YahooFinance | null = null;
+function yahooFinanceClient(): YahooFinance {
+  if (!_yahooFinance) {
+    _yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+  }
+  return _yahooFinance;
+}
 
 /** 可見 K 線根數 */
 const DISPLAY_BARS = 90;
@@ -26,6 +38,11 @@ export interface PriceData {
   changePct: number;
   /** ISO 字串，例如 2026-04-16T13:30:00.000Z */
   marketTime: string | null;
+  /** Yahoo quoteSummary：持股比例 0–100（%）；缺則 null／undefined（舊快取） */
+  insiderPct?: number | null;
+  institutionPct?: number | null;
+  /** 殖利率 0–100（%）；缺則 null／undefined（舊快取） */
+  divYieldPct?: number | null;
 }
 
 type CacheEntry = { data: PriceData | null; ts: number };
@@ -56,6 +73,66 @@ type YahooChartJson = {
     }>;
   };
 };
+
+/** Yahoo 常回傳數字或 `{ raw, fmt }`；遞迴取 raw */
+function yahooNumericRaw(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const p = parseFloat(v.replace(/,/g, "").replace(/%/g, "").trim());
+    return Number.isFinite(p) ? p : null;
+  }
+  if (typeof v === "object" && v !== null && "raw" in v) {
+    return yahooNumericRaw((v as { raw?: unknown }).raw);
+  }
+  return null;
+}
+
+function yahooRatioToDisplayPercent(raw: unknown): number | null {
+  const n = yahooNumericRaw(raw);
+  if (n == null || n < 0) return null;
+  if (n <= 1) return Math.round(n * 10000) / 100;
+  if (n <= 100) return Math.round(n * 100) / 100;
+  return null;
+}
+
+/**
+ * Yahoo quoteSummary（與 K 線分開請求、同一 5 分鐘快取合併）：
+ * 內部人／機構持股、殖利率。
+ */
+async function fetchQuoteSummaryExtras(ticker: string): Promise<{
+  insiderPct: number | null;
+  institutionPct: number | null;
+  divYieldPct: number | null;
+}> {
+  const empty = {
+    insiderPct: null as number | null,
+    institutionPct: null as number | null,
+    divYieldPct: null as number | null,
+  };
+  if (!/^\d{4}$/.test(ticker)) return empty;
+
+  const yf = yahooFinanceClient();
+  for (const suffix of [".TW", ".TWO"] as const) {
+    const symbol = `${ticker}${suffix}`;
+    try {
+      const r = await yf.quoteSummary(symbol, {
+        modules: ["defaultKeyStatistics", "summaryDetail"],
+      });
+      const d = (r.defaultKeyStatistics ?? {}) as Record<string, unknown>;
+      const s = (r.summaryDetail ?? {}) as Record<string, unknown>;
+      const insiderPct = yahooRatioToDisplayPercent(d.heldPercentInsiders);
+      const institutionPct = yahooRatioToDisplayPercent(
+        d.heldPercentInstitutions,
+      );
+      const divYieldPct = yahooRatioToDisplayPercent(s.dividendYield);
+      return { insiderPct, institutionPct, divYieldPct };
+    } catch {
+      continue;
+    }
+  }
+  return empty;
+}
 
 function marketTimeToIso(meta: Record<string, unknown>): string | null {
   const v = meta.regularMarketTime;
@@ -228,7 +305,20 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
     return hit.data;
   }
 
-  const data = await fetchYahooChartOnce(ticker);
-  cache.set(ticker, { data, ts: now });
-  return data;
+  const [data, extras] = await Promise.all([
+    fetchYahooChartOnce(ticker),
+    fetchQuoteSummaryExtras(ticker),
+  ]);
+  if (!data) {
+    cache.set(ticker, { data: null, ts: now });
+    return null;
+  }
+  const merged: PriceData = {
+    ...data,
+    insiderPct: extras.insiderPct,
+    institutionPct: extras.institutionPct,
+    divYieldPct: extras.divYieldPct,
+  };
+  cache.set(ticker, { data: merged, ts: now });
+  return merged;
 }

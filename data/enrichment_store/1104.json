@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "預拌混凝土",
+        "pct": 65
+      },
+      {
+        "name": "水泥",
+        "pct": 21
+      },
+      {
+        "name": "石膏板",
+        "pct": 13
+      },
+      {
+        "name": "其他",
+        "pct": 1
+      }
+    ],
+    "geo": null
+  }
+}

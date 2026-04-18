@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "封測服務",
+        "pct": 53
+      },
+      {
+        "name": "電子製造服務",
+        "pct": 46
+      },
+      {
+        "name": "其他",
+        "pct": 1
+      }
+    ],
+    "geo": null
+  }
+}

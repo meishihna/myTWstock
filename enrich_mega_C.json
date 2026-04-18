@@ -1,0 +1,588 @@
+{
+  "3533": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "高速連接器/CPU Socket",
+          "pct": 75
+        },
+        {
+          "name": "板對板連接器",
+          "pct": 15
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2337": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "NOR Flash",
+          "pct": 85
+        },
+        {
+          "name": "其他記憶體/代工",
+          "pct": 15
+        }
+      ],
+      "geo": null
+    }
+  },
+  "4958": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "FPC軟板",
+          "pct": 55
+        },
+        {
+          "name": "SLP類載板",
+          "pct": 25
+        },
+        {
+          "name": "HDI硬板",
+          "pct": 15
+        },
+        {
+          "name": "其他",
+          "pct": 5
+        }
+      ],
+      "geo": null
+    }
+  },
+  "4938": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "通訊產品",
+          "pct": 61
+        },
+        {
+          "name": "運算產品",
+          "pct": 15
+        },
+        {
+          "name": "消費電子",
+          "pct": 7
+        },
+        {
+          "name": "其他",
+          "pct": 17
+        }
+      ],
+      "geo": null
+    }
+  },
+  "3661": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "AI/HPC ASIC設計",
+          "pct": 80
+        },
+        {
+          "name": "網路/其他ASIC",
+          "pct": 20
+        }
+      ],
+      "geo": null
+    }
+  },
+  "3481": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "大尺寸顯示面板",
+          "pct": 55
+        },
+        {
+          "name": "中型顯示面板",
+          "pct": 30
+        },
+        {
+          "name": "工業/車用/其他",
+          "pct": 15
+        }
+      ],
+      "geo": null
+    }
+  },
+  "5871": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "企業融資租賃",
+          "pct": 60
+        },
+        {
+          "name": "消費金融",
+          "pct": 25
+        },
+        {
+          "name": "其他",
+          "pct": 15
+        }
+      ],
+      "geo": "台灣約 35%，中國約 35%，東南亞約 30%"
+    }
+  },
+  "2618": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "客運",
+          "pct": 65
+        },
+        {
+          "name": "貨運",
+          "pct": 30
+        },
+        {
+          "name": "其他服務",
+          "pct": 5
+        }
+      ],
+      "geo": null
+    }
+  },
+  "3044": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "伺服器/網路板",
+          "pct": 32
+        },
+        {
+          "name": "記憶體模組板",
+          "pct": 25
+        },
+        {
+          "name": "汽車板",
+          "pct": 18
+        },
+        {
+          "name": "消費/行動裝置板",
+          "pct": 15
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "3189": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "IC封裝載板",
+          "pct": 65
+        },
+        {
+          "name": "HDI多層板",
+          "pct": 25
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2404": {
+    "revenue_mix": null
+  },
+  "1802": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "浮法平板玻璃",
+          "pct": 45
+        },
+        {
+          "name": "加工玻璃",
+          "pct": 35
+        },
+        {
+          "name": "玻璃纖維",
+          "pct": 15
+        },
+        {
+          "name": "其他",
+          "pct": 5
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2376": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "伺服器",
+          "pct": 53
+        },
+        {
+          "name": "顯示卡",
+          "pct": 28
+        },
+        {
+          "name": "主機板",
+          "pct": 12
+        },
+        {
+          "name": "其他",
+          "pct": 7
+        }
+      ],
+      "geo": null
+    }
+  },
+  "6442": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "光被動元件",
+          "pct": 60
+        },
+        {
+          "name": "主動光元件",
+          "pct": 25
+        },
+        {
+          "name": "RF連接器",
+          "pct": 15
+        }
+      ],
+      "geo": null
+    }
+  },
+  "3702": {
+    "revenue_mix": null
+  },
+  "2356": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "筆記型電腦",
+          "pct": 53
+        },
+        {
+          "name": "伺服器/儲存",
+          "pct": 43
+        },
+        {
+          "name": "智慧型裝置",
+          "pct": 4
+        }
+      ],
+      "geo": null
+    }
+  },
+  "1504": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "馬達/機電設備",
+          "pct": 45
+        },
+        {
+          "name": "家電",
+          "pct": 25
+        },
+        {
+          "name": "電力基礎設施",
+          "pct": 20
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "6239": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "記憶體封測",
+          "pct": 50
+        },
+        {
+          "name": "邏輯IC封測",
+          "pct": 40
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "1402": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "聚酯纖維/絲",
+          "pct": 40
+        },
+        {
+          "name": "PET樹脂",
+          "pct": 30
+        },
+        {
+          "name": "紡織品/成衣",
+          "pct": 20
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "1605": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "電線電纜",
+          "pct": 55
+        },
+        {
+          "name": "不鏽鋼產品",
+          "pct": 30
+        },
+        {
+          "name": "其他",
+          "pct": 15
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2347": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "電腦/週邊配銷",
+          "pct": 35
+        },
+        {
+          "name": "伺服器/網路設備",
+          "pct": 25
+        },
+        {
+          "name": "行動裝置",
+          "pct": 20
+        },
+        {
+          "name": "其他",
+          "pct": 20
+        }
+      ],
+      "geo": null
+    }
+  },
+  "6139": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "晶圓代工廠務工程",
+          "pct": 85
+        },
+        {
+          "name": "記憶體廠務工程",
+          "pct": 10
+        },
+        {
+          "name": "其他高科技廠務",
+          "pct": 5
+        }
+      ],
+      "geo": null
+    }
+  },
+  "6805": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "折疊手機轉軸",
+          "pct": 45
+        },
+        {
+          "name": "筆電轉軸",
+          "pct": 35
+        },
+        {
+          "name": "伺服器滑軌",
+          "pct": 20
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2324": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "筆記型電腦",
+          "pct": 65
+        },
+        {
+          "name": "平板電腦",
+          "pct": 15
+        },
+        {
+          "name": "智慧型裝置",
+          "pct": 10
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2474": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "筆電金屬機殼",
+          "pct": 70
+        },
+        {
+          "name": "手機/穿戴裝置機殼",
+          "pct": 20
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2409": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "大尺寸顯示面板",
+          "pct": 50
+        },
+        {
+          "name": "中型顯示面板",
+          "pct": 30
+        },
+        {
+          "name": "工業/車用顯示",
+          "pct": 15
+        },
+        {
+          "name": "其他",
+          "pct": 5
+        }
+      ],
+      "geo": null
+    }
+  },
+  "6415": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "手機/消費電子",
+          "pct": 45
+        },
+        {
+          "name": "工業應用",
+          "pct": 25
+        },
+        {
+          "name": "伺服器/資料中心",
+          "pct": 20
+        },
+        {
+          "name": "車用",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  },
+  "2610": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "客運",
+          "pct": 60
+        },
+        {
+          "name": "貨運",
+          "pct": 35
+        },
+        {
+          "name": "其他服務",
+          "pct": 5
+        }
+      ],
+      "geo": null
+    }
+  },
+  "8210": {
+    "revenue_mix": {
+      "year": "2024",
+      "segments": [
+        {
+          "name": "伺服器機殼",
+          "pct": 75
+        },
+        {
+          "name": "工業應用機殼",
+          "pct": 15
+        },
+        {
+          "name": "其他",
+          "pct": 10
+        }
+      ],
+      "geo": null
+    }
+  }
+}

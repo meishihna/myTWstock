@@ -49,6 +49,10 @@ export type ValuationParsed = {
   priceLine?: string;
   metrics: Record<string, string>;
   labels: { key: string; label: string; labelZh: string; labelEn: string }[];
+  /** 由 MD 估值表補上的欄位（與 Yahoo/JSON 缺值互補） */
+  mdFilledKeys?: string[];
+  /** 供標示用：自 MD `### 估值指標 (...)` 括號內文推得之基準說明 */
+  mdBaselineLabel?: string;
 };
 
 /** 報告 Markdown 表格欄序（含 ROE）；解析時跳過 ROE，其餘欄位對齊 Beta、D/E */
@@ -74,6 +78,129 @@ const VAL_KEYS = [
   { key: "debtEquity", labelZh: "負債權益比", labelEn: "Debt/Equity" },
 ] as const;
 
+/** JSON／Yahoo 與 MD 表格欄位是否視為「有值」（N/A、空、— 皆視為缺） */
+export function valuationMetricLooksPresent(v: unknown): boolean {
+  if (v == null) return false;
+  const t = String(v).trim();
+  if (!t || t === "—" || t === "-") return false;
+  const u = t.toUpperCase().replace(/\s+/g, "");
+  if (u === "N/A" || u === "NA" || u === "NULL") return false;
+  return true;
+}
+
+function normalizeValuationCell(raw: string): string {
+  const t = raw.trim();
+  if (!t || t === "-") return "—";
+  if (/^N\/?A$/i.test(t)) return "—";
+  return t;
+}
+
+/**
+ * 自 MD 標題括號內文抽出基準說明（供「取自報告」標示年份／日期）。
+ * 例：`股價 $39.30 as of 2026-04-06 | TTM 截至 2025-12-30 | …`
+ */
+export function extractValuationMdBaselineLabel(priceLine?: string): string | null {
+  if (!priceLine?.trim()) return null;
+  const t = priceLine.trim();
+  const ttm = t.match(/TTM\s*截至\s*(\d{4}-\d{2}-\d{2}|\d{4})/i);
+  if (ttm) {
+    const d = ttm[1]!;
+    return d.length >= 8 ? `${d}（TTM 截止）` : `${d.slice(0, 4)} 年（TTM 截止）`;
+  }
+  const asof = t.match(/(?:as of|截至)\s*(\d{4}-\d{2}-\d{2})/i);
+  if (asof) return `${asof[1]}（股價基準日）`;
+  const fwd = t.match(/Forward\s*預估至\s*(\d{4}-\d{2}-\d{2}|\d{4})/i);
+  if (fwd) return `${fwd[1]}（Forward）`;
+  const yOnly = t.match(/\b(20\d{2})\b/);
+  return yOnly ? `${yOnly[1]} 年（報告）` : null;
+}
+
+/** 由 financials JSON 的 `valuation` 物件組出與 parseValuation 相同形狀（供與 MD 合併） */
+export function valuationFromFinancialsJson(
+  vRaw: Record<string, unknown>,
+): ValuationParsed {
+  const JSON_TO_KEY: [string, string, string, string][] = [
+    ["P/E (TTM)", "peTtm", "本益比", "P/E (TTM)"],
+    ["Forward P/E", "forwardPe", "前瞻本益比", "Forward P/E"],
+    ["P/S (TTM)", "psTtm", "股價營收比", "P/S (TTM)"],
+    ["P/B", "pb", "股價淨值比", "P/B"],
+    ["EV/EBITDA", "evEbitda", "企業價值倍數", "EV/EBITDA"],
+    ["Beta", "beta", "Beta", "Beta"],
+    ["Debt/Equity", "debtEquity", "負債權益比", "Debt/Equity"],
+  ];
+  const jsonValHas = (raw: unknown) => valuationMetricLooksPresent(raw);
+  const HIDE_WHEN_NULL = new Set(["P/E (TTM)", "P/B", "P/S (TTM)"]);
+  const rows = JSON_TO_KEY.filter(([jsonKey]) => {
+    if (!HIDE_WHEN_NULL.has(jsonKey)) return true;
+    return jsonValHas(vRaw[jsonKey]);
+  });
+  const metrics: Record<string, string> = {};
+  for (const [jsonKey, camelKey] of rows) {
+    const v = vRaw[jsonKey];
+    metrics[camelKey] = jsonValHas(v) ? String(v).trim() : "—";
+  }
+  const labels = rows.map(([, key, labelZh, labelEn]) => ({
+    key,
+    label: `${labelZh} ${labelEn}`,
+    labelZh,
+    labelEn,
+  }));
+  const parts: string[] = [];
+  if (vRaw["_price"]) parts.push(`股價 $${vRaw["_price"]}`);
+  if (vRaw["_ttm_end"]) parts.push(`TTM 截至 ${vRaw["_ttm_end"]}`);
+  if (vRaw["_fwd_end"]) parts.push(`Forward 預估至 ${vRaw["_fwd_end"]}`);
+  const priceLine = parts.length ? parts.join(" | ") : undefined;
+  return { metrics, labels, priceLine };
+}
+
+/**
+ * Yahoo/JSON 缺值時，以該股 MD `### 估值指標` 表格補齊；並記錄 mdBaselineLabel。
+ */
+export function mergeValuationJsonWithMarkdown(
+  jsonVal: ValuationParsed,
+  mdVal: ValuationParsed,
+): ValuationParsed {
+  const mergedMetrics: Record<string, string> = { ...jsonVal.metrics };
+  const mdFilledKeys: string[] = [];
+
+  for (const row of VAL_KEYS) {
+    const { key } = row;
+    if (
+      !valuationMetricLooksPresent(mergedMetrics[key]) &&
+      valuationMetricLooksPresent(mdVal.metrics[key])
+    ) {
+      mergedMetrics[key] = mdVal.metrics[key]!;
+      mdFilledKeys.push(key);
+    }
+  }
+
+  const labels = VAL_KEYS.filter((row) =>
+    valuationMetricLooksPresent(mergedMetrics[row.key]),
+  ).map((k) => ({
+    key: k.key,
+    label: `${k.labelZh} ${k.labelEn}`,
+    labelZh: k.labelZh,
+    labelEn: k.labelEn,
+  }));
+
+  const priceLine =
+    jsonVal.priceLine?.trim() ? jsonVal.priceLine : mdVal.priceLine;
+
+  const mdBaselineLabel =
+    mdFilledKeys.length > 0
+      ? extractValuationMdBaselineLabel(mdVal.priceLine) ?? undefined
+      : undefined;
+
+  return {
+    priceLine,
+    metrics: mergedMetrics,
+    labels,
+    ...(mdFilledKeys.length > 0
+      ? { mdFilledKeys, mdBaselineLabel }
+      : {}),
+  };
+}
+
 export function parseValuation(md: string): ValuationParsed {
   const metrics: Record<string, string> = {};
   const h = md.match(/###\s*估值指標\s*\(([^)]*)\)/);
@@ -98,11 +225,16 @@ export function parseValuation(md: string): ValuationParsed {
   const lines = slice.split(/\r?\n/);
   let dataLine: string | null = null;
 
+  const looksLikeValuationDataRow = (L: string) =>
+    /^\|/.test(L) &&
+    !/^\|\s*:?-/.test(L) &&
+    /[0-9]|N\/?A/i.test(L);
+
   for (let i = 0; i < lines.length; i++) {
     if (/P\/E\s*\(TTM\)/.test(lines[i])) {
-      for (let j = i + 1; j < lines.length && j < i + 6; j++) {
+      for (let j = i + 1; j < lines.length && j < i + 8; j++) {
         const L = lines[j];
-        if (/^\|[\s\d.|+-]+/.test(L) && !/^\|\s*[-:]+/.test(L)) {
+        if (looksLikeValuationDataRow(L)) {
           dataLine = L;
           break;
         }
@@ -120,7 +252,7 @@ export function parseValuation(md: string): ValuationParsed {
     for (let i = 0; i < n; i++) {
       const k = VAL_TABLE_SOURCE_KEYS[i];
       if (k === "roe") continue;
-      metrics[k] = cells[i]!;
+      metrics[k] = normalizeValuationCell(cells[i]!);
     }
   }
 
@@ -128,6 +260,8 @@ export function parseValuation(md: string): ValuationParsed {
     const v = metrics[k.key];
     if (v == null || v === "" || v === "-") {
       metrics[k.key] = "—";
+    } else {
+      metrics[k.key] = normalizeValuationCell(v);
     }
   }
 
@@ -552,6 +686,48 @@ export function stripValuationMarkdownSubsection(md: string): string {
     "",
   );
   return s.replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * 抽出 `## 業務簡介` 至下一個 `## …` 標題前（供抬頭區塊單獨渲染）。
+ * 若檔案無此節或內容為空則回傳 null。
+ */
+export function extractBusinessIntroMarkdown(md: string): string | null {
+  const m = md.match(
+    /(?:^|\r?\n)(## 業務簡介\s*)\r?\n([\s\S]*?)(?=\r?\n##\s+[^\r\n]+|$)/,
+  );
+  if (!m) return null;
+  const body = (m[2] ?? "").trimEnd();
+  if (!body) return null;
+  return `## 業務簡介\n${body}`;
+}
+
+/**
+ * 業務簡介抬頭區：移除與上方 meta 卡重複的 **板塊**／**產業**／**市值**／**企業價值** 行。
+ */
+export function stripBusinessIntroKpiDuplicateMeta(introMd: string): string {
+  const lines = introMd.split(/\r?\n/);
+  const out: string[] = [];
+  for (const line of lines) {
+    const t = line.trim();
+    if (/^\*\*板塊:\*\*/.test(t)) continue;
+    if (/^\*\*產業:\*\*/.test(t)) continue;
+    if (/^\*\*市值:\*\*/.test(t)) continue;
+    if (/^\*\*企業價值:\*\*/.test(t)) continue;
+    out.push(line);
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** 供報告正文用：移除已於 KPI 下方單獨呈現的業務簡介整節，避免重複。 */
+export function stripBusinessIntroForBody(md: string): string {
+  return md
+    .replace(
+      /(?:^|\r?\n)## 業務簡介\s*\r?\n[\s\S]*?(?=\r?\n##\s+[^\r\n]+|$)/,
+      "\n",
+    )
+    .replace(/^\n+/, "")
+    .replace(/\n{3,}/g, "\n\n");
 }
 
 export function parseRelationBlocks(md: string): RelationBlocks {

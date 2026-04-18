@@ -35,6 +35,7 @@ export const REPORT = {
   breadcrumbHome: bi("首頁", "Home"),
   breadcrumbSectors: bi("產業", "Industries"),
   summaryAria: bi("摘要", "Summary"),
+  businessIntroAria: bi("業務簡介", "Business introduction"),
   board: bi("板塊", "Sector (GICS-style)"),
   industry: bi("產業", "Industry"),
   marketCap: bi("市值", "Market cap"),
@@ -146,6 +147,13 @@ export const REPORT = {
     "將游標移至卡片或鍵盤聚焦可查看說明；觸控裝置可點按卡片切換說明。",
     "Hover or focus a card for a short definition; tap to toggle on touch devices."
   ),
+  /** Yahoo/JSON 缺值、改由 MD 估值表補上時之說明前綴（後接 mdBaselineLabel） */
+  valuationMdFallbackIntro: bi(
+    "※ 標有「估值」之欄位取自報告內 MD 估值表；資料基準：",
+    "※ Fields tagged “Valuation” are from the MD table in the report; baseline: "
+  ),
+  /** 小標僅顯示「估值」，不加英文括號 */
+  valuationMdChipBadge: "估值",
 } as const;
 
 export const SECTORS_PAGE = {
@@ -224,7 +232,7 @@ export const FOOTER = {
 
 /** 延遲行情（Yahoo Finance，需 hybrid + Node 執行 API） */
 export const RELATION = {
-  title: bi("關係摘要", "Relationship summary"),
+  title: "關係摘要",
   supply: bi("供應鏈位置", "Supply chain"),
   customers: bi("主要客戶", "Key customers"),
   suppliers: bi("主要供應商", "Key suppliers"),
@@ -276,9 +284,19 @@ export const QUOTE = {
   chartLow90: bi("近90日低", "90d low"),
   chartAvgVol: bi("區間均量", "Avg volume"),
   chartLastDate: bi("最後交易日", "Last session"),
-  /** QuoteStrip Proposal C：圖表上方橫列 */
-  midPrev: bi("昨收", "prev"),
-  midOpen: bi("開盤", "open"),
+  /** QuoteStrip 頂部：Yahoo quoteSummary（卡片標題僅中文） */
+  insiderHold: "內部人持股",
+  instHold: "機構持股",
+  divYield: "殖利率",
+  holdingsStripAria: bi(
+    "內部人持股、機構持股、殖利率（Yahoo quoteSummary）",
+    "Insider / institutional ownership and dividend yield (Yahoo quoteSummary)"
+  ),
+  /** QuoteStrip：最後一根 K 線 OHLC + 量 */
+  midOpen: bi("開", "O"),
+  midHigh: bi("高", "H"),
+  midLow: bi("低", "L"),
+  midClose: bi("收", "C"),
   midVol: bi("成交量", "vol"),
   range90Label: bi("90日區間", "90d range"),
   /** K 線圖均線圖例（與圖上顏色對應） */

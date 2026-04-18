@@ -7,6 +7,7 @@ import RevenueChartToggle from "../../components/RevenueChartToggle.astro";
 import QuoteStrip from "../../components/QuoteStrip.astro";
 import RelationSummary from "../../components/RelationSummary.astro";
 import ValuationSection from "../../components/ValuationSection.astro";
+import BusinessIntroCard from "../../components/BusinessIntroCard.astro";
 import FinancialDashboard from "../../components/FinancialDashboard.astro";
 import { normalizeIndustryTypeForDashboard } from "../../lib/industryConfig";
 import fs from "node:fs";
@@ -31,9 +32,14 @@ import {
   parseQuarterlyRevenue,
   parseRelationBlocks,
   parseReportSummary,
+  mergeValuationJsonWithMarkdown,
   parseValuation,
+  valuationFromFinancialsJson,
   stripRelationSectionsForBody,
   stripValuationMarkdownSubsection,
+  extractBusinessIntroMarkdown,
+  stripBusinessIntroForBody,
+  stripBusinessIntroKpiDuplicateMeta,
   marginBarScale,
   maxAbsGrowthScale,
   maxAbsPptScale,
@@ -43,6 +49,7 @@ import {
   type ValuationParsed,
 } from "../../lib/parseReport";
 import { showFinancialDashboard } from "../../lib/financialDashboard";
+import { readRevenueMixForTicker } from "../../lib/businessIntro";
 import { REPORT, SITE } from "../../lib/ui";
 
 /** 即時 Yahoo 走勢／延遲行情：每次請求 SSR，不在 build 時預抓 */
@@ -70,7 +77,20 @@ if (!meta) {
 
 const mdPath = path.join(repoRoot, "Pilot_Reports", ...meta.relPath.split("/"));
 const raw = fs.readFileSync(mdPath, "utf8");
-const rawBody = stripValuationMarkdownSubsection(stripRelationSectionsForBody(raw));
+const baseStripped = stripValuationMarkdownSubsection(
+  stripRelationSectionsForBody(raw),
+);
+const businessIntroMdRaw = extractBusinessIntroMarkdown(baseStripped);
+let businessIntroMd = businessIntroMdRaw
+  ? stripBusinessIntroKpiDuplicateMeta(businessIntroMdRaw)
+  : null;
+if (
+  businessIntroMd &&
+  !businessIntroMd.replace(/^##\s+業務簡介\s*\r?\n?/m, "").trim()
+) {
+  businessIntroMd = null;
+}
+const rawBody = stripBusinessIntroForBody(baseStripped);
 const toc = extractToc(rawBody);
 
 const hubJsonPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
@@ -152,6 +172,12 @@ if (finReadPath) {
   }
 }
 
+const revenueMix = readRevenueMixForTicker(
+  repoRoot,
+  process.cwd(),
+  ticker!,
+);
+
 const finDashIndustryType = normalizeIndustryTypeForDashboard(
   financialsJson?.industryType ?? "general",
 );
@@ -182,50 +208,13 @@ function metaDisplayField(v: unknown): string {
 const sectorDisplay = metaDisplayField(summary.board);
 const industryDisplay = metaDisplayField(summary.industry);
 
+const mdValuation = parseValuation(raw);
 const valuation: ValuationParsed = fj?.valuation
-  ? (() => {
-      const vRaw = fj.valuation as Record<string, unknown>;
-      /** 與 ValuationSection／parseReport VAL_KEYS 一致，不含 ROE 小卡 */
-      const JSON_TO_KEY: [string, string, string, string][] = [
-        ["P/E (TTM)", "peTtm", "本益比", "P/E (TTM)"],
-        ["Forward P/E", "forwardPe", "前瞻本益比", "Forward P/E"],
-        ["P/S (TTM)", "psTtm", "股價營收比", "P/S (TTM)"],
-        ["P/B", "pb", "股價淨值比", "P/B"],
-        ["EV/EBITDA", "evEbitda", "企業價值倍數", "EV/EBITDA"],
-        ["Beta", "beta", "Beta", "Beta"],
-        ["Debt/Equity", "debtEquity", "負債權益比", "Debt/Equity"],
-      ];
-      const jsonValHas = (raw: unknown) =>
-        raw != null &&
-        raw !== "" &&
-        String(raw).trim().toLowerCase() !== "null" &&
-        String(raw).trim().toUpperCase() !== "N/A";
-      /** OTC 等：P/E、P/B、P/S 為 null 時不產生該小卡 */
-      const HIDE_WHEN_NULL = new Set(["P/E (TTM)", "P/B", "P/S (TTM)"]);
-      const rows = JSON_TO_KEY.filter(([jsonKey]) => {
-        if (!HIDE_WHEN_NULL.has(jsonKey)) return true;
-        return jsonValHas(vRaw[jsonKey]);
-      });
-      const metrics: Record<string, string> = {};
-      for (const [jsonKey, camelKey] of rows) {
-        const v = vRaw[jsonKey];
-        const has = jsonValHas(v);
-        metrics[camelKey] = has ? String(v) : "—";
-      }
-      const labels = rows.map(([, key, labelZh, labelEn]) => ({
-        key,
-        label: `${labelZh} ${labelEn}`,
-        labelZh,
-        labelEn,
-      }));
-      const parts: string[] = [];
-      if (vRaw["_price"]) parts.push(`股價 $${vRaw["_price"]}`);
-      if (vRaw["_ttm_end"]) parts.push(`TTM 截至 ${vRaw["_ttm_end"]}`);
-      if (vRaw["_fwd_end"]) parts.push(`Forward 預估至 ${vRaw["_fwd_end"]}`);
-      const priceLine = parts.length ? parts.join(" | ") : undefined;
-      return { metrics, labels, priceLine };
-    })()
-  : parseValuation(raw);
+  ? mergeValuationJsonWithMarkdown(
+      valuationFromFinancialsJson(fj.valuation as Record<string, unknown>),
+      mdValuation,
+    )
+  : mdValuation;
 
 /** 季度表「累積合併」用；與 Markdown 單季表同期別對齊 */
 const quarterlyYtdJsonForTable =
@@ -505,6 +494,17 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
     )}
   </section>
 
+  {
+    businessIntroMd && (
+      <BusinessIntroCard
+        markdownFull={businessIntroMd}
+        nameToTicker={nameToTicker}
+        labelToWikiSlug={labelToWikiSlug}
+        revenueMix={revenueMix}
+      />
+    )
+  }
+
   <ValuationSection ticker={meta.ticker} valuation={valuation} />
 
   {
@@ -515,12 +515,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
     )
   }
 
-  <QuoteStrip
-    ticker={meta.ticker}
-    peTtm={valuation.metrics.peTtm}
-    pb={valuation.metrics.pb}
-    evEbitda={valuation.metrics.evEbitda}
-  />
+  <QuoteStrip ticker={meta.ticker} />
 
   <RelationSummary
     blocks={relationBlocks}

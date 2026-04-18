@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "中信銀行",
+        "pct": 78
+      },
+      {
+        "name": "台灣人壽",
+        "pct": 16
+      },
+      {
+        "name": "其他子公司",
+        "pct": 6
+      }
+    ],
+    "geo": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "聚酯纖維/絲",
+        "pct": 40
+      },
+      {
+        "name": "PET樹脂",
+        "pct": 30
+      },
+      {
+        "name": "紡織品/成衣",
+        "pct": 20
+      },
+      {
+        "name": "其他",
+        "pct": 10
+      }
+    ],
+    "geo": null
+  }
+}

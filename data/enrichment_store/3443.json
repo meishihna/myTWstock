@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Turnkey 量產服務",
+        "pct": 64
+      },
+      {
+        "name": "NRE 設計服務",
+        "pct": 34
+      },
+      {
+        "name": "其他",
+        "pct": 2
+      }
+    ],
+    "geo": null
+  }
+}

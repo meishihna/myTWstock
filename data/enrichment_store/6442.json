@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "光被動元件",
+        "pct": 60
+      },
+      {
+        "name": "主動光元件",
+        "pct": 25
+      },
+      {
+        "name": "RF連接器",
+        "pct": 15
+      }
+    ],
+    "geo": null
+  }
+}

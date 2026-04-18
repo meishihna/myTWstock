@@ -63,7 +63,7 @@ const urls = files
   .map(fileToUrl)
   .filter((u) => !/\/404\/?$/.test(u) && !u.includes("/404.html"));
 
-/** 報告頁改 SSR 後 dist 可能無 /report/*/index.html，從索引補齊 */
+// 報告頁改 SSR 後 dist 可能無各 ticker 的靜態 index.html，從索引補齊 URL
 const idxPath = join(webRoot, "public", "data", "reports-index.json");
 let reportUrls = [];
 if (existsSync(idxPath)) {

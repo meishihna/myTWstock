@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "IC封裝載板",
+        "pct": 65
+      },
+      {
+        "name": "HDI多層板",
+        "pct": 25
+      },
+      {
+        "name": "其他",
+        "pct": 10
+      }
+    ],
+    "geo": null
+  }
+}

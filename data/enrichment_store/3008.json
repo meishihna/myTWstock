@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "手機光學鏡頭",
+        "pct": 92
+      },
+      {
+        "name": "其他光學元件",
+        "pct": 8
+      }
+    ],
+    "geo": null
+  }
+}

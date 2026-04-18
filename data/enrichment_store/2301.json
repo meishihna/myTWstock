@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "雲端/AI-of-Things",
+        "pct": 48
+      },
+      {
+        "name": "資訊科技/消費性",
+        "pct": 36
+      },
+      {
+        "name": "光電半導體",
+        "pct": 16
+      }
+    ],
+    "geo": null
+  }
+}

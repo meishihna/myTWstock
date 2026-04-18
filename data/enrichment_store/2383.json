@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "AI伺服器高速CCL",
+        "pct": 82
+      },
+      {
+        "name": "通訊/其他應用CCL",
+        "pct": 18
+      }
+    ],
+    "geo": null
+  }
+}

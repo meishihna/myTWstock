@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "整車銷售",
+        "pct": 85
+      },
+      {
+        "name": "售後零件/服務",
+        "pct": 10
+      },
+      {
+        "name": "其他",
+        "pct": 5
+      }
+    ],
+    "geo": null
+  }
+}

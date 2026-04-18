@@ -1,0 +1,122 @@
+---
+import { renderReportMarkdown } from "../lib/renderReport";
+import {
+  parseStructuredBusinessIntro,
+  type RevenueMixJson,
+} from "../lib/businessIntro";
+import { addHeadingAnchors, extractToc } from "../lib/parseReport";
+import { REPORT } from "../lib/ui";
+
+interface Props {
+  /** `## 業務簡介` 起算、已移除板塊／產業／市值／企業價值行之 Markdown */
+  markdownFull: string;
+  nameToTicker: Record<string, string>;
+  labelToWikiSlug: Record<string, string>;
+  /** data/enrichment_store/{ticker}.json 之 revenue_mix，有則條狀圖不走內文 regex */
+  revenueMix?: RevenueMixJson | null;
+}
+
+const { markdownFull, nameToTicker, labelToWikiSlug, revenueMix = null } =
+  Astro.props;
+
+const bodyMd = markdownFull.replace(/^##\s+業務簡介\s*\r?\n?/m, "").trim();
+const parsed = parseStructuredBusinessIntro(bodyMd, revenueMix);
+
+function renderMd(fragment: string): string {
+  const t = fragment.trim();
+  if (!t) return "";
+  return renderReportMarkdown(t, nameToTicker, labelToWikiSlug);
+}
+
+const fallbackMd = `## 業務簡介\n${bodyMd}`;
+const fallbackToc = extractToc(fallbackMd);
+const fallbackHtml =
+  parsed.mode === "fallback"
+    ? addHeadingAnchors(
+        renderReportMarkdown(fallbackMd, nameToTicker, labelToWikiSlug),
+        fallbackToc,
+      )
+    : "";
+
+const p = parsed.mode === "structured" ? parsed : null;
+const introHtml = p ? renderMd(p.introMd) : "";
+const advHtml = p && p.advantagesMd ? renderMd(p.advantagesMd) : "";
+const growthHtml = p && p.growthMd ? renderMd(p.growthMd) : "";
+const risksHtml = p && p.risksMd ? renderMd(p.risksMd) : "";
+
+const revYear =
+  p?.yearLabel != null && p.yearLabel !== ""
+    ? p.yearLabel
+    : "—";
+---
+
+{
+  parsed.mode === "fallback" && bodyMd ? (
+    <section
+      class="report-body report-body-padded report-business-intro report-business-intro--fallback"
+      aria-label={REPORT.businessIntroAria}
+      set:html={fallbackHtml}
+    />
+  ) : p && (p.showBars || p.showPills || p.introMd.trim()) ? (
+    <section class="biz-section" aria-label={REPORT.businessIntroAria}>
+      <div class="biz-card-wrap">
+        <div class="biz-card">
+          <h2 class="biz-section-heading">業務簡介</h2>
+          <div
+            class:list={[
+              "biz-top",
+              !p.showBars && "biz-top--wide",
+              !introHtml.trim() && p.showBars && "biz-top--solo-rev",
+            ]}
+          >
+            {introHtml.trim() ? <div class="biz-intro biz-md" set:html={introHtml} /> : null}
+            {
+              p.showBars && (
+                <div class="biz-rev">
+                  <div class="biz-rev-title">營收結構（{revYear}）</div>
+                  {p.revenueRows.map((item) => (
+                    <div class="biz-rev-item">
+                      <div class="biz-rev-label">{item.name}</div>
+                      <div class="biz-rev-bar-wrap">
+                        <div
+                          class="biz-rev-bar-fill"
+                          style={`width:${item.pct}%;background:${item.color}`}
+                        />
+                      </div>
+                      <div class="biz-rev-pct">{item.pct}%</div>
+                    </div>
+                  ))}
+                  {p.revenueGeo && <div class="biz-rev-geo">{p.revenueGeo}</div>}
+                </div>
+              )
+            }
+          </div>
+          {
+            p.showPills && (advHtml || growthHtml || risksHtml) && (
+              <div class="biz-bottom">
+                {advHtml && (
+                  <div class="biz-pill" data-pill="adv">
+                    <div class="biz-pill-title">競爭優勢</div>
+                    <div class="biz-pill-text biz-md" set:html={advHtml} />
+                  </div>
+                )}
+                {growthHtml && (
+                  <div class="biz-pill" data-pill="growth">
+                    <div class="biz-pill-title">成長動能</div>
+                    <div class="biz-pill-text biz-md" set:html={growthHtml} />
+                  </div>
+                )}
+                {risksHtml && (
+                  <div class="biz-pill" data-pill="risk">
+                    <div class="biz-pill-title">風險</div>
+                    <div class="biz-pill-text biz-md" set:html={risksHtml} />
+                  </div>
+                )}
+              </div>
+            )
+          }
+        </div>
+      </div>
+    </section>
+  ) : null
+}

@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "IC最終測試",
+        "pct": 70
+      },
+      {
+        "name": "晶圓測試/KGD",
+        "pct": 25
+      },
+      {
+        "name": "其他",
+        "pct": 5
+      }
+    ],
+    "geo": null
+  }
+}

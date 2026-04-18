@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "DDR4/DDR5 DRAM",
+        "pct": 85
+      },
+      {
+        "name": "利基型DRAM",
+        "pct": 15
+      }
+    ],
+    "geo": null
+  }
+}

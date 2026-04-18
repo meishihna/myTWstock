@@ -5,17 +5,9 @@ import { QUOTE } from "../lib/ui";
 
 interface Props {
   ticker: string;
-  peTtm?: string;
-  pb?: string;
-  evEbitda?: string;
 }
 
-const {
-  ticker,
-  peTtm = "—",
-  pb = "—",
-  evEbitda = "—",
-} = Astro.props;
+const { ticker } = Astro.props;
 
 const priceData = await getPrice(ticker);
 const chart =
@@ -60,13 +52,6 @@ const badgeUp = dayChange != null && dayChange > 0;
 const badgeDown = dayChange != null && dayChange < 0;
 const badgeClass = badgeUp ? "up" : badgeDown ? "down" : "flat";
 
-function showMetric(s: string): boolean {
-  const t = String(s).trim();
-  if (!t || t === "—") return false;
-  const u = t.toUpperCase();
-  return u !== "N/A" && u !== "NA";
-}
-
 function fmtPrice(n: number): string {
   return n.toLocaleString("zh-TW", {
     minimumFractionDigits: 2,
@@ -80,6 +65,11 @@ function fmtVolLine(v: number): string {
   if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
   if (v >= 1e3) return (v / 1e3).toFixed(0) + "K";
   return String(Math.round(v));
+}
+
+function fmtPctOrDash(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "-";
+  return `${v.toFixed(2)}%`;
 }
 
 let timeDisplay = "";
@@ -98,10 +88,17 @@ if (priceData?.marketTime) {
 const high90 = priceData ? Math.max(...priceData.high) : null;
 const low90 = priceData ? Math.min(...priceData.low) : null;
 
+const lastIdx = nClose >= 1 ? nClose - 1 : -1;
 const lastOpen =
-  nClose >= 1 && priceData ? priceData.open[nClose - 1]! : null;
+  lastIdx >= 0 && priceData ? priceData.open[lastIdx]! : null;
+const lastHigh =
+  lastIdx >= 0 && priceData ? priceData.high[lastIdx]! : null;
+const lastLow =
+  lastIdx >= 0 && priceData ? priceData.low[lastIdx]! : null;
+const lastCloseBar =
+  lastIdx >= 0 && priceData ? priceData.close[lastIdx]! : null;
 const lastVol =
-  nClose >= 1 && priceData ? priceData.volume[nClose - 1]! : null;
+  lastIdx >= 0 && priceData ? priceData.volume[lastIdx]! : null;
 
 const currentInRange =
   headlineClose ?? (priceData?.latest ?? 0);
@@ -141,51 +138,71 @@ const hoverZoneW = chart
     priceData && chart ? (
       <div class="quote-widget">
         <div class="quote-top">
-          <div class="quote-price-block">
-            <div class="quote-price">
-              {headlineClose != null
-                ? fmtPrice(headlineClose)
-                : fmtPrice(priceData.latest)}
+          <div class="quote-top-left">
+            <div class="quote-price-with-chg">
+              <div class="quote-price-block">
+                <div class="quote-price">
+                  {headlineClose != null
+                    ? fmtPrice(headlineClose)
+                    : fmtPrice(priceData.latest)}
+                </div>
+              </div>
+              <div class={`quote-change-block quote-change-block--next-price`}>
+                <div class={`quote-chg-big ${badgeClass}`}>{chgBigStr}</div>
+                <div class={`quote-chg-pct ${badgeClass}`}>{chgPctStr}</div>
+              </div>
             </div>
             <div class="quote-sub">NT$ · {ticker}.TW</div>
           </div>
-          <div class="quote-top-spacer" aria-hidden="true" />
-          <div class="quote-change-block">
-            <div class={`quote-chg-big ${badgeClass}`}>{chgBigStr}</div>
-            <div class={`quote-chg-pct ${badgeClass}`}>{chgPctStr}</div>
+          <div class="quote-top-metrics" aria-label={QUOTE.holdingsStripAria}>
+            <div class="quote-metric">
+              <span class="quote-metric__label">{QUOTE.insiderHold}</span>
+              <span class="quote-metric__value">
+                {fmtPctOrDash(priceData.insiderPct)}
+              </span>
+            </div>
+            <div class="quote-metric">
+              <span class="quote-metric__label">{QUOTE.instHold}</span>
+              <span class="quote-metric__value">
+                {fmtPctOrDash(priceData.institutionPct)}
+              </span>
+            </div>
+            <div class="quote-metric">
+              <span class="quote-metric__label">{QUOTE.divYield}</span>
+              <span class="quote-metric__value">
+                {fmtPctOrDash(priceData.divYieldPct)}
+              </span>
+            </div>
           </div>
         </div>
 
         <div class="quote-mid">
           <div>
-            {QUOTE.midPrev}{" "}
-            <b>
-              {prevSessionClose != null
-                ? fmtPrice(prevSessionClose)
-                : fmtPrice(priceData.prevClose)}
-            </b>
-          </div>
-          <div>
             {QUOTE.midOpen}{" "}
             <b>{lastOpen != null ? fmtPrice(lastOpen) : "—"}</b>
           </div>
           <div>
-            {QUOTE.peShort}{" "}
-            <b>{showMetric(peTtm) ? peTtm : "—"}</b>
+            {QUOTE.midHigh}{" "}
+            <b>{lastHigh != null ? fmtPrice(lastHigh) : "—"}</b>
           </div>
           <div>
-            {QUOTE.pbShort}{" "}
-            <b>{showMetric(pb) ? pb : "—"}</b>
+            {QUOTE.midClose}{" "}
+            <b>
+              {lastCloseBar != null
+                ? fmtPrice(lastCloseBar)
+                : headlineClose != null
+                  ? fmtPrice(headlineClose)
+                  : "—"}
+            </b>
+          </div>
+          <div>
+            {QUOTE.midLow}{" "}
+            <b>{lastLow != null ? fmtPrice(lastLow) : "—"}</b>
           </div>
           <div>
             {QUOTE.midVol}{" "}
             <b>{lastVol != null ? fmtVolLine(lastVol) : "—"}</b>
           </div>
-          {showMetric(evEbitda) && (
-            <div>
-              {QUOTE.evEbitdaShort} <b>{evEbitda}</b>
-            </div>
-          )}
         </div>
 
         <div class="quote-chart" data-ticker={ticker}>
@@ -338,38 +355,6 @@ const hoverZoneW = chart
             />
           </svg>
 
-          {chart.maPaths.length > 0 && (
-            <div
-              class="quote-ma-legend"
-              aria-label={`${QUOTE.ma5Leg}、${QUOTE.ma10Leg}、${QUOTE.ma20Leg}`}
-            >
-              <span class="quote-ma-legend__item">
-                <span
-                  class="quote-ma-legend__swatch"
-                  style="background:#F0B429"
-                  aria-hidden="true"
-                />
-                {QUOTE.ma5Leg}
-              </span>
-              <span class="quote-ma-legend__item">
-                <span
-                  class="quote-ma-legend__swatch"
-                  style="background:#6BA3E8"
-                  aria-hidden="true"
-                />
-                {QUOTE.ma10Leg}
-              </span>
-              <span class="quote-ma-legend__item">
-                <span
-                  class="quote-ma-legend__swatch"
-                  style="background:#B388FF"
-                  aria-hidden="true"
-                />
-                {QUOTE.ma20Leg}
-              </span>
-            </div>
-          )}
-
           <div class="price-tooltip" style="display:none">
             <div class="price-tooltip-date"></div>
             <div class="price-tooltip-ohlc"></div>
@@ -379,25 +364,64 @@ const hoverZoneW = chart
         </div>
 
         <div class="quote-bottom">
-          <div class="quote-range">
-            {low90 != null && high90 != null && (
-              <>
-                <b>{fmtPrice(low90)}</b>
-                <div class="quote-rangebar">
-                  <div class="quote-rangebar-gradient"></div>
-                  <div
-                    class="quote-rangebar-dot"
-                    style={`left: ${currentPctInRange}%`}
-                  ></div>
-                </div>
-                <b>{fmtPrice(high90)}</b>
-                <span class="quote-range-label">{QUOTE.range90Label}</span>
-              </>
-            )}
+          <div class="quote-bottom__range">
+            <div class="quote-range">
+              {low90 != null && high90 != null && (
+                <>
+                  <b>{fmtPrice(low90)}</b>
+                  <div class="quote-rangebar">
+                    <div class="quote-rangebar-gradient"></div>
+                    <div
+                      class="quote-rangebar-dot"
+                      style={`left: ${currentPctInRange}%`}
+                    ></div>
+                  </div>
+                  <b>{fmtPrice(high90)}</b>
+                  <span class="quote-range-label">{QUOTE.range90Label}</span>
+                </>
+              )}
+            </div>
           </div>
-          <div class="quote-timestamp">
-            {QUOTE.delayedShort}
-            {timeDisplay ? ` · ${timeDisplay}` : ""}
+          <div class="quote-bottom__center">
+            {
+              chart.maPaths.length > 0 && (
+                <div
+                  class="quote-ma-legend quote-ma-legend--footer"
+                  aria-label={`${QUOTE.ma5Leg}、${QUOTE.ma10Leg}、${QUOTE.ma20Leg}`}
+                >
+                  <span class="quote-ma-legend__item">
+                    <span
+                      class="quote-ma-legend__swatch"
+                      style="background:#F0B429"
+                      aria-hidden="true"
+                    />
+                    {QUOTE.ma5Leg}
+                  </span>
+                  <span class="quote-ma-legend__item">
+                    <span
+                      class="quote-ma-legend__swatch"
+                      style="background:#6BA3E8"
+                      aria-hidden="true"
+                    />
+                    {QUOTE.ma10Leg}
+                  </span>
+                  <span class="quote-ma-legend__item">
+                    <span
+                      class="quote-ma-legend__swatch"
+                      style="background:#B388FF"
+                      aria-hidden="true"
+                    />
+                    {QUOTE.ma20Leg}
+                  </span>
+                </div>
+              )
+            }
+          </div>
+          <div class="quote-bottom__time">
+            <div class="quote-timestamp">
+              {QUOTE.delayedShort}
+              {timeDisplay ? ` · ${timeDisplay}` : ""}
+            </div>
           </div>
         </div>
       </div>

@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "momo電商",
+        "pct": 56
+      },
+      {
+        "name": "電信服務",
+        "pct": 37
+      },
+      {
+        "name": "有線電視",
+        "pct": 4
+      },
+      {
+        "name": "其他",
+        "pct": 3
+      }
+    ],
+    "geo": null
+  }
+}

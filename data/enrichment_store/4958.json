@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "FPC軟板",
+        "pct": 55
+      },
+      {
+        "name": "SLP類載板",
+        "pct": 25
+      },
+      {
+        "name": "HDI硬板",
+        "pct": 15
+      },
+      {
+        "name": "其他",
+        "pct": 5
+      }
+    ],
+    "geo": null
+  }
+}

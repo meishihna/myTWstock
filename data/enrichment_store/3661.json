@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "AI/HPC ASIC設計",
+        "pct": 80
+      },
+      {
+        "name": "網路/其他ASIC",
+        "pct": 20
+      }
+    ],
+    "geo": null
+  }
+}

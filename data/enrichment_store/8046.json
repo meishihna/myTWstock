@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "ABF高密度載板",
+        "pct": 65
+      },
+      {
+        "name": "高階HDI多層板",
+        "pct": 35
+      }
+    ],
+    "geo": null
+  }
+}

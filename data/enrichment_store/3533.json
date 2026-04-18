@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "高速連接器/CPU Socket",
+        "pct": 75
+      },
+      {
+        "name": "板對板連接器",
+        "pct": 15
+      },
+      {
+        "name": "其他",
+        "pct": 10
+      }
+    ],
+    "geo": null
+  }
+}

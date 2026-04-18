@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "均熱板",
+        "pct": 75
+      },
+      {
+        "name": "散熱模組",
+        "pct": 20
+      },
+      {
+        "name": "其他",
+        "pct": 5
+      }
+    ],
+    "geo": null
+  }
+}

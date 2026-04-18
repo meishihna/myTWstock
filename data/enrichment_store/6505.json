@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "石油產品",
+        "pct": 62
+      },
+      {
+        "name": "石化產品",
+        "pct": 32
+      },
+      {
+        "name": "電力/其他",
+        "pct": 6
+      }
+    ],
+    "geo": null
+  }
+}

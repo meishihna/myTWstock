@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "驅動IC",
+        "pct": 63
+      },
+      {
+        "name": "顯示SoC",
+        "pct": 37
+      }
+    ],
+    "geo": null
+  }
+}

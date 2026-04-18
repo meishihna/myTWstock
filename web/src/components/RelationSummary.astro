@@ -1,5 +1,4 @@
 ---
-import Bi from "./Bi.astro";
 import { renderReportMarkdown } from "../lib/renderReport";
 import type { RelationBlocks } from "../lib/parseReport";
 import { RELATION } from "../lib/ui";
@@ -11,9 +10,24 @@ interface Props {
 }
 const { blocks, nameToTicker, labelToWikiSlug } = Astro.props;
 
+/** 將「**上游 (說明):**」整段粗體拆成僅上游／中游／下游加粗，避免括號內文被一併放大 */
+function normalizeRelationTierLabels(html: string): string {
+  let out = html.replace(
+    /<strong>(上游|中游|下游)\s*\(([^)]+)\)\s*[:：]\s*<\/strong>/g,
+    '<strong class="relation-tier-label">$1</strong> ($2):',
+  );
+  out = out.replace(
+    /<strong>(上游|中游|下游)<\/strong>(?=\s*[\(（])/g,
+    '<strong class="relation-tier-label">$1</strong>',
+  );
+  return out;
+}
+
 function toHtml(fragment?: string): string {
   if (!fragment?.trim()) return "";
-  return renderReportMarkdown(fragment, nameToTicker, labelToWikiSlug);
+  return normalizeRelationTierLabels(
+    renderReportMarkdown(fragment, nameToTicker, labelToWikiSlug),
+  );
 }
 
 const sections: {
@@ -26,20 +40,216 @@ const sections: {
   { key: "suppliers", title: RELATION.suppliers, html: toHtml(blocks.suppliers) },
   { key: "competitors", title: RELATION.competitors, html: toHtml(blocks.competitors) },
 ].filter((s) => s.html.length > 0);
+
+/** 穩定唯一 id 前綴（同頁僅一區塊時亦唯一） */
+const relationIdBase = sections.map((s) => s.key).join("-");
 ---
+
 {
   sections.length > 0 && (
-    <section class="relation-summary" aria-label={RELATION.title}>
-      <h2 class="relation-summary-title">{RELATION.title}</h2>
-      <p class="relation-summary-hint">{RELATION.hint}</p>
-      <div class="relation-accordions">
-        {sections.map((s) => (
-          <details class="relation-details">
-            <summary class="relation-summary-btn">{s.title}</summary>
-            <div class="relation-summary-body prose-rel" set:html={s.html} />
-          </details>
-        ))}
+    <section
+      class="relation-summary"
+      aria-label={RELATION.title}
+      data-relation-tabs={relationIdBase}
+    >
+      <div class="relation-summary__head">
+        <h2 class="relation-summary-title">{RELATION.title}</h2>
+        <p class="relation-summary-hint">{RELATION.hint}</p>
       </div>
+
+      <div class="relation-tablist-wrap">
+        <div role="tablist" class="relation-tablist" aria-label={RELATION.title}>
+          {sections.map((s, i) => {
+            const tid = `rel-tab-${relationIdBase}-${s.key}`;
+            const pid = `rel-panel-${relationIdBase}-${s.key}`;
+            return (
+              <button
+                type="button"
+                role="tab"
+                id={tid}
+                class:list={["relation-tab", { "relation-tab--active": i === 0 }]}
+                aria-selected={i === 0 ? "true" : "false"}
+                aria-controls={pid}
+                tabindex={i === 0 ? 0 : -1}
+                data-relation-key={s.key}
+              >
+                <span class="relation-tab__icon" aria-hidden="true">
+                  {s.key === "supplyChain" ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M4 12h5M15 12h5M12 5v5M12 14v5" />
+                    </svg>
+                  ) : s.key === "customers" ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  ) : s.key === "suppliers" ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                      <line x1="12" y1="22.08" x2="12" y2="12" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="m15 9-6 6M9 9l6 6" />
+                    </svg>
+                  )}
+                </span>
+                <span class="relation-tab__label">{s.title}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div class="relation-panels">
+        {sections.map((s, i) => {
+          const tid = `rel-tab-${relationIdBase}-${s.key}`;
+          const pid = `rel-panel-${relationIdBase}-${s.key}`;
+          const panelOuterClass =
+            i === 0
+              ? "relation-tabpanel relation-tabpanel--active"
+              : "relation-tabpanel";
+          return (
+            <div
+              role="tabpanel"
+              id={pid}
+              class={panelOuterClass}
+              aria-labelledby={tid}
+              tabindex={0}
+              hidden={i !== 0 ? true : undefined}
+            >
+              <div
+                class="relation-summary-body prose-rel relation-tabpanel-inner"
+                set:html={s.html}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <script is:inline define:vars={{ relationIdBase, nTabs: sections.length }}>
+        (function () {
+          var base = relationIdBase;
+          var root = document.querySelector(
+            '.relation-summary[data-relation-tabs="' + base + '"]'
+          );
+          if (!root || !nTabs) return;
+
+          var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+          var panels = tabs.map(function (tab) {
+            var id = tab.getAttribute("aria-controls");
+            return id ? document.getElementById(id) : null;
+          });
+
+          function ix(i) {
+            return ((i % tabs.length) + tabs.length) % tabs.length;
+          }
+
+          function activate(index) {
+            var i = ix(index);
+            for (var j = 0; j < tabs.length; j++) {
+              var on = j === i;
+              tabs[j].setAttribute("aria-selected", on ? "true" : "false");
+              tabs[j].tabIndex = on ? 0 : -1;
+              if (on) tabs[j].classList.add("relation-tab--active");
+              else tabs[j].classList.remove("relation-tab--active");
+              if (panels[j]) {
+                if (on) {
+                  panels[j].removeAttribute("hidden");
+                  panels[j].classList.add("relation-tabpanel--active");
+                } else {
+                  panels[j].hidden = true;
+                  panels[j].classList.remove("relation-tabpanel--active");
+                }
+              }
+            }
+          }
+
+          function currentIndex() {
+            for (var k = 0; k < tabs.length; k++) {
+              if (tabs[k].getAttribute("aria-selected") === "true") return k;
+            }
+            return 0;
+          }
+
+          tabs.forEach(function (tab, index) {
+            tab.addEventListener("click", function () {
+              activate(index);
+              tab.focus();
+            });
+
+            tab.addEventListener("keydown", function (ev) {
+              var key = ev.key;
+              var ci = currentIndex();
+              if (key === "ArrowRight" || key === "ArrowDown") {
+                ev.preventDefault();
+                activate(ci + 1);
+                tabs[ix(ci + 1)].focus();
+              } else if (key === "ArrowLeft" || key === "ArrowUp") {
+                ev.preventDefault();
+                activate(ci - 1);
+                tabs[ix(ci - 1)].focus();
+              } else if (key === "Home") {
+                ev.preventDefault();
+                activate(0);
+                tabs[0].focus();
+              } else if (key === "End") {
+                ev.preventDefault();
+                activate(tabs.length - 1);
+                tabs[tabs.length - 1].focus();
+              }
+            });
+          });
+        })();
+      </script>
     </section>
   )
 }

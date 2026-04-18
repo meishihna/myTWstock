@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "電阻",
+        "pct": 45
+      },
+      {
+        "name": "鉭質/電解電容",
+        "pct": 20
+      },
+      {
+        "name": "MLCC",
+        "pct": 17
+      },
+      {
+        "name": "電感",
+        "pct": 10
+      },
+      {
+        "name": "其他",
+        "pct": 8
+      }
+    ],
+    "geo": null
+  }
+}

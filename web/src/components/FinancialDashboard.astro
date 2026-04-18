@@ -996,6 +996,7 @@ const qNiYTickMarks =
   </div>
 
   <div class="fin-dash__panel is-active" data-fin-panel="annual">
+    <div class="fin-dash__chart-grid">
     <figure class="fin-dash__chart">
       <p class="fin-dash__sl">{annRevProfit.title}（{annRevProfit.unit}）</p>
       <ul class="fin-dash__legend">
@@ -1307,11 +1308,13 @@ const qNiYTickMarks =
         </div>
       </figure>
     )}
+    </div>
   </div>
 
   {
     quarterly && qNiBars && (qRevGrouped || qRevSimple) && (
       <div class="fin-dash__panel" data-fin-panel="quarterly" hidden>
+        <div class="fin-dash__chart-grid">
         {qRevGrouped && (
           <figure class="fin-dash__chart">
             <p class="fin-dash__sl">{qRevGrouped.title}（百萬元）</p>
@@ -1759,6 +1762,7 @@ const qNiYTickMarks =
             </div>
           </figure>
         )}
+        </div>
       </div>
     )
   }

@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "NOR Flash",
+        "pct": 85
+      },
+      {
+        "name": "其他記憶體/代工",
+        "pct": 15
+      }
+    ],
+    "geo": null
+  }
+}
