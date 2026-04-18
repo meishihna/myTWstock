@@ -386,3 +386,32 @@ export function parseStructuredBusinessIntro(
     showPills,
   };
 }
+
+/**
+ * 關係摘要「營收結構」膠囊資料：優先採用業務簡介解析（與舊版卡片一致），
+ * 若解析未產出條圖則改依 enrichment `revenue_mix`（避免 cwd／路徑差異導致漏顯）。
+ */
+export function revenueStructureForRelationTab(
+  bodyMd: string,
+  mixOverride: RevenueMixJson | null,
+): {
+  yearLabel: string | null;
+  revenueRows: BizRevenueRow[];
+  revenueGeo: string | null;
+} | null {
+  const parsed = parseStructuredBusinessIntro(bodyMd, mixOverride);
+  if (parsed.mode === "structured" && parsed.showBars) {
+    return {
+      yearLabel: parsed.yearLabel,
+      revenueRows: parsed.revenueRows,
+      revenueGeo: parsed.revenueGeo,
+    };
+  }
+  const fromMix = normalizeRevenueMix(mixOverride);
+  if (!fromMix?.segments?.length) return null;
+  return {
+    yearLabel: fromMix.year?.trim() || null,
+    revenueRows: rowsFromRevenueMix(fromMix),
+    revenueGeo: fromMix.geo?.trim() || null,
+  };
+}

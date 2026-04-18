@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-18T03:04:24.923Z",
+  "generatedAt": "2026-04-18T04:54:28.905Z",
   "note": "Based on data/financials_store (fallback public/data/financials) from update_financials.py.",
   "sectors": {
     "Advertising Agencies": {
@@ -504,15 +504,15 @@
     "Communication Equipment": {
       "revenueLatest": {
         "n": 69,
-        "p25": 726.76,
+        "p25": 726.75,
         "p50": 1758.28,
         "p75": 4309.27
       },
       "grossMarginLatest": {
-        "n": 66,
-        "p25": 15.72,
+        "n": 68,
+        "p25": 15.59,
         "p50": 23.56,
-        "p75": 34.66
+        "p75": 34.64
       },
       "revenuePercentileRank": {
         "2314": 44.9,
@@ -780,10 +780,10 @@
         "p75": 4507.18
       },
       "grossMarginLatest": {
-        "n": 26,
-        "p25": 18.55,
-        "p50": 24.51,
-        "p75": 33.56
+        "n": 27,
+        "p25": 18.7,
+        "p50": 24.52,
+        "p75": 34.3
       },
       "revenuePercentileRank": {
         "2424": 14.8,
@@ -2343,10 +2343,10 @@
         "p75": 9200.92
       },
       "grossMarginLatest": {
-        "n": 61,
-        "p25": 19.51,
-        "p50": 27.6,
-        "p75": 39.08
+        "n": 62,
+        "p25": 19.54,
+        "p50": 27.3,
+        "p75": 38.47
       },
       "revenuePercentileRank": {
         "2302": 17.5,
@@ -2718,10 +2718,10 @@
         "p75": 8302.72
       },
       "grossMarginLatest": {
-        "n": 55,
-        "p25": 5.19,
-        "p50": 13.71,
-        "p75": 22.66
+        "n": 60,
+        "p25": 6.86,
+        "p50": 15.4,
+        "p75": 24.22
       },
       "revenuePercentileRank": {
         "1301": 96.7,

@@ -1,4 +1,4 @@
-# myTWstock Web（Astro）
+# TWstock Web（Astro）
 
 本目錄為 **Astro 4** 網站，與上層 **`Pilot_Reports/`**、**`scripts/`** 產出之 JSON 搭配運作。總覽與 Python 管線請見 [**根目錄 README.md**](../README.md)。
 

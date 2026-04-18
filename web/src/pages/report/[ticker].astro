@@ -12,6 +12,7 @@ import FinancialDashboard from "../../components/FinancialDashboard.astro";
 import { normalizeIndustryTypeForDashboard } from "../../lib/industryConfig";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   annualRevenueSeriesFromJson,
   quarterlyRevGmSeriesPairFromJson,
@@ -49,14 +50,21 @@ import {
   type ValuationParsed,
 } from "../../lib/parseReport";
 import { showFinancialDashboard } from "../../lib/financialDashboard";
-import { readRevenueMixForTicker } from "../../lib/businessIntro";
+import {
+  readRevenueMixForTicker,
+  revenueStructureForRelationTab,
+  type BizRevenueRow,
+} from "../../lib/businessIntro";
 import { REPORT, SITE } from "../../lib/ui";
 
 /** 即時 Yahoo 走勢／延遲行情：每次請求 SSR，不在 build 時預抓 */
 export const prerender = false;
 
-const repoRoot = path.join(process.cwd(), "..");
-const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
+/** `web/` 目錄（不依賴 process.cwd，避免從 repo 根目錄啟動 dev 時路徑錯到找不到 enrichment） */
+const __reportDir = path.dirname(fileURLToPath(import.meta.url));
+const webRoot = path.resolve(__reportDir, "..", "..", "..");
+const repoRoot = path.resolve(__reportDir, "..", "..", "..", "..");
+const idxPath = path.join(webRoot, "public", "data", "reports-index.json");
 
 const { ticker } = Astro.params;
 const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
@@ -90,11 +98,12 @@ if (
 ) {
   businessIntroMd = null;
 }
+
 const rawBody = stripBusinessIntroForBody(baseStripped);
 const toc = extractToc(rawBody);
 
-const hubJsonPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
-const stubsJsonPath = path.join(process.cwd(), "public/data/wikilink-stubs.json");
+const hubJsonPath = path.join(webRoot, "public/data/wikilink-hub-top500.json");
+const stubsJsonPath = path.join(webRoot, "public/data/wikilink-stubs.json");
 const labelToWikiSlug: Record<string, string> = {};
 if (fs.existsSync(stubsJsonPath)) {
   const st = JSON.parse(fs.readFileSync(stubsJsonPath, "utf8"));
@@ -154,7 +163,7 @@ const finStorePath = path.join(
   `${ticker}.json`
 );
 const finPublicPath = path.join(
-  process.cwd(),
+  webRoot,
   "public/data/financials",
   `${ticker}.json`
 );
@@ -172,11 +181,20 @@ if (finReadPath) {
   }
 }
 
-const revenueMix = readRevenueMixForTicker(
-  repoRoot,
-  process.cwd(),
-  ticker!,
-);
+const revenueMix = readRevenueMixForTicker(repoRoot, webRoot, ticker!);
+
+/** 營收結構置於下方「關係摘要」第四膠囊（供應商後、競爭對手前） */
+let revenueStructureForRelation: {
+  yearLabel: string | null;
+  revenueRows: BizRevenueRow[];
+  revenueGeo: string | null;
+} | null = null;
+if (businessIntroMd) {
+  const bodyMd = businessIntroMd.replace(/^##\s+業務簡介\s*\r?\n?/m, "").trim();
+  revenueStructureForRelation = revenueStructureForRelationTab(bodyMd, revenueMix);
+} else {
+  revenueStructureForRelation = revenueStructureForRelationTab("", revenueMix);
+}
 
 const finDashIndustryType = normalizeIndustryTypeForDashboard(
   financialsJson?.industryType ?? "general",
@@ -382,10 +400,7 @@ const qGmPpt =
     : null;
 const qGmPptMax = qGmPpt ? maxAbsPptScale(qGmPpt) : 1;
 
-const sectorStatsPath = path.join(
-  process.cwd(),
-  "public/data/sector-stats.json"
-);
+const sectorStatsPath = path.join(webRoot, "public/data/sector-stats.json");
 let sectorPeerHintLine: string | null = null;
 let sectorPeerRankLine: string | null = null;
 if (fs.existsSync(sectorStatsPath)) {
@@ -519,6 +534,7 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
 
   <RelationSummary
     blocks={relationBlocks}
+    revenueStructure={revenueStructureForRelation}
     nameToTicker={nameToTicker}
     labelToWikiSlug={labelToWikiSlug}
   />

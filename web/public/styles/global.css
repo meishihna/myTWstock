@@ -16,6 +16,8 @@
   --accent-data: #9fd4ff;
   --text-heading: #f0f0f0;
   --link-report: #7dd3c0;
+  /** 報告內文／關係摘要連結 hover（略亮於 --link-report） */
+  --link-report-hover: #9ee4d4;
   --wikilink-none: #c4a574;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -841,60 +843,102 @@ a:focus-visible {
 .biz-intro {
   flex: 1;
   min-width: 0;
-  font-size: 0.94rem;
+  font-size: 1.1rem;
   color: #c6c6c6;
-  line-height: 1.75;
+  line-height: 1.82;
   letter-spacing: 0.01em;
 }
 
-.biz-intro :global(strong),
-.biz-intro :global(b) {
+/* 注意：global.css 為純 CSS，勿用 Astro :global()，否則選擇器無效、樣式不會套用 */
+.biz-intro strong,
+.biz-intro b {
   color: #ececec;
   font-weight: 600;
 }
 
-.biz-intro :global(a) {
-  color: #3ecf9a;
+/* 與 .relation-summary-body a 一致；須蓋過全域 a { color: var(--accent) } */
+.biz-intro a {
+  color: var(--link-report);
   text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
-.biz-intro :global(a:hover),
-.biz-intro :global(a:focus-visible) {
-  color: #5fe0b0;
-  border-bottom-color: rgba(95, 224, 176, 0.45);
+.biz-intro a:hover {
+  color: var(--link-report-hover, var(--link-report));
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.biz-md :global(p) {
+.biz-intro a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.biz-intro .wikilink-none {
+  color: var(--wikilink-none);
+  border-bottom: 1px dashed var(--wikilink-none);
+  cursor: help;
+  text-decoration: none;
+}
+
+.biz-intro .wikilink-none:hover {
+  color: var(--wikilink-none);
+  text-decoration: none;
+}
+
+.biz-md p {
   margin: 0 0 0.65em;
 }
 
-.biz-md :global(p:last-child) {
+.biz-md p:last-child {
   margin-bottom: 0;
 }
 
-.biz-md :global(ul),
-.biz-md :global(ol) {
+.biz-md ul,
+.biz-md ol {
   margin: 0.4em 0 0.65em 1.15em;
   padding: 0;
 }
 
-.biz-md :global(a) {
-  color: #3ecf9a;
+.biz-md a {
+  color: var(--link-report);
   text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
-.biz-md :global(a:hover),
-.biz-md :global(a:focus-visible) {
-  color: #5fe0b0;
-  border-bottom-color: rgba(95, 224, 176, 0.45);
+.biz-md a:hover {
+  color: var(--link-report-hover, var(--link-report));
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.biz-md :global(strong),
-.biz-md :global(b) {
+.biz-md a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.biz-md .wikilink-none {
+  color: var(--wikilink-none);
+  border-bottom: 1px dashed var(--wikilink-none);
+  cursor: help;
+  text-decoration: none;
+}
+
+.biz-md .wikilink-none:hover {
+  color: var(--wikilink-none);
+  text-decoration: none;
+}
+
+.biz-md strong,
+.biz-md b {
   color: #e2e2e2;
   font-weight: 600;
 }
@@ -2691,6 +2735,29 @@ a:focus-visible {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 6px 18px rgba(0, 0, 0, 0.32);
+}
+
+.relation-tab[data-relation-key="revenueStructure"][aria-selected="true"],
+.relation-tab[data-relation-key="revenueStructure"].relation-tab--active {
+  color: #e9d5ff;
+  border-color: rgba(167, 139, 250, 0.52);
+  background: rgba(139, 92, 246, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 6px 18px rgba(0, 0, 0, 0.32);
+}
+
+.relation-rev-wrap {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0.15rem 0.5rem 0.35rem;
+}
+
+.relation-rev.biz-rev {
+  width: 100%;
+  max-width: min(28rem, 100%);
 }
 
 .relation-panels {

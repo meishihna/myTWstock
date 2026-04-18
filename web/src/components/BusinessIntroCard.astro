@@ -44,10 +44,6 @@ const advHtml = p && p.advantagesMd ? renderMd(p.advantagesMd) : "";
 const growthHtml = p && p.growthMd ? renderMd(p.growthMd) : "";
 const risksHtml = p && p.risksMd ? renderMd(p.risksMd) : "";
 
-const revYear =
-  p?.yearLabel != null && p.yearLabel !== ""
-    ? p.yearLabel
-    : "—";
 ---
 
 {
@@ -57,39 +53,13 @@ const revYear =
       aria-label={REPORT.businessIntroAria}
       set:html={fallbackHtml}
     />
-  ) : p && (p.showBars || p.showPills || p.introMd.trim()) ? (
+  ) : p && (p.showPills || p.introMd.trim()) ? (
     <section class="biz-section" aria-label={REPORT.businessIntroAria}>
       <div class="biz-card-wrap">
         <div class="biz-card">
           <h2 class="biz-section-heading">業務簡介</h2>
-          <div
-            class:list={[
-              "biz-top",
-              !p.showBars && "biz-top--wide",
-              !introHtml.trim() && p.showBars && "biz-top--solo-rev",
-            ]}
-          >
+          <div class:list={["biz-top", "biz-top--wide"]}>
             {introHtml.trim() ? <div class="biz-intro biz-md" set:html={introHtml} /> : null}
-            {
-              p.showBars && (
-                <div class="biz-rev">
-                  <div class="biz-rev-title">營收結構（{revYear}）</div>
-                  {p.revenueRows.map((item) => (
-                    <div class="biz-rev-item">
-                      <div class="biz-rev-label">{item.name}</div>
-                      <div class="biz-rev-bar-wrap">
-                        <div
-                          class="biz-rev-bar-fill"
-                          style={`width:${item.pct}%;background:${item.color}`}
-                        />
-                      </div>
-                      <div class="biz-rev-pct">{item.pct}%</div>
-                    </div>
-                  ))}
-                  {p.revenueGeo && <div class="biz-rev-geo">{p.revenueGeo}</div>}
-                </div>
-              )
-            }
           </div>
           {
             p.showPills && (advHtml || growthHtml || risksHtml) && (

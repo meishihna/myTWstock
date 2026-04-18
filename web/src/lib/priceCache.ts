@@ -168,7 +168,7 @@ async function fetchYahooChartOnce(ticker: string): Promise<PriceData | null> {
       /** 2y 確保暖身後仍有足夠交易日（遇长假仍盡量滿足 110 根） */
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d`;
       const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; myTWstock/1.0)" },
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TWstock/1.0)" },
       });
       if (!res.ok) continue;
       const json = (await res.json()) as YahooChartJson;

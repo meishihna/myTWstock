@@ -5,7 +5,7 @@ export function bi(zh: string, en: string): string {
 }
 
 export const SITE = {
-  name: "myTWstock",
+  name: "TWstock",
   taglineZh: "台股研究資料庫",
   taglineEn: "Taiwan equity research",
   desc: bi("台股研究報告瀏覽", "Browse equity research reports"),
@@ -236,6 +236,7 @@ export const RELATION = {
   supply: bi("供應鏈位置", "Supply chain"),
   customers: bi("主要客戶", "Key customers"),
   suppliers: bi("主要供應商", "Key suppliers"),
+  revenue: bi("營收結構", "Revenue structure"),
   competitors: bi("主要競爭對手", "Competitors"),
   hint: bi("以下為報告節錄，完整敘述與表格見下方正文。", "Excerpt from the report; full text below."),
 } as const;

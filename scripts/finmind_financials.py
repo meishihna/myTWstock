@@ -208,7 +208,7 @@ def _http_get_json(
     timeout: int,
     extra_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    h: dict[str, str] = {"User-Agent": "myTWstock-update_financials/1"}
+    h: dict[str, str] = {"User-Agent": "TWstock-update_financials/1"}
     if extra_headers:
         h.update(extra_headers)
     req = urllib.request.Request(url, headers=h)

@@ -1,14 +1,24 @@
 ---
 import { renderReportMarkdown } from "../lib/renderReport";
 import type { RelationBlocks } from "../lib/parseReport";
+import type { BizRevenueRow } from "../lib/businessIntro";
 import { RELATION } from "../lib/ui";
+
+export interface RevenueStructureTab {
+  yearLabel: string | null;
+  revenueRows: BizRevenueRow[];
+  revenueGeo: string | null;
+}
 
 interface Props {
   blocks: RelationBlocks;
+  /** 來自業務簡介／enrichment 之營收結構，插入為「第四個」膠囊（在主要供應商之後、競爭對手之前） */
+  revenueStructure?: RevenueStructureTab | null;
   nameToTicker: Record<string, string>;
   labelToWikiSlug?: Record<string, string>;
 }
-const { blocks, nameToTicker, labelToWikiSlug } = Astro.props;
+const { blocks, revenueStructure = null, nameToTicker, labelToWikiSlug } =
+  Astro.props;
 
 /** 將「**上游 (說明):**」整段粗體拆成僅上游／中游／下游加粗，避免括號內文被一併放大 */
 function normalizeRelationTierLabels(html: string): string {
@@ -30,23 +40,57 @@ function toHtml(fragment?: string): string {
   );
 }
 
-const sections: {
-  key: keyof RelationBlocks;
-  title: string;
-  html: string;
-}[] = [
-  { key: "supplyChain", title: RELATION.supply, html: toHtml(blocks.supplyChain) },
-  { key: "customers", title: RELATION.customers, html: toHtml(blocks.customers) },
-  { key: "suppliers", title: RELATION.suppliers, html: toHtml(blocks.suppliers) },
-  { key: "competitors", title: RELATION.competitors, html: toHtml(blocks.competitors) },
-].filter((s) => s.html.length > 0);
+type TabEntry =
+  | {
+      kind: "md";
+      key: keyof RelationBlocks;
+      title: string;
+      html: string;
+    }
+  | {
+      kind: "revenue";
+      key: "revenueStructure";
+      title: string;
+      yearLabel: string | null;
+      rows: BizRevenueRow[];
+      geo: string | null;
+    };
+
+const entries: TabEntry[] = [];
+
+function pushMd(key: keyof RelationBlocks, title: string, html: string) {
+  if (html.length > 0) {
+    entries.push({ kind: "md", key, title, html });
+  }
+}
+
+pushMd("supplyChain", RELATION.supply, toHtml(blocks.supplyChain));
+pushMd("customers", RELATION.customers, toHtml(blocks.customers));
+pushMd("suppliers", RELATION.suppliers, toHtml(blocks.suppliers));
+
+if (
+  revenueStructure &&
+  revenueStructure.revenueRows &&
+  revenueStructure.revenueRows.length > 0
+) {
+  entries.push({
+    kind: "revenue",
+    key: "revenueStructure",
+    title: RELATION.revenue,
+    yearLabel: revenueStructure.yearLabel,
+    rows: revenueStructure.revenueRows,
+    geo: revenueStructure.revenueGeo,
+  });
+}
+
+pushMd("competitors", RELATION.competitors, toHtml(blocks.competitors));
 
 /** 穩定唯一 id 前綴（同頁僅一區塊時亦唯一） */
-const relationIdBase = sections.map((s) => s.key).join("-");
+const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
 ---
 
 {
-  sections.length > 0 && (
+  entries.length > 0 && (
     <section
       class="relation-summary"
       aria-label={RELATION.title}
@@ -59,7 +103,7 @@ const relationIdBase = sections.map((s) => s.key).join("-");
 
       <div class="relation-tablist-wrap">
         <div role="tablist" class="relation-tablist" aria-label={RELATION.title}>
-          {sections.map((s, i) => {
+          {entries.map((s, i) => {
             const tid = `rel-tab-${relationIdBase}-${s.key}`;
             const pid = `rel-panel-${relationIdBase}-${s.key}`;
             return (
@@ -124,6 +168,23 @@ const relationIdBase = sections.map((s) => s.key).join("-");
                       <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
                       <line x1="12" y1="22.08" x2="12" y2="12" />
                     </svg>
+                  ) : s.key === "revenueStructure" ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <line x1="18" y1="20" x2="18" y2="10" />
+                      <line x1="12" y1="20" x2="12" y2="4" />
+                      <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
                   ) : (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -150,13 +211,19 @@ const relationIdBase = sections.map((s) => s.key).join("-");
       </div>
 
       <div class="relation-panels">
-        {sections.map((s, i) => {
+        {entries.map((s, i) => {
           const tid = `rel-tab-${relationIdBase}-${s.key}`;
           const pid = `rel-panel-${relationIdBase}-${s.key}`;
           const panelOuterClass =
             i === 0
               ? "relation-tabpanel relation-tabpanel--active"
               : "relation-tabpanel";
+          const revYear =
+            s.kind === "revenue" &&
+            s.yearLabel != null &&
+            s.yearLabel !== ""
+              ? s.yearLabel
+              : "—";
           return (
             <div
               role="tabpanel"
@@ -166,16 +233,37 @@ const relationIdBase = sections.map((s) => s.key).join("-");
               tabindex={0}
               hidden={i !== 0 ? true : undefined}
             >
-              <div
-                class="relation-summary-body prose-rel relation-tabpanel-inner"
-                set:html={s.html}
-              />
+              {s.kind === "md" ? (
+                <div
+                  class="relation-summary-body prose-rel relation-tabpanel-inner"
+                  set:html={s.html}
+                />
+              ) : (
+                <div class="relation-tabpanel-inner relation-rev-wrap">
+                  <div class="biz-rev relation-rev" aria-label={RELATION.revenue}>
+                    <div class="biz-rev-title">營收結構（{revYear}）</div>
+                    {s.rows.map((item) => (
+                      <div class="biz-rev-item">
+                        <div class="biz-rev-label">{item.name}</div>
+                        <div class="biz-rev-bar-wrap">
+                          <div
+                            class="biz-rev-bar-fill"
+                            style={`width:${item.pct}%;background:${item.color}`}
+                          />
+                        </div>
+                        <div class="biz-rev-pct">{item.pct}%</div>
+                      </div>
+                    ))}
+                    {s.geo && <div class="biz-rev-geo">{s.geo}</div>}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      <script is:inline define:vars={{ relationIdBase, nTabs: sections.length }}>
+      <script is:inline define:vars={{ relationIdBase, nTabs: entries.length }}>
         (function () {
           var base = relationIdBase;
           var root = document.querySelector(
