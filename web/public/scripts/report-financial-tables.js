@@ -3,7 +3,8 @@
  * 若有 data-fin-annual-json / data-fin-quarterly-display-json，欄位由 JSON 重建（不受 MD 表頭欄數限制）。
  * 欄位順序與 MD 一致：新→舊（最新年度／季別在最左，往右遞減）。
  * 「金額」與「占營收%」二選一顯示；季度表若有 financials JSON 的 quarterlyYtd，
- * 另顯示「當季合併／累積合併」切換。首欄 sticky 由 CSS 處理。
+ * 另顯示「當季合併／累積合併」切換。累積合併之 Q4（12-31）欄若有 annual JSON，
+ * 金額列改與年報對齊（季加總與年報口徑可能不同）。首欄 sticky 由 CSS 處理。
  */
 (function () {
   var MAX_ANNUAL_PERIODS = 8;
@@ -103,6 +104,16 @@
     );
   }
 
+  /** 報告內年度／季表共通：不顯示三項利率列（仍可由其他圖表／儀表板看毛利率等） */
+  var ALWAYS_HIDDEN_ROWS = {
+    "Gross Margin (%)": 1,
+    "毛利率 (%)": 1,
+    "Operating Margin (%)": 1,
+    "營業利益率 (%)": 1,
+    "Net Margin (%)": 1,
+    "淨利率 (%)": 1,
+  };
+
   var INDUSTRY_HIDDEN_ROWS = {
     general: {},
     financial_holding: {
@@ -166,8 +177,10 @@
 
   function filterModelByIndustry(model, industryType) {
     var it = normalizeIndustryTypeForTables(industryType);
-    if (it === "general") return model;
-    var hidden = INDUSTRY_HIDDEN_ROWS[it] || {};
+    var hidden = Object.assign({}, ALWAYS_HIDDEN_ROWS);
+    if (it !== "general") {
+      Object.assign(hidden, INDUSTRY_HIDDEN_ROWS[it] || {});
+    }
     if (!Object.keys(hidden).length) return model;
     var filteredRows = [];
     var oldRevRow = model.revRowInBody;
@@ -218,6 +231,24 @@
       return n < 10 ? "0" + n : "" + n;
     }
     return y + "-" + pad(md[0]) + "-" + pad(md[1]);
+  }
+
+  /** 表頭為 yyyy Qn、yyyyQn 或 YYYY-MM-DD 時還原季末 ISO（供累積合併欄對齊 JSON 期別） */
+  function periodLabelToQuarterIso(label) {
+    var fromQ = quarterLabelToIso(label);
+    if (fromQ) return fromQ;
+    var id = String(label)
+      .trim()
+      .match(/^(\d{4}-\d{2}-\d{2})/);
+    return id ? id[1] : null;
+  }
+
+  function isCalendarYearDec31Iso(iso) {
+    if (!iso) return false;
+    var m = String(iso)
+      .trim()
+      .match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return Boolean(m && m[2] === "12" && m[3] === "31");
   }
 
   function normalizeIso(p) {
@@ -425,7 +456,7 @@
         en = lab;
       }
       var rawVals = singleModel.periods.map(function (periodLabel) {
-        var iso = quarterLabelToIso(periodLabel);
+        var iso = periodLabelToQuarterIso(periodLabel);
         if (!iso) return "";
         var idx = -1;
         for (var i = 0; i < block.periods.length; i++) {
@@ -451,6 +482,105 @@
     });
     return {
       periods: singleModel.periods.slice(),
+      revRowInBody: revRow,
+      revenues: revenues,
+      rows: rows,
+    };
+  }
+
+  /**
+   * 累積合併之 Q4（12-31）欄：季單季加總與年報口徑常不一致（現金流、CAPEX、部分費用）。
+   * 若 financials JSON 同時有 annual，則該欄改採年報數字，並重算三項利率列。
+   */
+  function patchYtdModelQ4FromAnnual(ytdModel, annualBlock) {
+    if (
+      !ytdModel ||
+      !annualBlock ||
+      !Array.isArray(annualBlock.periods) ||
+      !annualBlock.series ||
+      typeof annualBlock.series !== "object"
+    ) {
+      return ytdModel;
+    }
+    var aPeriods = annualBlock.periods;
+    var aSeries = annualBlock.series;
+    function annualIndexForYearDec31(y) {
+      var target = y + "-12-31";
+      for (var i = 0; i < aPeriods.length; i++) {
+        if (normalizeIso(aPeriods[i]) === target) return i;
+      }
+      return -1;
+    }
+    function buildEnRowIndex(rows) {
+      var ix = {};
+      for (var r = 0; r < rows.length; r++) {
+        var lab = String(rows[r].label || "").trim();
+        ix[lab] = r;
+        var en = ZH_TO_EN[lab];
+        if (en) ix[en] = r;
+      }
+      return function rowIdx(enKey) {
+        var z = ix[enKey];
+        return z == null ? -1 : z;
+      };
+    }
+    function recalcMarginsForColumn(rows, revRow, colJ, rowIdx) {
+      var rev =
+        revRow >= 0 ? parseNum(rows[revRow].rawVals[colJ]) : null;
+      if (
+        rev == null ||
+        !Number.isFinite(rev) ||
+        Math.abs(rev) < 1e-12
+      ) {
+        return;
+      }
+      function setPct(enNumer, enPct) {
+        var iN = rowIdx(enNumer);
+        var iP = rowIdx(enPct);
+        if (iN < 0 || iP < 0) return;
+        var num = parseNum(rows[iN].rawVals[colJ]);
+        if (num == null || !Number.isFinite(num)) return;
+        rows[iP].rawVals[colJ] = String((num / rev) * 100);
+      }
+      setPct("Gross Profit", "Gross Margin (%)");
+      setPct("Operating Income", "Operating Margin (%)");
+      setPct("Net Income", "Net Margin (%)");
+    }
+
+    var rows = ytdModel.rows.map(function (row) {
+      return { label: row.label, rawVals: row.rawVals.slice() };
+    });
+    var revRow = ytdModel.revRowInBody;
+
+    for (var j = 0; j < ytdModel.periods.length; j++) {
+      var iso = periodLabelToQuarterIso(ytdModel.periods[j]);
+      if (!isCalendarYearDec31Iso(iso)) continue;
+      var y = parseInt(iso.slice(0, 4), 10);
+      if (!Number.isFinite(y)) continue;
+      var ai = annualIndexForYearDec31(y);
+      if (ai < 0) continue;
+
+      for (var ri = 0; ri < rows.length; ri++) {
+        var lab = String(rows[ri].label || "").trim();
+        if (isPercentMetricLabel(lab)) continue;
+        var en = ZH_TO_EN[lab];
+        if (!en && lab && aSeries[lab]) en = lab;
+        if (!en || !aSeries[en]) continue;
+        var arr = aSeries[en];
+        if (!Array.isArray(arr) || ai >= arr.length) continue;
+        var av = arr[ai];
+        if (av == null || !Number.isFinite(av)) continue;
+        rows[ri].rawVals[j] = String(av);
+      }
+      recalcMarginsForColumn(rows, revRow, j, buildEnRowIndex(rows));
+    }
+
+    var revenues = ytdModel.periods.map(function (_, jj) {
+      if (revRow < 0) return null;
+      return parseNum(rows[revRow].rawVals[jj]);
+    });
+    return {
+      periods: ytdModel.periods.slice(),
       revRowInBody: revRow,
       revenues: revenues,
       rows: rows,
@@ -737,6 +867,9 @@
       ytdBlock && isQuarterlyModel(modelSingle)
         ? buildYtdModel(modelSingle, ytdBlock)
         : null;
+    if (modelYtdRaw && annualJsonBlock) {
+      modelYtdRaw = patchYtdModelQ4FromAnnual(modelYtdRaw, annualJsonBlock);
+    }
     var modelYtd = modelYtdRaw ? filterModelByIndustry(modelYtdRaw, industryType) : null;
     var hasYtd = Boolean(modelYtd);
 

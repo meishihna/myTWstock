@@ -2,15 +2,10 @@
  * 掃描 Pilot_Reports 內所有 [[wikilink]]，依出現次數取前 500，產生 wikilink-hub-top500.json。
  * 需先執行 build-index.mjs（依賴 reports-index.json 的 sectorSlug）。
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from "fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { writeJsonAtomicWithRetry } from "./lib/write-json-atomic.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(__dirname, "..");
@@ -39,7 +34,7 @@ function slugifyLabel(text) {
   return s.toLowerCase();
 }
 
-function main() {
+async function main() {
   if (!existsSync(IDX_FILE)) {
     console.error("Missing reports-index.json — run build-index.mjs first.");
     process.exit(1);
@@ -97,20 +92,15 @@ function main() {
   });
 
   mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  writeFileSync(
-    OUT_FILE,
-    JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        limit: TOP_N,
-        entries,
-      },
-      null,
-      0
-    ),
-    "utf8"
-  );
+  await writeJsonAtomicWithRetry(OUT_FILE, {
+    generatedAt: new Date().toISOString(),
+    limit: TOP_N,
+    entries,
+  });
   console.log("Wrote", OUT_FILE, "| entries:", entries.length);
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

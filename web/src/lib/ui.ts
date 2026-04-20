@@ -11,9 +11,19 @@ export const SITE = {
   desc: bi("台股研究報告瀏覽", "Browse equity research reports"),
 } as const;
 
+/** 全站頂部行情橫幅（/api/market-ticker） */
+export const MARKET_TICKER = {
+  ariaRegion: bi(
+    "主要指數、櫃檯、匯率、商品與加密資產（延遲行情；橫幅自動捲動）",
+    "Indices, OTC, FX, commodities, crypto (delayed; auto-scrolling ticker)"
+  ),
+  loading: bi("載入市場行情中…", "Loading market data…"),
+  unavailable: "—",
+} as const;
+
 export const NAV = {
-  industries: bi("產業", "Industries"),
-  graph: bi("供應鏈網路圖", "Supply-chain graph"),
+  industries: "產業",
+  graph: "供應鏈網路圖",
 } as const;
 
 export const HOME = {
@@ -179,7 +189,7 @@ export const GRAPH_PAGE = {
 } as const;
 
 export const THEMES_PAGE = {
-  nav: bi("主題投資", "Thematic investing"),
+  nav: "主題投資",
   title: bi("主題投資供應鏈", "Theme supply chains"),
   lead: bi(
     "依題材彙整上市櫃公司，並區分上游／中游／下游（資料由 build_themes.py 產出）。",
@@ -198,7 +208,7 @@ export const THEMES_PAGE = {
 } as const;
 
 export const DISCOVER_PAGE = {
-  nav: bi("關鍵字探索", "Discover"),
+  nav: "關鍵字探索",
   title: bi("反向探索（關鍵字）", "Reverse discovery"),
   lead: bi(
     "搜尋報告全文，找出提到該關鍵字的上市櫃公司（延遲載入、需 Node 執行 /api）。",
@@ -220,6 +230,30 @@ export const DISCOVER_PAGE = {
     "搜尋服務暫時無法使用。靜態託管環境沒有 API 時，請以本機執行 npm run dev／preview，或改用下方指令列工具。",
     "Search API unavailable. Use npm run dev or preview locally, or the CLI below on static hosting."
   ),
+} as const;
+
+/** 財經新聞聚合（/news、/api/news） */
+export const NEWS_PAGE = {
+  nav: "新聞",
+  title: "財經新聞",
+  lead: "聚合台灣主要財經媒體即時標題（來源為第三方 RSS／公開 API；完整內容與版權以原站為準）。",
+  loading: "載入新聞中…",
+  error: "暫時無法載入新聞，請稍後再試。",
+  loadMore: "載入更多",
+  sourceFilterAria: "新聞來源篩選",
+  categoryAll: "全部",
+  categoryTw: "台股",
+  categoryIntl: "國際",
+  categoryTech: "科技",
+  categoryIndustry: "產業",
+  categoryFinance: "財經",
+  updated: "更新",
+  sourceStatsLabel: "各來源筆數（篩選後）",
+  noMatch: "目前沒有符合篩選條件的新聞。",
+  relatedMarket: bi("相關行情", "Related quotes"),
+  readOriginal: "閱讀原文",
+  disclaimer:
+    "本頁僅聚合公開連結與摘要，不儲存全文；新聞內容、圖像與商標歸各媒體所有。",
 } as const;
 
 export const FOOTER = {

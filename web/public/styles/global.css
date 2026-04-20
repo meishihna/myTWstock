@@ -29,6 +29,12 @@
   --duration: 0.18s;
   --font-display: "Plus Jakarta Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-body: "Noto Sans TC", "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  /** 自訂滾動軸（與深色介面一致；Firefox 用 scrollbar-color，WebKit 用下方偽元素） */
+  --scrollbar-size: 8px;
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+  --scrollbar-thumb-active: rgba(255, 255, 255, 0.42);
 }
 
 *,
@@ -41,6 +47,8 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   background-color: var(--bg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 body {
@@ -51,6 +59,119 @@ body {
   background-image: none;
   color: var(--text);
   line-height: 1.6;
+}
+
+/**
+ * 主題化滾動軸：細軌道、圓角拖塊、hover 略亮，貼合深色 UI（Chrome / Edge / Safari；Firefox 用 scrollbar-*）
+ */
+.fin-table-scroll,
+.report-aside,
+.report-body table,
+.report-body pre,
+.search-results,
+.peer-list,
+.chart-bars-embed--scroll,
+.relation-tablist-wrap,
+.wiki-table-wrap,
+.discover-pre,
+.market-ticker-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+html::-webkit-scrollbar,
+.fin-table-scroll::-webkit-scrollbar,
+.report-aside::-webkit-scrollbar,
+.report-body table::-webkit-scrollbar,
+.report-body pre::-webkit-scrollbar,
+.search-results::-webkit-scrollbar,
+.peer-list::-webkit-scrollbar,
+.chart-bars-embed--scroll::-webkit-scrollbar,
+.relation-tablist-wrap::-webkit-scrollbar,
+.wiki-table-wrap::-webkit-scrollbar,
+.discover-pre::-webkit-scrollbar,
+.market-ticker-scroll::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+html::-webkit-scrollbar-track,
+.fin-table-scroll::-webkit-scrollbar-track,
+.report-aside::-webkit-scrollbar-track,
+.report-body table::-webkit-scrollbar-track,
+.report-body pre::-webkit-scrollbar-track,
+.search-results::-webkit-scrollbar-track,
+.peer-list::-webkit-scrollbar-track,
+.chart-bars-embed--scroll::-webkit-scrollbar-track,
+.relation-tablist-wrap::-webkit-scrollbar-track,
+.wiki-table-wrap::-webkit-scrollbar-track,
+.discover-pre::-webkit-scrollbar-track,
+.market-ticker-scroll::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb,
+.fin-table-scroll::-webkit-scrollbar-thumb,
+.report-aside::-webkit-scrollbar-thumb,
+.report-body table::-webkit-scrollbar-thumb,
+.report-body pre::-webkit-scrollbar-thumb,
+.search-results::-webkit-scrollbar-thumb,
+.peer-list::-webkit-scrollbar-thumb,
+.chart-bars-embed--scroll::-webkit-scrollbar-thumb,
+.relation-tablist-wrap::-webkit-scrollbar-thumb,
+.wiki-table-wrap::-webkit-scrollbar-thumb,
+.discover-pre::-webkit-scrollbar-thumb,
+.market-ticker-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+.fin-table-scroll::-webkit-scrollbar-thumb:hover,
+.report-aside::-webkit-scrollbar-thumb:hover,
+.report-body table::-webkit-scrollbar-thumb:hover,
+.report-body pre::-webkit-scrollbar-thumb:hover,
+.search-results::-webkit-scrollbar-thumb:hover,
+.peer-list::-webkit-scrollbar-thumb:hover,
+.chart-bars-embed--scroll::-webkit-scrollbar-thumb:hover,
+.relation-tablist-wrap::-webkit-scrollbar-thumb:hover,
+.wiki-table-wrap::-webkit-scrollbar-thumb:hover,
+.discover-pre::-webkit-scrollbar-thumb:hover,
+.market-ticker-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+html::-webkit-scrollbar-thumb:active,
+.fin-table-scroll::-webkit-scrollbar-thumb:active,
+.report-aside::-webkit-scrollbar-thumb:active,
+.report-body table::-webkit-scrollbar-thumb:active,
+.report-body pre::-webkit-scrollbar-thumb:active,
+.search-results::-webkit-scrollbar-thumb:active,
+.peer-list::-webkit-scrollbar-thumb:active,
+.chart-bars-embed--scroll::-webkit-scrollbar-thumb:active,
+.relation-tablist-wrap::-webkit-scrollbar-thumb:active,
+.wiki-table-wrap::-webkit-scrollbar-thumb:active,
+.discover-pre::-webkit-scrollbar-thumb:active,
+.market-ticker-scroll::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+
+html::-webkit-scrollbar-corner,
+.fin-table-scroll::-webkit-scrollbar-corner,
+.report-aside::-webkit-scrollbar-corner,
+.report-body table::-webkit-scrollbar-corner,
+.report-body pre::-webkit-scrollbar-corner,
+.search-results::-webkit-scrollbar-corner,
+.peer-list::-webkit-scrollbar-corner,
+.chart-bars-embed--scroll::-webkit-scrollbar-corner,
+.relation-tablist-wrap::-webkit-scrollbar-corner,
+.wiki-table-wrap::-webkit-scrollbar-corner,
+.discover-pre::-webkit-scrollbar-corner,
+.market-ticker-scroll::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Bilingual label: 中文（English） */
@@ -140,6 +261,188 @@ body {
 .nav-links a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.market-ticker {
+  border-top: none;
+  background: #000000;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-ticker {
+    transition: none;
+  }
+}
+
+.market-ticker-inner {
+  max-width: var(--layout-max);
+  margin: 0 auto;
+  padding: 0.28rem 1.1rem 0.4rem;
+}
+
+.market-ticker-scroll {
+  overflow: hidden;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-ticker-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+.market-ticker-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/** 跑馬燈：外層只做 translate，內層 .market-ticker-rail 橫向 flex（避免 transform+flex 同層造成直排） */
+.market-ticker-marquee {
+  overflow: hidden;
+  width: 100%;
+}
+
+.market-ticker-marquee-anim {
+  display: block;
+  width: max-content;
+  will-change: transform;
+}
+
+.market-ticker-rail {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  min-width: min-content;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .market-ticker-marquee-anim {
+    animation: market-ticker-marquee 85s linear infinite;
+  }
+
+  .market-ticker-marquee:hover .market-ticker-marquee-anim {
+    animation-play-state: paused;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-ticker-marquee-anim {
+    animation: none;
+  }
+}
+
+@keyframes market-ticker-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.market-ticker-track,
+.market-ticker-segment {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem 1.65rem;
+  padding-bottom: 1px;
+  min-width: min-content;
+}
+
+.market-ticker-segment {
+  flex: 0 0 auto;
+}
+
+.market-ticker-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.1rem 0;
+  border: none;
+  background: transparent;
+  min-width: 0;
+}
+
+.market-ticker-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.06rem;
+  min-width: 0;
+}
+
+.market-ticker-name {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.market-ticker-price {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.market-ticker-chg {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.market-ticker-chg .quote-chg-big,
+.market-ticker-chg .quote-chg-pct {
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.market-ticker-spark-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  opacity: 0.98;
+}
+
+.market-ticker-spark {
+  display: block;
+  flex-shrink: 0;
+}
+
+.market-ticker-spark--empty {
+  min-width: 54px;
+  opacity: 0.25;
+}
+
+.market-ticker-spark-baseline {
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.market-ticker-loading,
+.market-ticker-error {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  padding: 0.15rem 0;
 }
 
 .main {
@@ -2614,7 +2917,6 @@ a:focus-visible {
   border-radius: 12px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
   background: rgba(0, 0, 0, 0.42);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow:
@@ -2758,6 +3060,102 @@ a:focus-visible {
 .relation-rev.biz-rev {
   width: 100%;
   max-width: min(28rem, 100%);
+}
+
+/* —— 關係摘要 · 營收結構：柔色漸層條、細軌道；寬度由切換膠囊時腳本自 0% 動畫 —— */
+.relation-rev[data-revenue-panel] {
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+}
+
+.relation-rev .relation-rev-title {
+  margin-bottom: 1.05rem;
+  letter-spacing: 0.1em;
+  opacity: 0.88;
+}
+
+.relation-rev .relation-rev-row {
+  padding-top: 0.62rem;
+  padding-bottom: 0.62rem;
+}
+
+.relation-rev .relation-rev-row:hover {
+  background: rgba(255, 255, 255, 0.032);
+}
+
+.relation-rev .relation-rev-bar-track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.relation-rev .relation-rev-row:hover .relation-rev-bar-track {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.relation-rev .relation-rev-bar-fill {
+  display: block;
+  width: 0%;
+  min-width: 0;
+  height: 100%;
+  border-radius: inherit;
+  filter: none;
+  /* 舊版瀏覽器後備；新瀏覽器覆寫為柔色漸層（仍依 --bar-accent） */
+  background: rgba(125, 211, 192, 0.55);
+  background: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--bar-accent, #7dd3c0) 52%, transparent) 0%,
+    color-mix(in srgb, var(--bar-accent, #7dd3c0) 88%, rgba(255, 255, 255, 0.18)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 0 26px color-mix(in srgb, var(--bar-accent, #7dd3c0) 34%, transparent);
+  transition:
+    width 0.88s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease;
+  transition-delay: var(--rev-delay, 0ms);
+}
+
+.relation-rev .relation-rev-row:hover .relation-rev-bar-fill {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 0 34px color-mix(in srgb, var(--bar-accent, #7dd3c0) 44%, transparent);
+}
+
+.relation-rev .relation-rev-pct {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.06em;
+  color: rgba(228, 232, 240, 0.92);
+}
+
+.relation-rev .relation-rev-pct-num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.relation-rev .relation-rev-pct-unit {
+  font-size: 0.68rem;
+  font-weight: 500;
+  opacity: 0.55;
+}
+
+.relation-rev .relation-rev-geo {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: rgba(160, 168, 182, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relation-rev .relation-rev-bar-fill {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
 }
 
 .relation-panels {

@@ -240,21 +240,30 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
                 />
               ) : (
                 <div class="relation-tabpanel-inner relation-rev-wrap">
-                  <div class="biz-rev relation-rev" aria-label={RELATION.revenue}>
-                    <div class="biz-rev-title">營收結構（{revYear}）</div>
-                    {s.rows.map((item) => (
-                      <div class="biz-rev-item">
+                  <div
+                    class="biz-rev relation-rev"
+                    aria-label={RELATION.revenue}
+                    data-revenue-panel=""
+                  >
+                    <div class="biz-rev-title relation-rev-title">營收結構（{revYear}）</div>
+                    {s.rows.map((item, ri) => (
+                      <div class="biz-rev-item relation-rev-row">
                         <div class="biz-rev-label">{item.name}</div>
-                        <div class="biz-rev-bar-wrap">
+                        <div class="biz-rev-bar-wrap relation-rev-bar-track">
                           <div
-                            class="biz-rev-bar-fill"
-                            style={`width:${item.pct}%;background:${item.color}`}
+                            class="biz-rev-bar-fill relation-rev-bar-fill"
+                            style={`--bar-accent: ${item.color}; --rev-delay: ${ri * 55}ms`}
+                            data-target-pct={item.pct}
                           />
                         </div>
-                        <div class="biz-rev-pct">{item.pct}%</div>
+                        <div class="biz-rev-pct relation-rev-pct">
+                          <span class="relation-rev-pct-num" data-target-pct={item.pct}
+                            >0</span
+                          ><span class="relation-rev-pct-unit" aria-hidden="true">%</span>
+                        </div>
                       </div>
                     ))}
-                    {s.geo && <div class="biz-rev-geo">{s.geo}</div>}
+                    {s.geo && <div class="biz-rev-geo relation-rev-geo">{s.geo}</div>}
                   </div>
                 </div>
               )}
@@ -281,6 +290,78 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
             return ((i % tabs.length) + tabs.length) % tabs.length;
           }
 
+          function resetRevenuePanel(panel) {
+            if (!panel) return;
+            var rev = panel.querySelector(".relation-rev[data-revenue-panel]");
+            if (!rev) return;
+            rev.querySelectorAll(".relation-rev-bar-fill").forEach(function (el) {
+              el.style.width = "0%";
+            });
+            rev.querySelectorAll(".relation-rev-pct-num").forEach(function (el) {
+              el.textContent = "0";
+            });
+          }
+
+          function playRevenueAnim(panel) {
+            if (!panel) return;
+            var rev = panel.querySelector(".relation-rev[data-revenue-panel]");
+            if (!rev) return;
+            var fills = rev.querySelectorAll(".relation-rev-bar-fill");
+            var nums = rev.querySelectorAll(".relation-rev-pct-num");
+            var reduce =
+              typeof window.matchMedia === "function" &&
+              window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if (reduce) {
+              fills.forEach(function (el) {
+                var t = el.getAttribute("data-target-pct");
+                if (t != null) el.style.width = t + "%";
+              });
+              nums.forEach(function (el) {
+                var t = el.getAttribute("data-target-pct");
+                if (t != null) el.textContent = String(t);
+              });
+              return;
+            }
+            fills.forEach(function (el) {
+              el.style.width = "0%";
+            });
+            nums.forEach(function (el) {
+              el.textContent = "0";
+            });
+            rev.offsetHeight;
+            window.requestAnimationFrame(function () {
+              window.requestAnimationFrame(function () {
+                fills.forEach(function (el) {
+                  var t = el.getAttribute("data-target-pct");
+                  if (t != null) el.style.width = t + "%";
+                });
+                var start = performance.now();
+                var duration = 820;
+                var targets = [];
+                nums.forEach(function (el) {
+                  var n = parseInt(el.getAttribute("data-target-pct"), 10);
+                  targets.push(isNaN(n) ? 0 : n);
+                });
+                function tick(now) {
+                  var p = Math.min(1, (now - start) / duration);
+                  var ease = 1 - Math.pow(1 - p, 3);
+                  nums.forEach(function (el, idx) {
+                    var tg = targets[idx];
+                    el.textContent = String(Math.round(tg * ease));
+                  });
+                  if (p < 1) {
+                    window.requestAnimationFrame(tick);
+                  } else {
+                    nums.forEach(function (el, idx) {
+                      el.textContent = String(targets[idx]);
+                    });
+                  }
+                }
+                window.requestAnimationFrame(tick);
+              });
+            });
+          }
+
           function activate(index) {
             var i = ix(index);
             for (var j = 0; j < tabs.length; j++) {
@@ -290,9 +371,15 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
               if (on) tabs[j].classList.add("relation-tab--active");
               else tabs[j].classList.remove("relation-tab--active");
               if (panels[j]) {
+                if (!on && panels[j].querySelector(".relation-rev[data-revenue-panel]")) {
+                  resetRevenuePanel(panels[j]);
+                }
                 if (on) {
                   panels[j].removeAttribute("hidden");
                   panels[j].classList.add("relation-tabpanel--active");
+                  if (tabs[j].getAttribute("data-relation-key") === "revenueStructure") {
+                    playRevenueAnim(panels[j]);
+                  }
                 } else {
                   panels[j].hidden = true;
                   panels[j].classList.remove("relation-tabpanel--active");
@@ -336,6 +423,21 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
               }
             });
           });
+
+          /* 若預設選中即為營收結構（僅有此膠囊時），初次載入也播放 */
+          (function initRevIfActive() {
+            for (var q = 0; q < tabs.length; q++) {
+              if (
+                tabs[q].getAttribute("aria-selected") === "true" &&
+                tabs[q].getAttribute("data-relation-key") === "revenueStructure"
+              ) {
+                window.requestAnimationFrame(function () {
+                  playRevenueAnim(panels[q]);
+                });
+                break;
+              }
+            }
+          })();
         })();
       </script>
     </section>

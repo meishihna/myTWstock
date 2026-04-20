@@ -9,9 +9,9 @@ import {
   readdirSync,
   readFileSync,
 } from "fs";
-import { copyFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { writeJsonAtomicWithRetry } from "./lib/write-json-atomic.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(__dirname, "..");
@@ -56,42 +56,6 @@ function assignSectorSlugs(sectorNames) {
     slugToSector[slug] = name;
   }
   return { nameToSlug, slugToSector };
-}
-
-/**
- * Windows 上對 Desktop/OneDrive 下既有檔案直接 writeFileSync 可能 errno -4094 UNKNOWN；
- * 先寫 .tmp 再 rename，並短重試（檔案被編輯器或同步鎖住時）。
- */
-async function writeJsonAtomicWithRetry(filePath, payload) {
-  const json = JSON.stringify(payload);
-  const tmp = path.join(
-    path.dirname(filePath),
-    `${path.basename(filePath)}.${process.pid}.tmp`
-  );
-  let lastErr;
-  for (let attempt = 0; attempt < 8; attempt++) {
-    try {
-      await writeFile(tmp, json, "utf8");
-      // Windows：直接寫入已存在且被同步/防毒開著的檔易 UNKNOWN；copyFile 覆蓋通常較穩
-      await copyFile(tmp, filePath);
-      await unlink(tmp);
-      return;
-    } catch (e) {
-      lastErr = e;
-      try {
-        await unlink(tmp);
-      } catch {
-        /* ignore */
-      }
-      await new Promise((r) => setTimeout(r, 120 * (attempt + 1)));
-    }
-  }
-  console.error(
-    "\n無法寫入",
-    filePath,
-    "\n常見原因：檔案在編輯器中開著、OneDrive/防毒鎖定。請關閉該檔、暫停同步後重試；或將專案移到非同步資料夾（例如 C:\\dev）。\n"
-  );
-  throw lastErr;
 }
 
 async function main() {

@@ -1,6 +1,6 @@
 ---
-import Bi from "../components/Bi.astro";
-import { DISCOVER_PAGE, FOOTER, SITE, THEMES_PAGE } from "../lib/ui";
+import MarketTickerBar from "../components/MarketTickerBar.astro";
+import { DISCOVER_PAGE, FOOTER, NEWS_PAGE, SITE, THEMES_PAGE } from "../lib/ui";
 
 interface Props {
   title: string;
@@ -57,21 +57,23 @@ const ogImageUrl = new URL(ogImage, siteBase);
       <nav class="nav" aria-label="Main navigation">
         <a class="brand" href="/">{SITE.name}</a>
         <div class="nav-links">
-          <a href="/sectors"><Bi zh="產業" en="Industries" /></a>
+          <a href="/news">{NEWS_PAGE.nav}</a>
+          <a href="/sectors">產業</a>
           <a href="/themes">{THEMES_PAGE.nav}</a>
           <a href="/discover">{DISCOVER_PAGE.nav}</a>
-          <a href="/wiki"><Bi zh="Wikilink 索引" en="Wikilink hub" /></a>
-          <a href="/graph"><Bi zh="供應鏈網路圖" en="Supply-chain graph" /></a>
+          <a href="/wiki">Wikilink 索引</a>
+          <a href="/graph">供應鏈網路圖</a>
         </div>
       </nav>
     </header>
+    <MarketTickerBar />
     <main class="main">
       <slot />
     </main>
     <footer class="site-footer">
       <p class="footer-disclaimer" role="note">{FOOTER.disclaimer}</p>
       <p class="footer-source">
-        <Bi zh="資料來源" en="Data source" />：<a
+        資料來源：<a
           href="https://github.com/meishihna/myTWstock"
           target="_blank"
           rel="noopener">GitHub · meishihna / TWstock</a

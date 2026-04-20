@@ -1,0 +1,211 @@
+---
+import { MARKET_TICKER } from "../lib/ui";
+
+const aria = MARKET_TICKER.ariaRegion;
+---
+
+<div class="market-ticker" id="market-ticker-root" aria-hidden="false">
+  <div class="market-ticker-inner">
+    <div class="market-ticker-scroll" role="region" aria-label={aria}>
+      <div class="market-ticker-marquee">
+        <div class="market-ticker-marquee-anim" id="market-ticker-anim">
+          <div class="market-ticker-rail" id="market-ticker-track">
+            <div class="market-ticker-loading" id="market-ticker-loading">
+              {MARKET_TICKER.loading}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const POLL_MS = 60_000;
+  const SPARK_W = 54;
+  const SPARK_H = 42;
+  const SPARK_PAD = 4;
+
+  /** @param {{ change: number | null }} item */
+  function chgClass(item) {
+    const c = item.change;
+    if (c == null || !Number.isFinite(c)) return "flat";
+    if (c > 0) return "up";
+    if (c < 0) return "down";
+    return "flat";
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /** 迷你走勢：點與點之間等距撲滿寬度（不論是否在盤中） */
+  function sparkSvg(points, prevClose, dir, safeId) {
+    const w = SPARK_W;
+    const h = SPARK_H;
+    const pad = SPARK_PAD;
+    const color =
+      dir === "up" ? "#1d9e75" : dir === "down" ? "#e24b4a" : "#888780";
+    if (!points || points.length < 2) {
+      return `<svg class="market-ticker-spark market-ticker-spark--empty" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"></svg>`;
+    }
+    let min = Math.min(...points);
+    let max = Math.max(...points);
+    if (prevClose != null && Number.isFinite(prevClose)) {
+      min = Math.min(min, prevClose);
+      max = Math.max(max, prevClose);
+    }
+    if (max <= min) {
+      min -= 1e-6;
+      max += 1e-6;
+    }
+    const ih = h - pad * 2;
+    const iw = w - pad * 2;
+    /** @param {number} v */
+    const yAt = (v) => pad + ih - ((v - min) / (max - min)) * ih;
+
+    /** @param {number} i */
+    const xAt = (i) => pad + (i / (points.length - 1)) * iw;
+
+    let line = `M ${xAt(0)} ${yAt(points[0])}`;
+    for (let i = 1; i < points.length; i++) {
+      line += ` L ${xAt(i)} ${yAt(points[i])}`;
+    }
+    const lastX = xAt(points.length - 1);
+    const lastY = yAt(points[points.length - 1]);
+    const area =
+      line +
+      ` L ${lastX} ${h - pad} L ${pad} ${h - pad} Z`;
+    const gradId = ("mk-spark-" + safeId).replace(/[^a-zA-Z0-9_-]/g, "") || "mk-spark-g";
+    let baseline = "";
+    if (prevClose != null && Number.isFinite(prevClose)) {
+      const yp = yAt(prevClose);
+      baseline = `<line class="market-ticker-spark-baseline" x1="${pad}" y1="${yp}" x2="${w - pad}" y2="${yp}" />`;
+    }
+    const dot = `<circle class="market-ticker-spark-dot" cx="${lastX}" cy="${lastY}" r="2" fill="${color}" />`;
+    return `<svg class="market-ticker-spark market-ticker-spark--${dir}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+<defs>
+  <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${color}" stop-opacity="0.42"/>
+    <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+  </linearGradient>
+</defs>
+${baseline}
+<path class="market-ticker-spark-area" d="${area}" fill="url(#${gradId})" stroke="none" />
+<path class="market-ticker-spark-line" d="${line}" fill="none" stroke="${color}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+${dot}
+</svg>`;
+  }
+
+  /** @param {Record<string, unknown>} item @param {string} idSuffix */
+  function itemArticleHtml(item, idSuffix) {
+    const cls = chgClass(item);
+    const price = item.priceDisplay ?? "—";
+    const chg = item.changeDisplay ?? "—";
+    const pct = item.changePctDisplay ?? "—";
+    const label = esc(item.labelZh ?? "");
+    const sid = esc(String(item.id ?? "x"));
+    const uid =
+      (String(item.id ?? "x").replace(/[^a-zA-Z0-9_-]/g, "") || "i") + idSuffix;
+    const spark = sparkSvg(
+      item.sparkline,
+      item.previousClose,
+      cls,
+      uid,
+    );
+    return `<article class="market-ticker-item" data-ticker-id="${sid}">
+  <div class="market-ticker-text">
+    <div class="market-ticker-name">${label}</div>
+    <div class="market-ticker-price">${esc(price)}</div>
+    <div class="market-ticker-chg"><span class="quote-chg-big ${cls}">${esc(chg)}</span> <span class="quote-chg-pct ${cls}">${esc(pct)}</span></div>
+  </div>
+  <div class="market-ticker-spark-wrap">${spark}</div>
+</article>`;
+  }
+
+  async function loadOnce() {
+    const track = document.getElementById("market-ticker-track");
+    const root = document.getElementById("market-ticker-root");
+    if (!track) return;
+    const loadingEl = document.getElementById("market-ticker-loading");
+
+    try {
+      const res = await fetch("/api/market-ticker");
+      if (!res.ok) throw new Error("bad");
+      const data = await res.json();
+      const items = data.items;
+      if (!Array.isArray(items)) throw new Error("shape");
+
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const suffixes = reduceMotion ? [""] : ["-a", "-b"];
+      const parts = [];
+      for (const suf of suffixes) {
+        const row = items.map((item) => itemArticleHtml(item, suf)).join("");
+        const hidden = suf === "-b" ? ' aria-hidden="true"' : "";
+        parts.push(`<div class="market-ticker-segment"${hidden}>${row}</div>`);
+      }
+      track.innerHTML = parts.join("");
+      if (root) root.dataset.loaded = "1";
+    } catch {
+      if (loadingEl) {
+        loadingEl.textContent = "—";
+      } else {
+        track.innerHTML =
+          '<p class="market-ticker-error" role="status">—</p>';
+      }
+      if (root) root.dataset.loaded = "1";
+    }
+  }
+
+  /** 捲動時隨區塊上移淡出（與載入淡入共用 transition） */
+  const FADE_PX = 72;
+
+  function syncTickerScrollFade() {
+    const root = document.getElementById("market-ticker-root");
+    if (!root || root.dataset.loaded !== "1") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    const r = root.getBoundingClientRect();
+    if (r.top >= 0) {
+      root.style.opacity = "1";
+    } else {
+      const o = Math.max(0, Math.min(1, 1 + r.top / FADE_PX));
+      root.style.opacity = String(o);
+    }
+  }
+
+  loadOnce().then(() => {
+    const root = document.getElementById("market-ticker-root");
+    if (!root || root.dataset.loaded !== "1") return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      root.style.opacity = "1";
+    } else {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          root.style.opacity = "1";
+        });
+      });
+    }
+    window.addEventListener("scroll", syncTickerScrollFade, { passive: true });
+    syncTickerScrollFade();
+  });
+  setInterval(loadOnce, POLL_MS);
+</script>
+
+<style is:global>
+  /* 與 global.css 互補：確保行情列橫向一排（避免跑馬燈 transform 層與 flex 同元素時部分瀏覽器直排） */
+  .market-ticker-rail,
+  .market-ticker-segment {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+</style>

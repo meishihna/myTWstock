@@ -1,0 +1,607 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { NEWS_PAGE, SITE } from "../lib/ui";
+import "../styles/news.css";
+
+export const prerender = false;
+
+const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
+---
+<Layout title={pageTitle} description={NEWS_PAGE.lead}>
+  <div class="news-shell">
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">首頁</a>
+    <span class="bc-sep"> / </span>
+    <span>{NEWS_PAGE.nav}</span>
+  </div>
+
+  <h1 class="page-h1">{NEWS_PAGE.title}</h1>
+  <p class="page-lead">{NEWS_PAGE.lead}</p>
+
+  <div class="news-page" data-news-root>
+    <div class="news-toolbar" role="region" aria-label="新聞篩選">
+      <div class="news-tabs" role="tablist" aria-label="分類">
+        <button
+          type="button"
+          class="news-tab is-active"
+          role="tab"
+          aria-selected="true"
+          data-category="all"
+        >
+          {NEWS_PAGE.categoryAll}
+        </button>
+        <button type="button" class="news-tab" role="tab" data-category="tw_stock">
+          {NEWS_PAGE.categoryTw}
+        </button>
+        <button type="button" class="news-tab" role="tab" data-category="intl">
+          {NEWS_PAGE.categoryIntl}
+        </button>
+        <button type="button" class="news-tab" role="tab" data-category="tech">
+          {NEWS_PAGE.categoryTech}
+        </button>
+        <button type="button" class="news-tab" role="tab" data-category="industry">
+          {NEWS_PAGE.categoryIndustry}
+        </button>
+        <button type="button" class="news-tab" role="tab" data-category="finance">
+          {NEWS_PAGE.categoryFinance}
+        </button>
+      </div>
+
+      <fieldset class="news-sources" aria-label={NEWS_PAGE.sourceFilterAria}>
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="cnyes" checked /> 鉅亨</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="udn" checked /> UDN</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="ctee" checked /> 工商</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="ltn" checked /> 自由</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="technews" checked /> 科技新報</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="ftech" checked /> 財經新報</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="businessweekly" checked /> 商周</label
+        >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="yahoo" checked /> Yahoo</label
+        >
+      </fieldset>
+    </div>
+
+    <p class="news-status" id="news-status" aria-live="polite">{NEWS_PAGE.loading}</p>
+    <p class="news-meta" id="news-meta" hidden></p>
+    <p class="news-source-stats" id="news-source-stats" hidden></p>
+    <ul class="news-list" id="news-list"></ul>
+    <div class="news-actions">
+      <button type="button" class="news-load-more" id="news-load-more" hidden>
+        {NEWS_PAGE.loadMore}
+      </button>
+    </div>
+    <p class="news-disclaimer">{NEWS_PAGE.disclaimer}</p>
+  </div>
+  </div>
+</Layout>
+
+<script>
+  import { NEWS_PAGE } from "../lib/ui";
+  import {
+    resolveTickersFromText,
+    resolveCommodityBenchmarks,
+    changeClass,
+    DEFAULT_BENCHMARK_SYMBOL,
+    isOtcIndexHeadline,
+    NEWS_TICKER_DISPLAY_LABEL,
+  } from "../lib/news-related";
+
+  (function () {
+    var root = document.querySelector("[data-news-root]");
+    var statusEl = document.getElementById("news-status");
+    var metaEl = document.getElementById("news-meta");
+    var listEl = document.getElementById("news-list");
+    var loadMoreBtn = document.getElementById("news-load-more");
+    var statsEl = document.getElementById("news-source-stats");
+    if (!root || !statusEl || !listEl || !loadMoreBtn || !statsEl) return;
+
+    var category = "all";
+    var limit = 50;
+    var allSourceIds = [
+      "cnyes",
+      "udn",
+      "ctee",
+      "ltn",
+      "technews",
+      "ftech",
+      "businessweekly",
+      "yahoo",
+    ];
+
+    function relTime(iso) {
+      var t = new Date(iso).getTime();
+      if (!Number.isFinite(t)) return "";
+      var diff = Date.now() - t;
+      var m = Math.floor(diff / 60000);
+      if (m < 1) return "剛剛";
+      if (m < 60) return m + " 分鐘前";
+      var h = Math.floor(m / 60);
+      if (h < 24) return h + " 小時前";
+      var days = Math.floor(h / 24);
+      return days + " 天前";
+    }
+
+    function selectedSources() {
+      var boxes = root.querySelectorAll('input[name="src"]:checked');
+      var out = [];
+      for (var i = 0; i < boxes.length; i++) {
+        out.push(boxes[i].value);
+      }
+      return out;
+    }
+
+    function sourceQuery() {
+      var sel = selectedSources();
+      if (sel.length === allSourceIds.length) return "";
+      if (sel.length === 0) return "";
+      return sel.join(",");
+    }
+
+    function buildUrl() {
+      var u = "/api/news?limit=" + limit;
+      if (category && category !== "all") u += "&category=" + encodeURIComponent(category);
+      var sq = sourceQuery();
+      if (sq) u += "&source=" + encodeURIComponent(sq);
+      return u;
+    }
+
+    function safeHttpUrl(u) {
+      try {
+        var x = new URL(u);
+        if (x.protocol === "http:" || x.protocol === "https:") return x.href;
+      } catch (e) {}
+      return "";
+    }
+
+    /** 工商／商周：RSS／OG 常只有 Google News 聚合縮圖，改顯示來源 logo */
+    var NEWS_SOURCE_IMAGE_FALLBACK = {
+      ctee: "/images/news-fallback/ctee.png",
+      businessweekly: "/images/news-fallback/businessweekly.png",
+    };
+
+    function isGoogleNewsAggregatorThumb(u) {
+      if (!u) return false;
+      try {
+        var h = new URL(u).hostname;
+        return (
+          h === "lh3.googleusercontent.com" || h === "lh4.googleusercontent.com"
+        );
+      } catch (e) {}
+      return false;
+    }
+
+    /** 回傳可給 <img src> 的網址（https 或站內根路徑），無則空字串 */
+    function resolveNewsCardImageUrl(a) {
+      var sid = a.sourceId || "";
+      var raw = (a.image || "").trim();
+      var http = safeHttpUrl(raw);
+      var fb = NEWS_SOURCE_IMAGE_FALLBACK[sid];
+      if (fb && (!http || isGoogleNewsAggregatorThumb(raw))) return fb;
+      return http;
+    }
+
+    async function hydrateRelatedCards(articles) {
+      if (!articles || articles.length === 0) return;
+      var idx;
+      var themePayload = null;
+      try {
+        var pair = await Promise.all([
+          fetch("/data/reports-index.json"),
+          fetch("/data/news-theme-tickers.json"),
+        ]);
+        var rIdx = pair[0];
+        var th = pair[1];
+        if (!rIdx.ok) return;
+        idx = await rIdx.json();
+        if (th.ok) {
+          try {
+            themePayload = await th.json();
+          } catch (eTh) {
+            themePayload = null;
+          }
+        }
+      } catch (e) {
+        return;
+      }
+      var valid = new Set(Object.keys(idx.byTicker || {}));
+      var nameToTicker = idx.nameToTicker || {};
+      var perArticle = articles.map(function (a) {
+        return resolveTickersFromText(
+          a.title || "",
+          a.summary || "",
+          nameToTicker,
+          valid,
+          a.category || "",
+          themePayload
+        );
+      });
+      var perCommodity = articles.map(function (a) {
+        return resolveCommodityBenchmarks(a.title || "", a.summary || "");
+      });
+      var symSeen = {};
+      var symList = [];
+      for (var pi = 0; pi < perArticle.length; pi++) {
+        var tkArr = perArticle[pi];
+        for (var pj = 0; pj < tkArr.length; pj++) {
+          var tkk = tkArr[pj];
+          if (!symSeen[tkk]) {
+            symSeen[tkk] = 1;
+            symList.push(tkk);
+          }
+        }
+        var commArr = perCommodity[pi] || [];
+        for (var pc = 0; pc < commArr.length; pc++) {
+          var symC = commArr[pc].symbol;
+          if (!symSeen[symC]) {
+            symSeen[symC] = 1;
+            symList.push(symC);
+          }
+        }
+      }
+      var needBench = false;
+      for (var nk = 0; nk < perArticle.length; nk++) {
+        var pa = perArticle[nk] || [];
+        var pb = perCommodity[nk] || [];
+        if (pa.length === 0 && pb.length === 0) {
+          needBench = true;
+          break;
+        }
+      }
+      if (needBench) symList.push(DEFAULT_BENCHMARK_SYMBOL);
+      var quotes = {};
+      try {
+        var qr = await fetch(
+          "/api/quote-batch?symbols=" + encodeURIComponent(symList.join(","))
+        );
+        if (qr.ok) {
+          var qd = await qr.json();
+          quotes = qd.quotes || {};
+        }
+      } catch (eq) {
+        quotes = {};
+      }
+      var cards = listEl.querySelectorAll(".news-card");
+      for (var ci = 0; ci < cards.length; ci++) {
+        var sec = cards[ci].querySelector("[data-news-related]");
+        if (!sec) continue;
+        var tks = perArticle[ci] || [];
+        var comms = perCommodity[ci] || [];
+        sec.textContent = "";
+        var label = document.createElement("div");
+        label.className = "news-related-label";
+        label.textContent = String(NEWS_PAGE.relatedMarket);
+        sec.appendChild(label);
+        var rowWrap = document.createElement("div");
+        rowWrap.className = "news-related-row";
+        function appendPillStock(tk2) {
+          var rep = idx.byTicker[tk2];
+          var q = quotes[tk2];
+          var disp =
+            NEWS_TICKER_DISPLAY_LABEL[tk2] ||
+            (rep && rep.name) ||
+            tk2;
+          var pct = q && q.changePct != null ? q.changePct : null;
+          var cls = changeClass(pct);
+          var pill = document.createElement(rep ? "a" : "span");
+          pill.className =
+            "news-related-pill" + (rep ? " news-related-pill--link" : "");
+          if (rep) pill.setAttribute("href", "/report/" + tk2);
+          var nameSp = document.createElement("span");
+          nameSp.className = "news-related-name";
+          nameSp.appendChild(document.createTextNode(disp));
+          pill.appendChild(nameSp);
+          if (q && q.price != null) {
+            var prEl = document.createElement("span");
+            prEl.className = "news-related-price";
+            prEl.textContent = String(q.price);
+            pill.appendChild(prEl);
+          }
+          var pctEl = document.createElement("span");
+          pctEl.className = "news-related-pct " + cls;
+          var pctStr =
+            pct == null || !Number.isFinite(pct)
+              ? "—"
+              : (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%";
+          pctEl.textContent =
+            (pct != null && pct > 0
+              ? "▲"
+              : pct != null && pct < 0
+                ? "▼"
+                : "") + pctStr;
+          pill.appendChild(pctEl);
+          rowWrap.appendChild(pill);
+        }
+        function appendPillCommodity(sym, labelZh) {
+          var q = quotes[sym];
+          var pct = q && q.changePct != null ? q.changePct : null;
+          var cls = changeClass(pct);
+          var pill = document.createElement("span");
+          pill.className = "news-related-pill news-related-pill--commodity";
+          var nameSp = document.createElement("span");
+          nameSp.className = "news-related-name";
+          nameSp.appendChild(document.createTextNode(labelZh));
+          pill.appendChild(nameSp);
+          if (q && q.price != null) {
+            var prEl = document.createElement("span");
+            prEl.className = "news-related-price";
+            prEl.textContent = String(q.price);
+            pill.appendChild(prEl);
+          }
+          var pctEl = document.createElement("span");
+          pctEl.className = "news-related-pct " + cls;
+          var pctStr =
+            pct == null || !Number.isFinite(pct)
+              ? "—"
+              : (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%";
+          pctEl.textContent =
+            (pct != null && pct > 0
+              ? "▲"
+              : pct != null && pct < 0
+                ? "▼"
+                : "") + pctStr;
+          pill.appendChild(pctEl);
+          rowWrap.appendChild(pill);
+        }
+        var hasRow =
+          tks.length > 0 || comms.length > 0;
+        if (hasRow) {
+          for (var tj = 0; tj < tks.length; tj++) {
+            appendPillStock(tks[tj]);
+          }
+          for (var ck = 0; ck < comms.length; ck++) {
+            appendPillCommodity(comms[ck].symbol, comms[ck].labelZh);
+          }
+        } else {
+          var qb = quotes[DEFAULT_BENCHMARK_SYMBOL];
+          var pctB = qb && qb.changePct != null ? qb.changePct : null;
+          var clsB = changeClass(pctB);
+          var pillB = document.createElement("span");
+          pillB.className = "news-related-pill";
+          var nameB = document.createElement("span");
+          nameB.className = "news-related-name";
+          nameB.textContent = "加權指數（大盤）";
+          pillB.appendChild(nameB);
+          var pctElB = document.createElement("span");
+          pctElB.className = "news-related-pct " + clsB;
+          var pctStrB =
+            pctB == null || !Number.isFinite(pctB)
+              ? "—"
+              : (pctB >= 0 ? "+" : "") + pctB.toFixed(2) + "%";
+          pctElB.textContent =
+            (pctB != null && pctB > 0
+              ? "▲"
+              : pctB != null && pctB < 0
+                ? "▼"
+                : "") + pctStrB;
+          pillB.appendChild(pctElB);
+          rowWrap.appendChild(pillB);
+        }
+        sec.appendChild(rowWrap);
+      }
+    }
+
+    function renderArticles(articles) {
+      listEl.innerHTML = "";
+      articles.forEach(function (a) {
+        var li = document.createElement("li");
+        li.className =
+          "news-card news-card--" + String(a.sourceId || "").replace(/[^a-z0-9_-]/gi, "");
+
+        var href = safeHttpUrl(a.url);
+
+        var cardImg = resolveNewsCardImageUrl(a);
+        if (cardImg) {
+          var wrap = document.createElement("div");
+          wrap.className = "news-card-media";
+          if (cardImg.indexOf("/images/news-fallback/") === 0) {
+            wrap.classList.add("news-card-media--source-fallback");
+          }
+          var im = document.createElement("img");
+          im.src = cardImg;
+          im.alt = "";
+          im.loading = "lazy";
+          wrap.appendChild(im);
+          li.appendChild(wrap);
+        } else {
+          var ph = document.createElement("div");
+          ph.className = "news-card-media news-card-media--placeholder";
+          ph.setAttribute("aria-hidden", "true");
+          var letter = (a.source || a.title || "?").trim().charAt(0) || "?";
+          ph.textContent = letter;
+          li.appendChild(ph);
+        }
+
+        var body = document.createElement("div");
+        body.className = "news-card-body";
+        var row = document.createElement("div");
+        row.className = "news-card-row";
+        var badges = document.createElement("div");
+        badges.className = "news-card-badges";
+        var src = document.createElement("span");
+        src.className = "news-card-pill news-card-pill--src";
+        src.textContent = a.source || "";
+        badges.appendChild(src);
+        if (a.category) {
+          var cat = document.createElement("span");
+          cat.className = "news-card-pill news-card-pill--cat";
+          cat.textContent = a.category;
+          badges.appendChild(cat);
+        }
+        var tm = document.createElement("time");
+        tm.className = "news-card-time";
+        tm.dateTime = a.published || "";
+        tm.textContent = relTime(a.published);
+        row.appendChild(badges);
+        row.appendChild(tm);
+
+        var h2 = document.createElement("h2");
+        h2.className = "news-card-title";
+        var link = document.createElement("a");
+        link.href = href || "#";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = a.title || "";
+        h2.appendChild(link);
+
+        body.appendChild(row);
+        body.appendChild(h2);
+        if (a.summary) {
+          var p = document.createElement("p");
+          p.className = "news-card-sum";
+          p.textContent = a.summary;
+          body.appendChild(p);
+        }
+
+        var bottom = document.createElement("div");
+        bottom.className = "news-card-bottom";
+
+        var relatedSec = document.createElement("section");
+        relatedSec.className = "news-card-related";
+        relatedSec.setAttribute("data-news-related", "true");
+
+        var foot = document.createElement("div");
+        foot.className = "news-card-foot";
+        var cta = document.createElement("a");
+        cta.className = "news-card-cta";
+        cta.href = href || "#";
+        cta.target = "_blank";
+        cta.rel = "noopener noreferrer";
+        cta.textContent = NEWS_PAGE.readOriginal;
+        foot.appendChild(cta);
+
+        bottom.appendChild(relatedSec);
+        bottom.appendChild(foot);
+        body.appendChild(bottom);
+
+        li.appendChild(body);
+        listEl.appendChild(li);
+      });
+    }
+
+    function formatSourceStats(sources) {
+      if (!sources) return "";
+      var order = [
+        "cnyes",
+        "udn",
+        "ctee",
+        "ltn",
+        "technews",
+        "ftech",
+        "businessweekly",
+        "yahoo",
+      ];
+      var parts = [];
+      for (var i = 0; i < order.length; i++) {
+        var row = sources[order[i]];
+        if (row && row.name != null) {
+          parts.push(row.name + " " + row.count);
+        }
+      }
+      return parts.join(" · ");
+    }
+
+    function fetchNews() {
+      statusEl.textContent = NEWS_PAGE.loading;
+      metaEl.hidden = true;
+      statsEl.hidden = true;
+      statsEl.textContent = "";
+      loadMoreBtn.hidden = true;
+      fetch(buildUrl())
+        .then(function (r) {
+          if (!r.ok) throw new Error("bad");
+          return r.json();
+        })
+        .then(function (data) {
+          statusEl.textContent = "";
+          if (!data.articles || data.articles.length === 0) {
+            listEl.innerHTML = "";
+            if (typeof data.total === "number" && data.total === 0) {
+              statusEl.textContent = NEWS_PAGE.noMatch;
+            } else {
+              statusEl.textContent = NEWS_PAGE.error;
+            }
+            return;
+          }
+          renderArticles(data.articles);
+          void hydrateRelatedCards(data.articles);
+          var parts = [];
+          if (data.lastUpdated) {
+            parts.push(
+              NEWS_PAGE.updated +
+                "：" +
+                new Date(data.lastUpdated).toLocaleString("zh-TW")
+            );
+          }
+          if (typeof data.total === "number") {
+            parts.push(
+              "共 " +
+                data.total +
+                " 則符合 · 本頁顯示 " +
+                data.articles.length +
+                " 則（單次上限 " +
+                limit +
+                "）"
+            );
+          }
+          metaEl.textContent = parts.join(" · ");
+          metaEl.hidden = false;
+          var statLine = formatSourceStats(data.sources);
+          if (statLine) {
+            statsEl.textContent = NEWS_PAGE.sourceStatsLabel + "：" + statLine;
+            statsEl.hidden = false;
+          }
+          loadMoreBtn.hidden = !(
+            limit < 200 &&
+            typeof data.total === "number" &&
+            data.total > limit
+          );
+        })
+        .catch(function () {
+          statusEl.textContent = NEWS_PAGE.error;
+          listEl.innerHTML = "";
+        });
+    }
+
+    root.querySelectorAll(".news-tab").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        root.querySelectorAll(".news-tab").forEach(function (b) {
+          b.classList.remove("is-active");
+          b.setAttribute("aria-selected", "false");
+        });
+        btn.classList.add("is-active");
+        btn.setAttribute("aria-selected", "true");
+        category = btn.getAttribute("data-category") || "all";
+        limit = 50;
+        fetchNews();
+      });
+    });
+
+    root.querySelectorAll('input[name="src"]').forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        limit = 50;
+        fetchNews();
+      });
+    });
+
+    loadMoreBtn.addEventListener("click", function () {
+      limit = Math.min(limit + 50, 200);
+      fetchNews();
+    });
+
+    fetchNews();
+  })();
+</script>

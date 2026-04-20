@@ -1,4 +1,4 @@
-﻿"""
+"""
 update_financials.py — Refresh financial tables in ticker reports.
 
 季表（``MYTWSTOCK_MOPS=1``）：手動補丁 > **MOPS t163**（sb06 營益比率％；sb04 一般業 **Revenue／COR／GP／OI** 精確金額與 NI／EPS；**sb20 現金流三項**）>
@@ -1125,6 +1125,95 @@ def _strip_gross_margin_for_financial_json(block: dict | None) -> None:
         s["Gross Margin (%)"] = [None] * n
 
 
+def _patch_quarterly_ytd_q4_from_annual(annual_block: dict | None, qy_block: dict | None) -> None:
+    """
+    累積合併 Q4（曆年 12-31）欄：單季加總與年報口徑可能不同（現流、CAPEX、部分費用）。
+    就地將 quarterlyYtd 該欄對齊 annual 同年 *-12-31*，並依營收重算三項利率列。
+    """
+    if not annual_block or not qy_block:
+        return
+    periods_a = annual_block.get("periods") or []
+    series_a = annual_block.get("series") or {}
+    periods_q = qy_block.get("periods") or []
+    series_q = qy_block.get("series") or {}
+    if not periods_a or not periods_q or not isinstance(series_q, dict):
+        return
+
+    def norm_iso(p: object) -> str:
+        s = str(p).strip()
+        return s[:10] if len(s) >= 10 else s
+
+    def annual_idx_for_year_dec31(y: int) -> int:
+        target = f"{y}-12-31"
+        for i, p in enumerate(periods_a):
+            if norm_iso(p) == target:
+                return i
+        return -1
+
+    margin_pairs = (
+        ("Gross Profit", "Gross Margin (%)"),
+        ("Operating Income", "Operating Margin (%)"),
+        ("Net Income", "Net Margin (%)"),
+    )
+
+    for qi, pq in enumerate(periods_q):
+        iso = norm_iso(pq)
+        if not iso.endswith("-12-31"):
+            continue
+        try:
+            y = int(iso[:4])
+        except ValueError:
+            continue
+        ai = annual_idx_for_year_dec31(y)
+        if ai < 0:
+            continue
+        for metric, arr in series_a.items():
+            if metric.endswith("(%)") or not isinstance(arr, list) or ai >= len(arr):
+                continue
+            if metric not in series_q:
+                continue
+            v = arr[ai]
+            if v is None:
+                continue
+            try:
+                fv = float(v)
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(fv):
+                continue
+            qarr = series_q[metric]
+            if not isinstance(qarr, list) or qi >= len(qarr):
+                continue
+            qarr[qi] = fv
+        rev = series_q.get("Revenue")
+        if rev is None or not isinstance(rev, list) or qi >= len(rev) or rev[qi] is None:
+            continue
+        try:
+            r = float(rev[qi])
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(r) or abs(r) < 1e-12:
+            continue
+        for numer_k, pct_k in margin_pairs:
+            na = series_q.get(numer_k)
+            pa = series_q.get(pct_k)
+            if (
+                not isinstance(na, list)
+                or qi >= len(na)
+                or na[qi] is None
+                or not isinstance(pa, list)
+                or qi >= len(pa)
+            ):
+                continue
+            try:
+                num = float(na[qi])
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(num):
+                continue
+            pa[qi] = (num / r) * 100.0
+
+
 def build_financials_payload(ticker: str, data: dict) -> dict:
     """JSON 內容 dict（寫入 financials_store 與可選 public 鏡像）。"""
     it_raw = data.get("industry_type")
@@ -1182,6 +1271,8 @@ def build_financials_payload(ticker: str, data: dict) -> dict:
         _strip_gross_margin_for_financial_json(payload.get("annual"))
         _strip_gross_margin_for_financial_json(payload.get("quarterly"))
         _strip_gross_margin_for_financial_json(payload.get("quarterlyCore"))
+
+    _patch_quarterly_ytd_q4_from_annual(payload.get("annual"), payload.get("quarterlyYtd"))
 
     return payload
 

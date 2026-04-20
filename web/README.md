@@ -47,6 +47,7 @@ npm run build
 
 - **報告頁 K 線**：`QuoteStrip` 於 **SSR** 透過 `src/lib/priceCache.ts` 請求 Yahoo Chart v8（**5 分鐘記憶體快取**），含 OHLCV 與 5/10/20 日均線暖身資料。  
 - **估值等**：部分元件仍使用 **`GET /api/quote/[代號]`**（實作於 `src/pages/api/`）。  
+- **全站頂部行情列**（位於導覽列下方、**非 sticky**，隨頁面捲動）：`MarketTickerBar` 呼叫 **`GET /api/market-ticker`**（台加權、S&P 500、道瓊、日經指數、台幣兌美元、VIX、黃金 `GC=F`、原油 `CL=F`；含近月日線 **sparkline**；載入 **淡入**、捲動上移 **淡出**；**60 秒**快取 + `Cache-Control`）。  
 - 專案為 **`output: "hybrid"`** + **`@astrojs/node`**；純靜態託管無法完整提供上述行為。
 
 ---
