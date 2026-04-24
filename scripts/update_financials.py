@@ -1,4 +1,4 @@
-﻿"""
+"""
 update_financials.py — Refresh financial tables in ticker reports.
 
 季表（``MYTWSTOCK_MOPS=1``）：手動補丁 > **MOPS t163**（sb06 營益比率％；sb04 一般業 **Revenue／COR／GP／OI** 精確金額與 NI／EPS；**sb20 現金流三項**）>
@@ -1080,6 +1080,35 @@ FINANCIAL_INDUSTRY_TYPES_JSON = frozenset(
     {"financial_holding", "bank", "insurance", "securities"}
 )
 
+_FINANCIAL_STRIP_FIELDS: dict[str, tuple[str, ...]] = {
+    "bank": (
+        "Gross Profit",
+        "Gross Margin (%)",
+        "Operating Income",
+        "Operating Margin (%)",
+        "Selling & Marketing Exp",
+        "R&D Exp",
+    ),
+    "financial_holding": (
+        "Gross Profit",
+        "Gross Margin (%)",
+        "Operating Income",
+        "Operating Margin (%)",
+        "Selling & Marketing Exp",
+        "R&D Exp",
+    ),
+    "insurance": (
+        "Selling & Marketing Exp",
+        "R&D Exp",
+    ),
+    "securities": (
+        "Gross Profit",
+        "Gross Margin (%)",
+        "Selling & Marketing Exp",
+        "R&D Exp",
+    ),
+}
+
 
 def _df_has_nonnull_gross_margin(df) -> bool:
     """年／季表 merge 後 index 含 Gross Margin (%) 且任一期非空。"""
@@ -1112,8 +1141,27 @@ def _normalize_mops_industry_type(
     return t
 
 
+def _strip_non_applicable_fields_for_financial_json(
+    block: dict | None, industry_type: str
+) -> None:
+    """金融業不應呈現 Yahoo 推算之不適用欄位；就地改為全 null（保留 key）。"""
+    fields = _FINANCIAL_STRIP_FIELDS.get(industry_type)
+    if not fields:
+        return
+    if not block or not isinstance(block.get("series"), dict):
+        return
+    periods = block.get("periods") or []
+    n = len(periods)
+    if n == 0:
+        return
+    s = block["series"]
+    for fld in fields:
+        if fld in s:
+            s[fld] = [None] * n
+
+
 def _strip_gross_margin_for_financial_json(block: dict | None) -> None:
-    """金融業不應呈現 Yahoo 誤植之毛利率列；就地改為全 null。"""
+    """金融業 JSON：歷史名稱；僅清空 Gross Margin (%) 整列（向後相容）。"""
     if not block or not isinstance(block.get("series"), dict):
         return
     periods = block.get("periods") or []
@@ -1123,6 +1171,56 @@ def _strip_gross_margin_for_financial_json(block: dict | None) -> None:
     s = block["series"]
     if "Gross Margin (%)" in s:
         s["Gross Margin (%)"] = [None] * n
+
+
+def _periods_only_semi_annual(block: dict | None) -> bool:
+    """期末月份集合是否只包含 06-30 與 12-31（興櫃半年報特徵）。"""
+    if not block:
+        return False
+    periods = block.get("periods") or []
+    if not periods:
+        return False
+    months: set[str] = set()
+    for p in periods:
+        if isinstance(p, str) and len(p) >= 10:
+            months.add(p[5:10])
+    return bool(months) and months.issubset({"06-30", "12-31"})
+
+
+def _periods_predominantly_semi_annual(periods: list, threshold: float = 0.6) -> bool:
+    """期末月份中 06-30 與 12-31 的筆數比例是否達 threshold（預設 60%）。
+
+    - 純興櫃（僅 06/12）→ 接近 100%
+    - 上市櫃（四季常態）→ 約 50%
+    - 邊界興櫃（混有 03/09）→ 多為 60~85%
+    """
+    if not periods:
+        return False
+    total = 0
+    semi = 0
+    for p in periods:
+        if isinstance(p, str) and len(p) >= 10:
+            total += 1
+            if p[5:10] in ("06-30", "12-31"):
+                semi += 1
+    return total > 0 and (semi / total) >= threshold
+
+
+def _detect_listing_status(ticker: str, payload: dict) -> str:
+    """依 MOPS 快取命中 + 季表日期分佈判定；回傳必為 "listed" 或 "emerging"。"""
+    from mops_financials import ticker_in_any_t163_cache  # 延後 import 避免循環
+
+    if ticker_in_any_t163_cache(ticker):
+        return "listed"
+    q_block = payload.get("quarterlyCore") or payload.get("quarterly")
+    if not q_block:
+        return "listed"
+    periods = q_block.get("periods") or []
+    if not periods:
+        return "listed"
+    if not _periods_predominantly_semi_annual(periods, threshold=0.6):
+        return "listed"
+    return "emerging"
 
 
 def build_financials_payload(ticker: str, data: dict) -> dict:
@@ -1179,9 +1277,20 @@ def build_financials_payload(ticker: str, data: dict) -> dict:
         payload["quarterlyYtd"] = qy
 
     if industry_type in FINANCIAL_INDUSTRY_TYPES_JSON:
-        _strip_gross_margin_for_financial_json(payload.get("annual"))
-        _strip_gross_margin_for_financial_json(payload.get("quarterly"))
-        _strip_gross_margin_for_financial_json(payload.get("quarterlyCore"))
+        _strip_non_applicable_fields_for_financial_json(payload.get("annual"), industry_type)
+        _strip_non_applicable_fields_for_financial_json(payload.get("quarterly"), industry_type)
+        _strip_non_applicable_fields_for_financial_json(
+            payload.get("quarterlyCore"), industry_type
+        )
+
+    listing_status = _detect_listing_status(ticker, payload)
+    assert listing_status in (
+        "listed",
+        "emerging",
+    ), f"_detect_listing_status returned invalid value: {listing_status!r}"
+    payload["listingStatus"] = listing_status
+    if listing_status == "emerging" and payload.get("yahooSuffix") == ".TW":
+        payload["yahooSuffix"] = ".TWO"
 
     return payload
 

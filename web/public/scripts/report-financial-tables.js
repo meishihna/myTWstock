@@ -103,6 +103,18 @@
     );
   }
 
+  /** 財務概況年表／季表（含當季／累積切換）一律不顯示；與產業別疊加。 */
+  var GLOBAL_HIDDEN_FIN_ROWS = {
+    "Gross Margin (%)": 1,
+    "毛利率 (%)": 1,
+    "Operating Margin (%)": 1,
+    "營業利益率 (%)": 1,
+    "Net Margin (%)": 1,
+    "淨利率 (%)": 1,
+    CAPEX: 1,
+    資本支出: 1,
+  };
+
   var INDUSTRY_HIDDEN_ROWS = {
     general: {},
     financial_holding: {
@@ -166,8 +178,11 @@
 
   function filterModelByIndustry(model, industryType) {
     var it = normalizeIndustryTypeForTables(industryType);
-    if (it === "general") return model;
-    var hidden = INDUSTRY_HIDDEN_ROWS[it] || {};
+    var hidden = Object.assign(
+      {},
+      GLOBAL_HIDDEN_FIN_ROWS,
+      INDUSTRY_HIDDEN_ROWS[it] || {}
+    );
     if (!Object.keys(hidden).length) return model;
     var filteredRows = [];
     var oldRevRow = model.revRowInBody;

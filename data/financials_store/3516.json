@@ -1,7 +1,7 @@
 {
   "ticker": "3516",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T08:51:11Z",
+  "updatedAt": "2026-04-23T20:21:42Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
@@ -1938,5 +1938,7 @@
         -1121.5839999999998
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

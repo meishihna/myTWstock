@@ -1,7 +1,7 @@
 {
   "ticker": "6754",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-20T04:34:32Z",
+  "updatedAt": "2026-04-23T20:21:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
@@ -1734,5 +1734,7 @@
         -46.714999999999996
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

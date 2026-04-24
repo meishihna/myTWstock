@@ -1,7 +1,7 @@
 {
   "ticker": "4303",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T19:29:48Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
@@ -1938,5 +1938,7 @@
         -91.616
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

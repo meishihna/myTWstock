@@ -1,7 +1,7 @@
 {
   "ticker": "3631",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T13:52:00Z",
+  "updatedAt": "2026-04-23T20:21:42Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
@@ -1938,5 +1938,7 @@
         -51.894999999999996
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

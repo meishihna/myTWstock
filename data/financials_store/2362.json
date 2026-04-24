@@ -1,7 +1,7 @@
 {
   "ticker": "2362",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-15T23:24:31Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -1938,5 +1938,7 @@
         -689.407
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

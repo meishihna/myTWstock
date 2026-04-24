@@ -1,14 +1,14 @@
 {
   "ticker": "3603",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T12:02:56Z",
+  "updatedAt": "2026-04-23T20:21:42Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Electronic Components",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -1173,5 +1173,7 @@
         -3.886
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

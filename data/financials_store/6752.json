@@ -1,7 +1,7 @@
 {
   "ticker": "6752",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-20T04:20:05Z",
+  "updatedAt": "2026-04-23T20:21:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -1683,5 +1683,7 @@
         -10.733
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

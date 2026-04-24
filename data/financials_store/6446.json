@@ -1,7 +1,7 @@
 {
   "ticker": "6446",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T19:34:12Z",
+  "updatedAt": "2026-04-23T20:21:44Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Healthcare",
@@ -1428,5 +1428,7 @@
         null
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

@@ -210,6 +210,51 @@ function computeChange(
   return { change, changePct };
 }
 
+/**
+ * 從 Yahoo Chart v8 meta 計算當下交易時段進度。
+ *
+ * 規則：
+ * - 若 meta 無 currentTradingPeriod.regular → 回傳 { 1.0, false }（保守：視為已收盤）
+ * - 若 now < regular.start → 開盤前，回傳 { 1.0, false }（前一日完整線）
+ * - 若 now >= regular.end → 已收盤，回傳 { 1.0, false }
+ * - 若 regular.start <= now < regular.end → 進行中，sessionProgress 為線性比例
+ */
+function computeSessionProgress(
+  meta: unknown,
+  nowMs: number = Date.now(),
+): { sessionProgress: number; isLive: boolean } {
+  const m = meta as {
+    currentTradingPeriod?: {
+      regular?: { start?: number; end?: number };
+    };
+  } | null | undefined;
+  const regular = m?.currentTradingPeriod?.regular;
+  const startSec = regular?.start;
+  const endSec = regular?.end;
+
+  if (
+    typeof startSec !== "number" ||
+    typeof endSec !== "number" ||
+    endSec <= startSec
+  ) {
+    return { sessionProgress: 1.0, isLive: false };
+  }
+
+  const startMs = startSec * 1000;
+  const endMs = endSec * 1000;
+
+  if (nowMs < startMs) {
+    return { sessionProgress: 1.0, isLive: false };
+  }
+  if (nowMs >= endMs) {
+    return { sessionProgress: 1.0, isLive: false };
+  }
+
+  const progress = (nowMs - startMs) / (endMs - startMs);
+  const clamped = Math.max(0.01, Math.min(0.99, progress));
+  return { sessionProgress: clamped, isLive: true };
+}
+
 const SPARK_MAX_POINTS = 48;
 
 type ChartResult0 = {
@@ -242,41 +287,62 @@ async function fetchSparklineClosesDaily(symbol: string): Promise<number[]> {
   }
 }
 
-/** 日內 5 分 K 收盤序列（僅用於折線形狀，前端一律等距撲滿寬度） */
-async function fetchIntradayClosesOnly(symbol: string): Promise<number[]> {
+type IntradayResult = {
+  closes: number[];
+  sessionProgress: number;
+  isLive: boolean;
+};
+
+/** 日內 5 分 K 收盤序列；併帶當下交易時段比例（自 Yahoo chart meta） */
+async function fetchIntradayClosesOnly(symbol: string): Promise<IntradayResult> {
+  const empty = (): IntradayResult => ({
+    closes: [],
+    sessionProgress: 1.0,
+    isLive: false,
+  });
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; TWstock/1.0)" },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return empty();
     const json = (await res.json()) as { chart?: { result?: ChartResult0[] } };
     const r0 = json?.chart?.result?.[0];
-    if (!r0) return [];
+    if (!r0) return empty();
     const closes = r0.indicators?.quote?.[0]?.close;
-    if (!Array.isArray(closes)) return [];
+    if (!Array.isArray(closes)) return empty();
     const nums: number[] = [];
     for (const c of closes) {
       if (typeof c === "number" && Number.isFinite(c)) nums.push(c);
     }
-    return nums.length >= 2 ? nums : [];
+    const { sessionProgress, isLive } = computeSessionProgress(r0.meta);
+    if (nums.length < 2) {
+      return { closes: [], sessionProgress: 1.0, isLive: false };
+    }
+    return { closes: nums, sessionProgress, isLive };
   } catch {
-    return [];
+    return empty();
   }
 }
 
 async function fetchSparklineBundle(symbol: string): Promise<{
   sparkline: number[];
+  sessionProgress: number;
+  isLive: boolean;
 }> {
   try {
     const intra = await fetchIntradayClosesOnly(symbol);
-    if (intra.length >= 2) {
-      return { sparkline: intra };
+    if (intra.closes.length >= 2) {
+      return {
+        sparkline: intra.closes,
+        sessionProgress: intra.sessionProgress,
+        isLive: intra.isLive,
+      };
     }
     const daily = await fetchSparklineClosesDaily(symbol);
-    return { sparkline: daily };
+    return { sparkline: daily, sessionProgress: 1.0, isLive: false };
   } catch {
-    return { sparkline: [] };
+    return { sparkline: [], sessionProgress: 1.0, isLive: false };
   }
 }
 
@@ -343,7 +409,11 @@ export const GET: APIRoute = async () => {
     resolved.map((r) =>
       r.q
         ? fetchSparklineBundle(r.q.symbol)
-        : Promise.resolve({ sparkline: [] as number[] }),
+        : Promise.resolve({
+            sparkline: [] as number[],
+            sessionProgress: 1.0,
+            isLive: false,
+          }),
     ),
   );
 
@@ -361,6 +431,8 @@ export const GET: APIRoute = async () => {
         changePct: null,
         marketTime: null,
         sparkline: [] as number[],
+        sessionProgress: 1.0,
+        isLive: false,
         priceDisplay: null,
         changeDisplay: null,
         changePctDisplay: null,
@@ -386,6 +458,8 @@ export const GET: APIRoute = async () => {
       changePct,
       marketTime: q.marketTime,
       sparkline,
+      sessionProgress: rawSpark.sessionProgress,
+      isLive: rawSpark.isLive,
       priceDisplay: fmtPriceForKind(def.kind, q.price),
       changeDisplay:
         change == null

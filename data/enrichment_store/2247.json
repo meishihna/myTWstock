@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "BMW（含MINI）",
+        "pct": 60
+      },
+      {
+        "name": "Porsche",
+        "pct": 40
+      }
+    ],
+    "geo": "台灣約 100%"
+  }
+}

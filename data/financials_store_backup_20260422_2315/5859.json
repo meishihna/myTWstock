@@ -1,0 +1,198 @@
+{
+  "ticker": "5859",
+  "schemaVersion": 2,
+  "updatedAt": "2026-04-23T02:42:13Z",
+  "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
+  "industryType": "general",
+  "sector": "Financial Services",
+  "industry": "Insurance - Life",
+  "marketCap": null,
+  "enterpriseValue": null,
+  "yahooSuffix": ".TW",
+  "valuation": {
+    "P/E (TTM)": null,
+    "Forward P/E": null,
+    "P/S (TTM)": null,
+    "P/B": null,
+    "EV/EBITDA": null,
+    "ROE": null,
+    "Beta": null,
+    "Debt/Equity": null
+  },
+  "annual": {
+    "periods": [
+      "2018-12-31",
+      "2019-12-31",
+      "2020-12-31",
+      "2021-12-31",
+      "2022-12-31",
+      "2023-12-31",
+      "2024-12-31",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Cost of Revenue": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "R&D Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "General & Admin Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Operating Income": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Net Income": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Net Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "EPS": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Op Cash Flow": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Investing Cash Flow": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "Financing Cash Flow": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "CAPEX": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "quarterly": null,
+  "listingStatus": "listed"
+}

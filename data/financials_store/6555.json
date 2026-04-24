@@ -1,14 +1,14 @@
 {
   "ticker": "6555",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-19T20:07:19Z",
+  "updatedAt": "2026-04-23T20:21:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Basic Materials",
   "industry": "Specialty Chemicals",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -1173,5 +1173,7 @@
         -81.58
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

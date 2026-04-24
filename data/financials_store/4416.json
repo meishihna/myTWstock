@@ -1,7 +1,7 @@
 {
   "ticker": "4416",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T20:14:42Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Real Estate",
@@ -1938,5 +1938,7 @@
         -4.423
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

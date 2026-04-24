@@ -1,14 +1,14 @@
 {
   "ticker": "2644",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-16T11:43:37Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "Aerospace & Defense",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -714,5 +714,7 @@
         -135.686
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

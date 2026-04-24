@@ -1,7 +1,7 @@
 {
   "ticker": "3162",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T00:12:40Z",
+  "updatedAt": "2026-04-23T20:21:42Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Discretionary",
@@ -1938,5 +1938,7 @@
         -2044.1870000000001
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

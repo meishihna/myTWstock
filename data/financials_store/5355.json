@@ -1,7 +1,7 @@
 {
   "ticker": "5355",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T21:09:48Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -1938,5 +1938,7 @@
         -48.233999999999995
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

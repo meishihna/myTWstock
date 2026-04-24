@@ -43,8 +43,12 @@ const aria = MARKET_TICKER.ariaRegion;
       .replace(/"/g, "&quot;");
   }
 
-  /** 迷你走勢：點與點之間等距撲滿寬度（不論是否在盤中） */
-  function sparkSvg(points, prevClose, dir, safeId) {
+  /**
+   * 迷你走勢：點等距，橫向總寬可為當下交易比例（盤中 sessionProgress<1 時線不貼滿全寬）。
+   * @param {number} [sessionProgress] 0~1，未傳則 1.0
+   * @param {boolean} [isLive] 交易中則圓點帶脈衝
+   */
+  function sparkSvg(points, prevClose, dir, safeId, sessionProgress, isLive) {
     const w = SPARK_W;
     const h = SPARK_H;
     const pad = SPARK_PAD;
@@ -65,11 +69,16 @@ const aria = MARKET_TICKER.ariaRegion;
     }
     const ih = h - pad * 2;
     const iw = w - pad * 2;
+    const progress =
+      sessionProgress == null || !Number.isFinite(Number(sessionProgress))
+        ? 1.0
+        : Math.max(0, Math.min(1, Number(sessionProgress)));
+    const progressW = iw * progress;
     /** @param {number} v */
     const yAt = (v) => pad + ih - ((v - min) / (max - min)) * ih;
 
     /** @param {number} i */
-    const xAt = (i) => pad + (i / (points.length - 1)) * iw;
+    const xAt = (i) => pad + (i / (points.length - 1)) * progressW;
 
     let line = `M ${xAt(0)} ${yAt(points[0])}`;
     for (let i = 1; i < points.length; i++) {
@@ -86,7 +95,11 @@ const aria = MARKET_TICKER.ariaRegion;
       const yp = yAt(prevClose);
       baseline = `<line class="market-ticker-spark-baseline" x1="${pad}" y1="${yp}" x2="${w - pad}" y2="${yp}" />`;
     }
-    const dot = `<circle class="market-ticker-spark-dot" cx="${lastX}" cy="${lastY}" r="2" fill="${color}" />`;
+    const live = Boolean(isLive);
+    const dotClass = live
+      ? "market-ticker-spark-dot market-ticker-spark-dot--live"
+      : "market-ticker-spark-dot";
+    const dot = `<circle class="${dotClass}" cx="${lastX}" cy="${lastY}" r="2" fill="${color}" />`;
     return `<svg class="market-ticker-spark market-ticker-spark--${dir}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
 <defs>
   <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
@@ -116,6 +129,8 @@ ${dot}
       item.previousClose,
       cls,
       uid,
+      item.sessionProgress ?? 1.0,
+      item.isLive ?? false,
     );
     return `<article class="market-ticker-item" data-ticker-id="${sid}">
   <div class="market-ticker-text">
@@ -207,5 +222,29 @@ ${dot}
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
+  }
+
+  .market-ticker-spark-dot--live {
+    animation: market-ticker-dot-pulse 1.8s ease-in-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+
+  @keyframes market-ticker-dot-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      filter: drop-shadow(0 0 0 currentColor);
+    }
+    50% {
+      opacity: 0.7;
+      filter: drop-shadow(0 0 3px currentColor);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .market-ticker-spark-dot--live {
+      animation: none;
+    }
   }
 </style>

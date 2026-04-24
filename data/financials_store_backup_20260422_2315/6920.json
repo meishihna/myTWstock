@@ -1,0 +1,147 @@
+{
+  "ticker": "6920",
+  "schemaVersion": 2,
+  "updatedAt": "2026-04-23T02:53:11Z",
+  "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
+  "industryType": "general",
+  "sector": "Technology",
+  "industry": "Semiconductor Equipment & Materials",
+  "marketCap": 19396,
+  "enterpriseValue": 25076,
+  "yahooSuffix": ".TWO",
+  "valuation": {
+    "P/E (TTM)": null,
+    "Forward P/E": null,
+    "P/S (TTM)": 13.33,
+    "P/B": 12.23,
+    "EV/EBITDA": 935.03,
+    "ROE": -31.2,
+    "Beta": -0.52,
+    "Debt/Equity": 74.65
+  },
+  "annual": {
+    "periods": [
+      "2021-12-31",
+      "2022-12-31",
+      "2023-12-31",
+      "2024-12-31",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        null,
+        1906.532,
+        757.951,
+        1201.4,
+        1455.04
+      ],
+      "Cost of Revenue": [
+        null,
+        1638.652,
+        1248.375,
+        1582.459,
+        1680.112
+      ],
+      "Gross Profit": [
+        null,
+        267.88,
+        -490.424,
+        -381.059,
+        -225.072
+      ],
+      "Gross Margin (%)": [
+        null,
+        14.050642737703853,
+        -64.70391885491279,
+        -31.717912435491925,
+        -15.468440730151748
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        13.84,
+        12.958,
+        9.92,
+        13.534
+      ],
+      "R&D Exp": [
+        null,
+        90.582,
+        65.463,
+        64.848,
+        67.16
+      ],
+      "General & Admin Exp": [
+        null,
+        73.65,
+        73.45,
+        72.337,
+        65.727
+      ],
+      "Operating Income": [
+        null,
+        89.808,
+        -642.295,
+        -528.164,
+        -371.493
+      ],
+      "Operating Margin (%)": [
+        null,
+        4.710542492861384,
+        -84.74096610466904,
+        -43.962377226569004,
+        -25.53146305256213
+      ],
+      "Net Income": [
+        null,
+        69.022,
+        -653.274,
+        -485.789,
+        -464.11
+      ],
+      "Net Margin (%)": [
+        null,
+        3.620290663886051,
+        -86.1894766284364,
+        -40.43524221741302,
+        -31.896717616010555
+      ],
+      "EPS": [
+        -3.417232,
+        0.447282,
+        -3.936079,
+        -2.92,
+        null
+      ],
+      "Op Cash Flow": [
+        null,
+        314.779,
+        -154.096,
+        -52.81,
+        60.003
+      ],
+      "Investing Cash Flow": [
+        null,
+        -176.198,
+        -279.999,
+        -60.36,
+        250.069
+      ],
+      "Financing Cash Flow": [
+        null,
+        605.407,
+        -46.308,
+        -115.851,
+        176.832
+      ],
+      "CAPEX": [
+        null,
+        -155.239,
+        -83.548,
+        -111.716,
+        -90.003
+      ]
+    }
+  },
+  "quarterly": null,
+  "listingStatus": "listed"
+}

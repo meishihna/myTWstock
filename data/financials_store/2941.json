@@ -1,7 +1,7 @@
 {
   "ticker": "2941",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-16T17:48:57Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
@@ -1479,5 +1479,7 @@
         -179.872
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

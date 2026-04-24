@@ -200,7 +200,37 @@ const finDashIndustryType = normalizeIndustryTypeForDashboard(
   financialsJson?.industryType ?? "general",
 );
 
+/**
+ * 報告頁「上市／上櫃／興櫃」徽章：由 financials_store JSON 的 exchange + listingStatus 推導。
+ * emerging 優先；上市／上櫃須同時滿足 listingStatus === listed。
+ */
+function deriveListingBadge(
+  exchange: string | null,
+  listingStatus: string | null,
+): { label: string; variant: "twse" | "tpex" | "emerging" } | null {
+  if (listingStatus === "emerging") {
+    return { label: "興櫃", variant: "emerging" };
+  }
+  if (listingStatus !== "listed") {
+    return null;
+  }
+  if (exchange === "TWSE") {
+    return { label: "上市", variant: "twse" };
+  }
+  if (exchange === "TPEx") {
+    return { label: "上櫃", variant: "tpex" };
+  }
+  return null;
+}
+
 const fj = financialsJson as Record<string, unknown> | null;
+const listingEx = {
+  exchange: fj && typeof fj.exchange === "string" ? (fj.exchange as string) : null,
+  listingStatus:
+    fj && typeof fj.listingStatus === "string" ? (fj.listingStatus as string) : null,
+};
+const listingBadge = deriveListingBadge(listingEx.exchange, listingEx.listingStatus);
+
 const fmtMCap = (v: unknown): string | null => {
   if (v == null) return null;
   const n = typeof v === "number" ? v : Number(v);
@@ -464,6 +494,18 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
     <div class="report-hero-main">
       <h1 class="report-title">{meta.ticker}<span class="dot">·</span>{meta.name}</h1>
       <p class="report-sector-line">
+        {
+          listingBadge && (
+            <span
+              class:list={[
+                "report-listing-pill",
+                `report-listing-pill--${listingBadge.variant}`,
+              ]}
+            >
+              {listingBadge.label}
+            </span>
+          )
+        }
         <span class="report-sector-pill">{meta.sector}</span>
         <span class="report-sector-en" lang="en">GICS-style industry</span>
       </p>

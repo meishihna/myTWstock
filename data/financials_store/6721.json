@@ -1,7 +1,7 @@
 {
   "ticker": "6721",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-20T02:24:09Z",
+  "updatedAt": "2026-04-23T20:21:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
@@ -1581,5 +1581,7 @@
         -68.304
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

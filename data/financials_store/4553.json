@@ -1,14 +1,14 @@
 {
   "ticker": "4553",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T23:21:53Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "[[Meta]]l Fabrication",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -1224,5 +1224,7 @@
         -109.29499999999999
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

@@ -49,11 +49,6 @@ const quarterly = qSrc
   ? tailBlock(qSrc, DASHBOARD_QUARTERLY_MAX_PERIODS)
   : null;
 
-const capexAnnualRow = annual.series.CAPEX ?? [];
-const showCapexEffective =
-  indCfg.showCapexChart &&
-  capexAnnualRow.some((v) => v != null && Number.isFinite(Number(v)));
-
 const annualKpis = buildAnnualKpis(annual, financialsJson.valuation, industryType);
 
 type LineSpec = {
@@ -159,6 +154,8 @@ const annMargins = lineChartSvg(
   "利潤率趨勢",
   true
 );
+
+let annEpsBars: ReturnType<typeof barChartMillion> | null = null;
 
 let qMargins: ReturnType<typeof lineChartSvg> | null = null;
 let qRevGrouped: ReturnType<typeof groupedTwoSvg> | null = null;
@@ -301,112 +298,14 @@ function seriesHasFinite(row: (number | null)[] | undefined): boolean {
   return Boolean(row?.some((v) => v != null && Number.isFinite(v)));
 }
 
-/** 年度 FCF＝營業現金流＋CAPEX（CAPEX 為負）；CAPEX 該年為 null 則該年 FCF 柱不顯示。折線：FCF／營收％ */
-function fcfBarMarginLineSvg(
-  xLabels: string[],
-  ocf: (number | null)[],
-  capex: (number | null)[],
-  revenue: (number | null)[]
-) {
-  const n = xLabels.length;
-  const fcf: (number | null)[] = [];
-  const marginPct: (number | null)[] = [];
-  for (let i = 0; i < n; i++) {
-    const o = ocf[i];
-    const c = capex[i];
-    if (o != null && Number.isFinite(o) && c != null && Number.isFinite(c)) {
-      const f = o + c;
-      fcf.push(f);
-      const r = revenue[i];
-      marginPct.push(
-        r != null && Number.isFinite(r) && r > 0 ? (f / r) * 100 : null
-      );
-    } else {
-      fcf.push(null);
-      marginPct.push(null);
-    }
-  }
-  if (!fcf.some((v) => v != null && Number.isFinite(v))) return null;
-
-  const innerW = CHART_W - PAD.l - PAD.r;
-  const innerH = CHART_H - PAD.t - PAD.b;
-  let maxAbs = 1;
-  for (const v of fcf) {
-    if (v != null && Number.isFinite(v)) maxAbs = Math.max(maxAbs, Math.abs(v));
-  }
-  maxAbs *= 1.08;
-  const hasNegative = fcf.some((v) => v != null && Number.isFinite(v) && v < 0);
-  const plotHalf = hasNegative ? innerH / 2 : innerH;
-  const baselineY = hasNegative ? PAD.t + plotHalf : PAD.t + innerH;
-  const slotW = innerW / n;
-  const gap = 0.22;
-  const bw = slotW * (1 - gap);
-  const bars = fcf.map((v, i) => {
-    if (v == null || !Number.isFinite(v)) return null;
-    const h = (Math.abs(v) / maxAbs) * plotHalf;
-    const pos = v >= 0;
-    const y0 = pos ? baselineY - h : baselineY;
-    const x0 = PAD.l + i * slotW + (slotW - bw) / 2;
-    return {
-      x: x0,
-      y: y0,
-      w: bw,
-      h: Math.max(h, 2),
-      v,
-      fill: pos ? "#5B8FD8" : NEG_BAR,
-      stroke: pos ? "#378ADD" : NEG_BAR,
-    };
-  });
-
-  let lnMin = 0;
-  let lnMax = 1;
-  for (const p of marginPct) {
-    if (p == null || !Number.isFinite(p)) continue;
-    lnMin = Math.min(lnMin, p);
-    lnMax = Math.max(lnMax, p);
-  }
-  const lnPad = (lnMax - lnMin) * 0.12 || 1;
-  lnMin -= lnPad;
-  lnMax += lnPad;
-  const yLine = (p: number) => PAD.t + innerH * (1 - (p - lnMin) / (lnMax - lnMin || 1));
-  const xLine = (i: number) => PAD.l + (i + 0.5) * slotW;
-  const linePts: { cx: number; cy: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    const p = marginPct[i];
-    if (p == null || !Number.isFinite(p)) continue;
-    linePts.push({ cx: xLine(i), cy: yLine(p) });
-  }
-  let lineD = "";
-  for (let k = 0; k < linePts.length; k++) {
-    const pt = linePts[k]!;
-    lineD += k === 0 ? `M ${pt.cx} ${pt.cy}` : ` L ${pt.cx} ${pt.cy}`;
-  }
-
-  const tooltipSpec = {
-    kind: "barWithLine" as const,
-    xLabels,
-    barValues: fcf,
-    lineValues: marginPct,
-    pad: PAD,
-    w: CHART_W,
-    h: CHART_H,
-  };
-
-  return {
-    xLabels,
-    bars,
-    baselineY,
-    maxAbs,
-    hasNegative,
-    marginPct,
-    lnMin,
-    lnMax,
-    yLine,
-    lineD,
-    linePts,
-    title: "自由現金流（FCF）與 FCF 占營收比",
-    tooltipSpec,
-  };
+if (seriesHasFinite(annual.series.EPS)) {
+  annEpsBars = barChartMillion(
+    annual.xLabels,
+    annual.series.EPS ?? [],
+    "年度 EPS（Annual EPS）",
+    "#BA7517",
+    { stroke: "#BA7517", fillOpacity: 0.35, tooltipFormat: "eps" as const, tooltipLabel: "EPS" }
+  );
 }
 
 /** 三項費用占營收％堆疊柱（由底而上：推銷、研發、管理） */
@@ -593,106 +492,6 @@ function groupedTwoSvg(
   };
 }
 
-const annCfPair = showCapexEffective
-  ? groupedTwoSvg(
-      annual.xLabels,
-      annual.series["Op Cash Flow"] ?? [],
-      annual.series.CAPEX ?? [],
-      "CAPEX vs 營業現金流",
-      "營業現金流",
-      "CAPEX（絕對值）"
-    )
-  : null;
-
-function tripleCashSvg(xLabels: string[], ocf: (number | null)[], icf: (number | null)[], fcf: (number | null)[]) {
-  const innerW = CHART_W - PAD.l - PAD.r;
-  const innerH = CHART_H - PAD.t - PAD.b;
-  const n = xLabels.length;
-  let maxV = 1;
-  let minV = -1;
-  const all = [ocf, icf, fcf];
-  for (const arr of all) {
-    for (const v of arr) {
-      if (v == null || !Number.isFinite(v)) continue;
-      maxV = Math.max(maxV, v);
-      minV = Math.min(minV, v);
-    }
-  }
-  const range = Math.max(maxV - minV, 1) * 1.1;
-  const mid = (maxV + minV) / 2;
-  const top = mid + range / 2;
-  const bot = mid - range / 2;
-  const yScale = (v: number) => PAD.t + innerH * (1 - (v - bot) / (top - bot || 1));
-  const zeroY = yScale(0);
-  const slot = innerW / n;
-  const w = slot * 0.22;
-  const bars: { x: number; y: number; w: number; h: number; color: string }[] = [];
-  const categoryCenterX: number[] = [];
-  for (let i = 0; i < n; i++) {
-    const base = PAD.l + i * slot + slot * 0.08;
-    let left = Infinity;
-    let right = -Infinity;
-    const vals = [
-      { v: ocf[i], c: "#378ADD", off: 0 },
-      { v: icf[i], c: "#D85A30", off: w + 4 },
-      { v: fcf[i], c: "#888780", off: 2 * w + 8 },
-    ];
-    for (const { v, c, off } of vals) {
-      if (v == null || !Number.isFinite(v)) continue;
-      const bx = base + off;
-      const yTop = yScale(v);
-      const yBot = zeroY;
-      const topY = Math.min(yTop, yBot);
-      const h = Math.abs(yBot - yTop);
-      bars.push({ x: bx, y: topY, w, h, color: c });
-      left = Math.min(left, bx);
-      right = Math.max(right, bx + w);
-    }
-    const slotMid = PAD.l + (i + 0.5) * slot;
-    categoryCenterX.push(left !== Infinity ? (left + right) / 2 : slotMid);
-  }
-  const tooltipSpec = {
-    kind: "tripleBar" as const,
-    xLabels,
-    series: [
-      { name: "營業現金流", color: "#378ADD", values: [...ocf] },
-      { name: "投資現金流", color: "#D85A30", values: [...icf] },
-      { name: "融資現金流", color: "#888780", values: [...fcf] },
-    ],
-    pad: PAD,
-    w: CHART_W,
-    h: CHART_H,
-    categoryCenterX,
-  };
-  return {
-    bars,
-    xLabels,
-    zeroY,
-    top,
-    bot,
-    yScale,
-    title: "現金流量",
-    innerH: innerH + PAD.t,
-    tooltipSpec,
-  };
-}
-
-const annTriple = tripleCashSvg(
-  annual.xLabels,
-  annual.series["Op Cash Flow"] ?? [],
-  annual.series["Investing Cash Flow"] ?? [],
-  annual.series["Financing Cash Flow"] ?? []
-);
-
-const annFcf = showCapexEffective
-  ? fcfBarMarginLineSvg(
-      annual.xLabels,
-      annual.series["Op Cash Flow"] ?? [],
-      annual.series.CAPEX ?? [],
-      annual.series.Revenue ?? []
-    )
-  : null;
-
 if (quarterly) {
   const gpRow = quarterly.series["Gross Profit"];
   const hasGp = seriesHasFinite(gpRow);
@@ -825,41 +624,6 @@ function linearBarTicks(maxV: number, steps = 4): number[] {
   return Array.from({ length: steps + 1 }, (_, i) => (maxV * i) / steps);
 }
 
-const annFcfBarHalfSpan = annFcf?.hasNegative ? INNER_H / 2 : INNER_H;
-const annFcfYTickMarks =
-  annFcf == null
-    ? []
-    : annFcf.hasNegative
-      ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
-          const v = frac * annFcf.maxAbs;
-          const yy = annFcf.baselineY - (v / annFcf.maxAbs) * annFcfBarHalfSpan;
-          return { v, yy };
-        })
-      : linearBarTicks(annFcf.maxAbs).map((tv) => ({
-          v: tv,
-          yy: PLOT_BOTTOM - (tv / annFcf.maxAbs) * INNER_H,
-        }));
-const annFcfLineYTickMarks =
-  annFcf == null
-    ? []
-    : Array.from({ length: 5 }, (_, i) => {
-        const t = i / 4;
-        const p = annFcf.lnMin + (annFcf.lnMax - annFcf.lnMin) * t;
-        return { p, yy: annFcf.yLine(p) };
-      });
-
-const cfPairYTickMarks = annCfPair == null
-  ? []
-  : annCfPair.hasNegative
-    ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
-        const v = frac * annCfPair.scaleMax;
-        const yy = annCfPair.zeroY - (v / annCfPair.scaleMax) * (INNER_H / 2);
-        return { v, yy };
-      })
-    : linearBarTicks(annCfPair.maxV).map((tv) => ({
-        v: tv,
-        yy: PLOT_BOTTOM - (tv / annCfPair.maxV) * INNER_H,
-      }));
 const qRevGroupedYTickMarks =
   qRevGrouped == null
     ? []
@@ -904,6 +668,21 @@ const qEpsYTickMarks =
           yy: PLOT_BOTTOM - (tv / qEpsBars.maxV) * INNER_H,
         }));
 
+const annEpsHalfSpan = annEpsBars?.hasNegative ? INNER_H / 2 : INNER_H;
+const annEpsYTickMarks =
+  annEpsBars == null
+    ? []
+    : annEpsBars.hasNegative
+      ? [-1, -0.5, 0, 0.5, 1].map((frac) => {
+          const v = frac * annEpsBars.scaleMax;
+          const yy = annEpsBars.baselineY - (v / annEpsBars.scaleMax) * annEpsHalfSpan;
+          return { v, yy };
+        })
+      : linearBarTicks(annEpsBars.maxV).map((tv) => ({
+          v: tv,
+          yy: PLOT_BOTTOM - (tv / annEpsBars.maxV) * INNER_H,
+        }));
+
 const kpiPrimary = annualKpis.primary;
 const kpiSecondary = annualKpis.secondary;
 
@@ -930,7 +709,7 @@ const qNiYTickMarks =
 <div class="fin-dash-shell">
 <section class="fin-dash" aria-label="完整財務圖表" data-fin-dash>
   <h2 class="fin-dash__sr">
-    {companyName}（{ticker}）完整財務趨勢儀表板，包含年報與季報的營收、利潤率、現金流、CAPEX、EPS、ROE 走勢圖
+    {companyName}（{ticker}）完整財務趨勢儀表板，包含年報與季報的營收、利潤率、EPS、ROE 等走勢圖
   </h2>
   <header class="fin-dash__head">
     <span class="fin-dash__title-line">{companyName} {ticker}</span>
@@ -996,7 +775,7 @@ const qNiYTickMarks =
   </div>
 
   <div class="fin-dash__panel is-active" data-fin-panel="annual">
-    <div class="fin-dash__chart-grid">
+    <div class="fin-dash__chart-grid fin-dash__chart-grid--annual-stack">
     <figure class="fin-dash__chart">
       <p class="fin-dash__sl">{annRevProfit.title}（{annRevProfit.unit}）</p>
       <ul class="fin-dash__legend">
@@ -1102,212 +881,71 @@ const qNiYTickMarks =
       </div>
     </figure>
 
-    <figure class="fin-dash__chart">
-      <p class="fin-dash__sl">{annTriple.title}（百萬元）</p>
-      <ul class="fin-dash__legend">
-        <li><span class="fin-dash__leg-dot" style="background:#378ADD" />營業</li>
-        <li><span class="fin-dash__leg-dot" style="background:#D85A30" />投資</li>
-        <li><span class="fin-dash__leg-dot" style="background:#888780" />融資</li>
-      </ul>
-      <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--triple">
-        <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
-          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
-          {Array.from({ length: 5 }, (_, i) => {
-            const t = i / 4;
-            const v = annTriple.bot + (annTriple.top - annTriple.bot) * t;
-            const yy = annTriple.yScale(v);
-            return (
-              <g>
-                <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
-                  {fmtM(v)}
-                </text>
-              </g>
-            );
-          })}
-          <line
-            class="fin-dash__grid fin-dash__grid--zero"
-            x1={PAD.l}
-            x2={CHART_W - PAD.r}
-            y1={annTriple.zeroY}
-            y2={annTriple.zeroY}
-          />
-          {annTriple.bars.map((b) => (
-            <rect
-              x={b.x}
-              y={b.y}
-              width={b.w}
-              height={Math.max(b.h, 1)}
-              rx={2}
-              fill={b.color}
-              fill-opacity="0.33"
-              stroke={b.color}
-              stroke-width="1.5"
-            />
-          ))}
-          {annTriple.xLabels.map((lab, i) => (
-            <text
-              class="fin-dash__xtick"
-              x={annTriple.tooltipSpec.categoryCenterX[i]!}
-              y={CHART_H - 14}
-              text-anchor="middle"
-            >
-              {lab}
-            </text>
-          ))}
-        </svg>
-        <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annTriple.tooltipSpec)} />
-      </div>
-    </figure>
-
-    {annCfPair && (
-    <figure class="fin-dash__chart">
-      <p class="fin-dash__sl">{annCfPair.title}（百萬元）</p>
-      <ul class="fin-dash__legend">
-        <li>
-          <span class="fin-dash__leg-dot" style="background:#378ADD" />{annCfPair.nameA}
-        </li>
-        <li>
-          <span class="fin-dash__leg-dot" style="background:#D85A30" />{annCfPair.nameB}
-        </li>
-      </ul>
-      <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--cf">
-        <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
-          <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
-          {
-            annCfPair.hasNegative && (
-              <line
-                class="fin-dash__grid fin-dash__grid--zero"
-                x1={PAD.l}
-                x2={PLOT_R}
-                y1={annCfPair.zeroY}
-                y2={annCfPair.zeroY}
-              />
-            )
-          }
-          {cfPairYTickMarks.map(({ v, yy }) => {
-            if (!annCfPair.hasNegative && noPositiveMax(annCfPair.maxV)) return null;
-            return (
-              <g>
-                <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
-                  {fmtM(v)}
-                </text>
-              </g>
-            );
-          })}
-          {annCfPair.bars.map((b) => (
-            <rect
-              x={b.x}
-              y={b.y}
-              width={b.w}
-              height={Math.max(b.h, 2)}
-              rx={3}
-              fill={b.color}
-              fill-opacity="0.33"
-              stroke={b.color}
-              stroke-width="1.5"
-            />
-          ))}
-          {annCfPair.xLabels.map((lab, i) => (
-            <text
-              class="fin-dash__xtick"
-              x={annCfPair.tooltipSpec.categoryCenterX[i]!}
-              y={CHART_H - 14}
-              text-anchor="middle"
-            >
-              {lab}
-            </text>
-          ))}
-        </svg>
-        <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annCfPair.tooltipSpec)} />
-      </div>
-    </figure>
-    )}
-
-    {annFcf && (
-      <figure class="fin-dash__chart">
-        <p class="fin-dash__sl">{annFcf.title}</p>
-        <ul class="fin-dash__legend">
-          <li><span class="fin-dash__leg-dot" style="background:#5B8FD8" />FCF（百萬元）</li>
-          <li><span class="fin-dash__leg-dot" style="background:#E8C84A" />FCF 占營收％</li>
-        </ul>
-        <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--cf">
-          <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
-            <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
-            <line class="fin-dash__axis-spine" x1={PLOT_R} y1={PAD.t} x2={PLOT_R} y2={PLOT_BOTTOM} />
-            {
-              annFcf.hasNegative && (
-                <line
-                  class="fin-dash__grid fin-dash__grid--zero"
-                  x1={PAD.l}
-                  x2={PLOT_R}
-                  y1={annFcf.baselineY}
-                  y2={annFcf.baselineY}
-                />
-              )
-            }
-            {annFcfYTickMarks.map(({ v, yy }) => {
-              if (!annFcf.hasNegative && noPositiveMax(annFcf.maxAbs)) return null;
-              return (
-                <g>
-                  <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
-                  <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
-                    {fmtM(v)}
+    {
+      annEpsBars && (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">{annEpsBars.title}</p>
+          <ul class="fin-dash__legend">
+            <li>
+              <span class="fin-dash__leg-dot" style="background:#BA7517" />EPS（元／股）
+            </li>
+          </ul>
+          <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--qni">
+            <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
+              <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
+              {
+                annEpsBars.hasNegative && (
+                  <line
+                    class="fin-dash__grid fin-dash__grid--zero"
+                    x1={PAD.l}
+                    x2={PLOT_R}
+                    y1={annEpsBars.baselineY}
+                    y2={annEpsBars.baselineY}
+                  />
+                )
+              }
+              {annEpsYTickMarks.map(({ v, yy }) => {
+                if (!annEpsBars.hasNegative && noPositiveMax(annEpsBars.maxV)) return null;
+                return (
+                  <g>
+                    <line class="fin-dash__grid" x1={PAD.l} y1={yy} x2={PLOT_R} y2={yy} />
+                    <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
+                      {v.toFixed(2)} 元
+                    </text>
+                  </g>
+                );
+              })}
+              {annEpsBars.bars.map((b) =>
+                b ? (
+                  <rect
+                    x={b.x}
+                    y={b.y}
+                    width={b.w}
+                    height={Math.max(b.h, 2)}
+                    rx={3}
+                    fill={b.fill}
+                    fill-opacity={annEpsBars.fillOpacity}
+                    stroke={b.stroke}
+                    stroke-width="1.5"
+                  />
+                ) : null
+              )}
+              {annEpsBars.xLabels.map((lab, i) => {
+                const xi = PAD.l + ((CHART_W - PAD.l - PAD.r) * i) / Math.max(1, annEpsBars.xLabels.length - 1);
+                return (
+                  <text class="fin-dash__xtick" x={xi} y={CHART_H - 18} text-anchor="middle">
+                    {lab}
                   </text>
-                </g>
-              );
-            })}
-            {annFcfLineYTickMarks.map(({ p, yy }) => (
-              <text class="fin-dash__ytick" x={CHART_W - PAD.r + 6} y={yy + 4} text-anchor="start" fill="#e8c84a">
-                {p.toFixed(1)}%
-              </text>
-            ))}
-            {annFcf.bars.map((b) =>
-              b ? (
-                <rect
-                  x={b.x}
-                  y={b.y}
-                  width={b.w}
-                  height={Math.max(b.h, 2)}
-                  rx={3}
-                  fill={b.fill}
-                  fill-opacity="0.45"
-                  stroke={b.stroke}
-                  stroke-width="1.5"
-                />
-              ) : null
-            )}
-            {annFcf.lineD ? (
-              <path
-                d={annFcf.lineD}
-                fill="none"
-                stroke="#E8C84A"
-                stroke-width="2.25"
-                stroke-linejoin="round"
-                stroke-linecap="round"
-              />
-            ) : null}
-            {annFcf.linePts.map((pt) => (
-              <circle cx={pt.cx} cy={pt.cy} r="3.5" fill="#E8C84A" />
-            ))}
-            {annFcf.xLabels.map((lab, i) => {
-              const slotW = (CHART_W - PAD.l - PAD.r) / annFcf.xLabels.length;
-              const xi = PAD.l + (i + 0.5) * slotW;
-              return (
-                <text class="fin-dash__xtick" x={xi} y={CHART_H - 14} text-anchor="middle">
-                  {lab}
-                </text>
-              );
-            })}
-          </svg>
-          <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annFcf.tooltipSpec)} />
-        </div>
-      </figure>
-    )}
+                );
+              })}
+            </svg>
+            <script type="application/json" data-fin-chart-spec set:html={JSON.stringify(annEpsBars.tooltipSpec)} />
+          </div>
+        </figure>
+      )
+    }
+
     </div>
   </div>
 

@@ -1,0 +1,694 @@
+{
+  "generatedAt": "2026-04-22T17:48:29Z",
+  "count": 86,
+  "emerging": [
+    {
+      "ticker": "1343",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-12-31",
+      "periods": 13,
+      "listingStatus": null
+    },
+    {
+      "ticker": "1594",
+      "industryType": "general",
+      "earliest": "2018-06-30",
+      "latest": "2025-06-30",
+      "periods": 13,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2071",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 15,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2237",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2245",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2249",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 15,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2252",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-12-31",
+      "periods": 11,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2255",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-06-30",
+      "periods": 10,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2256",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-06-30",
+      "periods": 11,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2644",
+      "industryType": "general",
+      "earliest": "2021-12-31",
+      "latest": "2025-06-30",
+      "periods": 8,
+      "listingStatus": null
+    },
+    {
+      "ticker": "2938",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 19,
+      "listingStatus": "emerging"
+    },
+    {
+      "ticker": "2942",
+      "industryType": "general",
+      "earliest": "2018-06-30",
+      "latest": "2025-06-30",
+      "periods": 15,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3097",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3117",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3454",
+      "industryType": "general",
+      "earliest": "2024-09-30",
+      "latest": "2025-12-31",
+      "periods": 5,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3485",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 19,
+      "listingStatus": "emerging"
+    },
+    {
+      "ticker": "3585",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3595",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3603",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3616",
+      "industryType": "general",
+      "earliest": "2023-12-31",
+      "latest": "2025-06-30",
+      "periods": 4,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3633",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3659",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "3678",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4431",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 19,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4537",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4544",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 19,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4546",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4553",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4559",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4565",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4573",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4575",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-12-31",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4582",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-12-31",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4587",
+      "industryType": "general",
+      "earliest": "2021-12-31",
+      "latest": "2025-06-30",
+      "periods": 8,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4738",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4765",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4773",
+      "industryType": "general",
+      "earliest": "2021-12-31",
+      "latest": "2025-12-31",
+      "periods": 10,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4925",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "4980",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "5240",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "5248",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "5254",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "5262",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 22,
+      "listingStatus": null
+    },
+    {
+      "ticker": "5267",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 16,
+      "listingStatus": null
+    },
+    {
+      "ticker": "5271",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6027",
+      "industryType": "general",
+      "earliest": "2018-06-30",
+      "latest": "2025-12-31",
+      "periods": 8,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6035",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-12-31",
+      "periods": 10,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6407",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6434",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6473",
+      "industryType": "general",
+      "earliest": "2018-06-30",
+      "latest": "2025-12-31",
+      "periods": 16,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6536",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-12-31",
+      "periods": 15,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6555",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6559",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6565",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6599",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6618",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6638",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6639",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6648",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-12-31",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6673",
+      "industryType": "general",
+      "earliest": "2017-06-30",
+      "latest": "2025-06-30",
+      "periods": 18,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6682",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-06-30",
+      "periods": 16,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6705",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-06-30",
+      "periods": 16,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6723",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-06-30",
+      "periods": 16,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6729",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-06-30",
+      "periods": 14,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6737",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 17,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6738",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 16,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6750",
+      "industryType": "general",
+      "earliest": "2017-12-31",
+      "latest": "2025-06-30",
+      "periods": 15,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6755",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 15,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6775",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-12-31",
+      "periods": 14,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6784",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-06-30",
+      "periods": 12,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6786",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2024-12-31",
+      "periods": 13,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6787",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-12-31",
+      "periods": 13,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6793",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-06-30",
+      "periods": 12,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6812",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 14,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6818",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 14,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6819",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-06-30",
+      "periods": 11,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6820",
+      "industryType": "general",
+      "earliest": "2018-12-31",
+      "latest": "2025-12-31",
+      "periods": 13,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6825",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-06-30",
+      "periods": 12,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6826",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-12-31",
+      "periods": 13,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6832",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-12-31",
+      "periods": 11,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6833",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-06-30",
+      "periods": 10,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6839",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-06-30",
+      "periods": 10,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6858",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-12-31",
+      "periods": 12,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6878",
+      "industryType": "general",
+      "earliest": "2019-12-31",
+      "latest": "2025-12-31",
+      "periods": 12,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6882",
+      "industryType": "general",
+      "earliest": "2020-12-31",
+      "latest": "2025-12-31",
+      "periods": 11,
+      "listingStatus": null
+    },
+    {
+      "ticker": "6898",
+      "industryType": "general",
+      "earliest": "2022-06-30",
+      "latest": "2025-06-30",
+      "periods": 7,
+      "listingStatus": "emerging"
+    }
+  ]
+}

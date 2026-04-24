@@ -1,14 +1,14 @@
 {
   "ticker": "2237",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-15T19:42:19Z",
+  "updatedAt": "2026-04-23T20:21:40Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
   "industry": "Auto Manufacturers",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -1224,5 +1224,7 @@
         -40.262
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

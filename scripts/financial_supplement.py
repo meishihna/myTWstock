@@ -198,25 +198,38 @@ def backfill_margin_percentages(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-# 年度 *-12-31 欄若缺值：毛利／營業利益僅能由四季單季加總（須四季欄位與數值皆齊）。
-# 三項費用：先四季單季加總；若任一季缺欄或缺值導致無法加總，再 fallback 至
-# ``quarterly_ytd`` 該年 12-31（與「累積合併」Q4／MOPS 全年累計一致）。
+# 類別 A：可純粹由四季單季加總得出的金額欄位。四季齊全且皆有值時，直接覆蓋年度值。
+# 不含 Margin%（另由 backfill_margin_percentages 重算）與 EPS（另由 reconcile_annual_eps_from_quarterly 股數加權）。
 _ANNUAL_FROM_QUARTERLY_SUM_METRICS: tuple[str, ...] = (
+    "Revenue",
+    "Cost of Revenue",
     "Gross Profit",
     "Operating Income",
+    "Net Income",
+    "Op Cash Flow",
+    "Investing Cash Flow",
+    "Financing Cash Flow",
+    "CAPEX",
 )
+
+# 三項費用：先四季單季加總覆蓋；若任一季缺欄或缺值，再 fallback 至 quarterly_ytd 該年 12-31。
 _ANNUAL_FROM_QUARTERLY_EXPENSE_YTD_METRICS: tuple[str, ...] = (
     "Selling & Marketing Exp",
     "R&D Exp",
     "General & Admin Exp",
 )
 
-# 若年表 merge 後完全沒有該列（常見於 MOPS 核心＋Yahoo 年報缺列），仍須建立 NaN 列，
-# 後續才能由季表加總／YTD 補齊（否則 JSON 缺鍵、內文表與 KPI 皆空）。
+# 當 merge 後年表完全沒有該列時補空 NaN 列，以利後續季表覆蓋。
 _ANNUAL_ROWS_SEED_FOR_QUARTERLY_BACKFILL: tuple[str, ...] = (
     *_ANNUAL_FROM_QUARTERLY_EXPENSE_YTD_METRICS,
     *_ANNUAL_FROM_QUARTERLY_SUM_METRICS,
-    "CAPEX",
+)
+
+# Margin 列：當類別 A 的金額被季表覆蓋時，必須配合重算而非保留 Yahoo 舊值。
+_MARGIN_ROWS_FOR_RECOMPUTE: tuple[str, ...] = (
+    "Gross Margin (%)",
+    "Operating Margin (%)",
+    "Net Margin (%)",
 )
 
 
@@ -241,13 +254,28 @@ def backfill_annual_from_quarterly(
     df_quarterly_ytd: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
-    掃描年度表各欄（曆年終 *-12-31）。
+    以季表加總**覆蓋**年度值；Yahoo annual 僅作為季表不齊時的 fallback。
 
-    - **Selling／R&D／G&A**：若年度為 null，先試四季單季加總；若無法加總（缺欄或
-      任一季為 null），再取 ``df_quarterly_ytd`` 之 ``YYYY-12-31``。
-    - **Gross Profit、Operating Income**：僅四季單季加總（須四季欄位齊全且皆有值）。
-    - **CAPEX**：年報缺時四季加總；若四季皆為疑似 Yahoo 千級殘渣（|v| 全 < 8000）則不寫入。
-    Margin 列不加總；最後以 ``backfill_margin_percentages`` 依金額重算。
+    策略（範圍 B，v2 — 年表優先走季表加總）：
+
+    - **類別 A（SUM_METRICS）**：Revenue/COR/GP/OI/NI/三大現金流/CAPEX
+      四季欄位齊全且皆有值 → **直接覆蓋年度值**；季表不齊 → 保留原年度值（Yahoo fallback）。
+
+    - **類別 A'（EXPENSE_YTD_METRICS）**：Sel/R&D/G&A
+      四季欄位齊全且皆有值 → **直接覆蓋年度值**；四季不齊且原年度為 null → fallback 取
+      quarterly_ytd 之 YYYY-12-31；其他情況 → 保留原年度值。
+
+    - **類別 B（MARGIN_ROWS_FOR_RECOMPUTE）**：Gross/Op/Net Margin%
+      若分子（Gross Profit ／ Operating Income ／ Net Income）或分母（Revenue）有任一
+      被**季表加總覆寫**（``overridden_cells``），**強制清空**對應 Margin 欄
+      交由 ``backfill_margin_percentages`` 重算；否則保留原值。
+      避免「金額已與季表一致但 % 仍為舊年報」的不一致。
+
+    - **類別 C（EPS、估值）**：不在本函式範圍，由其他路徑處理。
+
+    - **CAPEX**：依類別 A 統一規則處理；移除舊有「|v|<8000 千級殘渣保護」，因季表 CAPEX
+      已保證僅由 MOPS t164sb05 寫入（見 ``_reset_quarterly_capex_to_t164_only``），不會有
+      Yahoo 殘渣。
     """
     if df_annual is None or df_annual.empty:
         return df_annual if df_annual is not None else pd.DataFrame()
@@ -269,6 +297,15 @@ def backfill_annual_from_quarterly(
         ytd = coalesce_period_columns(df_quarterly_ytd.copy())
         ytd.columns = [canonical_period_label(c) for c in ytd.columns]
 
+    # 記錄哪些 (metric, acol) 被類別 A / A' 覆蓋，以便後續判斷 margin 是否需要清空重算
+    overridden_cells: set[tuple[str, str]] = set()
+    _margin_pairs = (
+        ("Gross Margin (%)", "Gross Profit"),
+        ("Operating Margin (%)", "Operating Income"),
+        ("Net Margin (%)", "Net Income"),
+    )
+    assert {m for m, _ in _margin_pairs} == set(_MARGIN_ROWS_FOR_RECOMPUTE)
+
     for acol in out.columns:
         lab = canonical_period_label(acol)
         year = _fiscal_year_str_from_annual_column(lab)
@@ -278,24 +315,38 @@ def backfill_annual_from_quarterly(
         q4_lab = f"{year}-12-31"
         quarters_all_in_q = all(ql in q.columns for ql in q_labels)
 
+        # === 類別 A：SUM_METRICS — 四季齊全就覆蓋；不齊則保留原年度值 ===
+        if quarters_all_in_q:
+            for metric in _ANNUAL_FROM_QUARTERLY_SUM_METRICS:
+                if metric not in out.index or metric not in q.index:
+                    continue
+                vals = [q.loc[metric, ql] for ql in q_labels]
+                if any(pd.isna(v) for v in vals):
+                    continue
+                try:
+                    total = sum(float(v) for v in vals)
+                except (TypeError, ValueError):
+                    continue
+                out.loc[metric, acol] = total
+                overridden_cells.add((metric, acol))
+
+        # === 類別 A'：EXPENSE_YTD_METRICS — 四季齊全就覆蓋，否則 fallback YTD 或保留原值 ===
         for metric in _ANNUAL_FROM_QUARTERLY_EXPENSE_YTD_METRICS:
             if metric not in out.index:
                 continue
-            if pd.notna(out.loc[metric, acol]):
-                continue
             summed = False
-            if (
-                metric in q.index
-                and quarters_all_in_q
-            ):
+            if metric in q.index and quarters_all_in_q:
                 vals = [q.loc[metric, ql] for ql in q_labels]
                 if not any(pd.isna(v) for v in vals):
                     try:
                         out.loc[metric, acol] = sum(float(v) for v in vals)
+                        overridden_cells.add((metric, acol))
                         summed = True
                     except (TypeError, ValueError):
                         summed = False
             if summed:
+                continue
+            if pd.notna(out.loc[metric, acol]):
                 continue
             if (
                 ytd is not None
@@ -308,40 +359,12 @@ def backfill_annual_from_quarterly(
                 except (TypeError, ValueError):
                     pass
 
-        if not quarters_all_in_q:
-            continue
-
-        for metric in _ANNUAL_FROM_QUARTERLY_SUM_METRICS:
-            if metric not in out.index:
+        # === 類別 B：Margin% — 若分子或分母被覆蓋，清空該年 margin 交給重算 ===
+        for m_row, num_row in _margin_pairs:
+            if m_row not in out.index:
                 continue
-            if pd.notna(out.loc[metric, acol]):
-                continue
-            if metric not in q.index:
-                continue
-            vals = [q.loc[metric, ql] for ql in q_labels]
-            if any(pd.isna(v) for v in vals):
-                continue
-            try:
-                total = sum(float(v) for v in vals)
-            except (TypeError, ValueError):
-                continue
-            out.loc[metric, acol] = total
-
-        cap_m = "CAPEX"
-        if (
-            cap_m in out.index
-            and pd.isna(out.loc[cap_m, acol])
-            and cap_m in q.index
-            and quarters_all_in_q
-        ):
-            cvals = [q.loc[cap_m, ql] for ql in q_labels]
-            if not any(pd.isna(v) for v in cvals):
-                try:
-                    cfloats = [float(v) for v in cvals]
-                except (TypeError, ValueError):
-                    cfloats = []
-                if cfloats and not all(abs(x) < 8_000 for x in cfloats):
-                    out.loc[cap_m, acol] = sum(cfloats)
+            if (num_row, acol) in overridden_cells or ("Revenue", acol) in overridden_cells:
+                out.loc[m_row, acol] = float("nan")
 
     out = backfill_margin_percentages(out)
     out = sort_financial_statement_rows(out)

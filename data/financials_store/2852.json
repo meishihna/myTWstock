@@ -1,7 +1,7 @@
 {
   "ticker": "2852",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-16T14:44:25Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "insurance",
   "sector": "Financial Services",
@@ -1938,5 +1938,7 @@
         null
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

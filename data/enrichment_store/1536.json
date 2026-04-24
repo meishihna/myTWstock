@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "BorgWarner",
+        "pct": 40
+      },
+      {
+        "name": "Tesla",
+        "pct": 20
+      },
+      {
+        "name": "其他 EV 及工業",
+        "pct": 40
+      }
+    ],
+    "geo": "北美約 60%，歐洲約 25%，台灣及其他約 15%"
+  }
+}

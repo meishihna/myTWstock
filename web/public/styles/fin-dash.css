@@ -208,6 +208,17 @@
   align-items: start;
 }
 
+/** 年報：三圖直向全寬、加高繪圖區（不與季報兩欄混用） */
+.fin-dash__chart-grid--annual-stack {
+  grid-template-columns: 1fr;
+  gap: 1.75rem 0;
+}
+
+.fin-dash__chart-grid--annual-stack .fin-dash__canvas-wrap {
+  min-height: 360px;
+  height: 360px;
+}
+
 .fin-dash__chart-grid .fin-dash__chart {
   margin-bottom: 0;
 }

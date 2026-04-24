@@ -1,7 +1,7 @@
 {
   "ticker": "4585",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T01:44:29Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
@@ -918,5 +918,7 @@
         -56.769000000000005
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

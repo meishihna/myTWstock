@@ -1,7 +1,7 @@
 {
   "ticker": "3236",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T02:11:13Z",
+  "updatedAt": "2026-04-23T20:21:42Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -1938,5 +1938,7 @@
         -555.03
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

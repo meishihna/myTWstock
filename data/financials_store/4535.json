@@ -1,7 +1,7 @@
 {
   "ticker": "4535",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T22:12:10Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
@@ -1938,5 +1938,7 @@
         -88.79599999999999
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

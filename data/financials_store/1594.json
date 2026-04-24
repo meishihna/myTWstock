@@ -1,14 +1,14 @@
 {
   "ticker": "1594",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-15T10:27:18Z",
+  "updatedAt": "2026-04-23T20:23:06Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "Engineering & Construction",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -425,13 +425,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -9.247,
+        -17.537,
+        -13.758,
+        3.332,
+        12.815,
+        12.484,
+        -20.514
       ],
       "Investing Cash Flow": [
         null,
@@ -442,13 +442,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -1.712,
+        -1.115,
+        11.44,
+        2.312,
+        5.325,
+        -8.428,
+        2.61
       ],
       "Financing Cash Flow": [
         null,
@@ -459,13 +459,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        5.104,
+        22.558,
+        -10.59,
+        -12.106,
+        -12.877,
+        16.117,
+        -16.053
       ],
       "CAPEX": [
         -0.614,
@@ -690,13 +690,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -9.247,
+        -17.537,
+        -13.758,
+        3.332,
+        12.815,
+        12.484,
+        -20.514
       ],
       "Investing Cash Flow": [
         null,
@@ -705,13 +705,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -1.712,
+        -1.115,
+        11.44,
+        2.312,
+        5.325,
+        -8.428,
+        2.61
       ],
       "Financing Cash Flow": [
         null,
@@ -720,13 +720,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        5.104,
+        22.558,
+        -10.59,
+        -12.106,
+        -12.877,
+        16.117,
+        -16.053
       ],
       "CAPEX": [
         -0.614,
@@ -977,13 +977,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -9.247,
+        -26.784,
+        -13.758,
+        -10.425999999999998,
+        12.815,
+        25.299,
+        -20.514
       ],
       "Investing Cash Flow": [
         null,
@@ -994,13 +994,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -1.712,
+        -2.827,
+        11.44,
+        13.751999999999999,
+        5.325,
+        -3.1030000000000006,
+        2.61
       ],
       "Financing Cash Flow": [
         null,
@@ -1011,13 +1011,13 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        5.104,
+        27.662,
+        -10.59,
+        -22.695999999999998,
+        -12.877,
+        3.24,
+        -16.053
       ],
       "CAPEX": [
         -0.614,
@@ -1037,5 +1037,6 @@
         -0.098
       ]
     }
-  }
+  },
+  "listingStatus": "emerging"
 }

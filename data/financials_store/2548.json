@@ -1,7 +1,7 @@
 {
   "ticker": "2548",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-16T08:48:41Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Real Estate",
@@ -1938,5 +1938,7 @@
         -342.135
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

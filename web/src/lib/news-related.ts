@@ -213,12 +213,34 @@ export function isNameKeyEligibleForSubstring(name: string): boolean {
   return NAME_MATCH_ALLOWLIST.has(name);
 }
 
+/**
+ * 新聞用：兩字簡稱若在 reports-index 有對應代號（豐興、漢翔…）一併允許比對，
+ * 否則兩字仍須在 allowlist（避免誤判）。
+ */
+export function isNameKeyEligibleForNews(
+  name: string,
+  mergedNameToTicker: Record<string, string>,
+  validAugmented: Set<string>
+): boolean {
+  if (name.length < 2) return false;
+  if (NAME_MATCH_BLOCKLIST.has(name)) return false;
+  if (name.length >= MIN_SUBSTRING_NAME_LEN) return true;
+  if (NAME_MATCH_ALLOWLIST.has(name)) return true;
+  const tk = mergedNameToTicker[name];
+  if (name.length === 2 && tk && validAugmented.has(tk)) return true;
+  return false;
+}
+
 function buildLengthHistogram(
-  nameToTicker: Record<string, string>
+  nameToTicker: Record<string, string>,
+  mergedNameToTicker: Record<string, string>,
+  validAugmented: Set<string>
 ): Map<number, number> {
   const m = new Map<number, number>();
   for (const name of Object.keys(nameToTicker)) {
-    if (!isNameKeyEligibleForSubstring(name)) continue;
+    if (!isNameKeyEligibleForNews(name, mergedNameToTicker, validAugmented)) {
+      continue;
+    }
     const len = name.length;
     m.set(len, (m.get(len) || 0) + 1);
   }
@@ -299,6 +321,173 @@ function collectThemeTickers(
     MAX_RELATED_STOCKS
   );
 }
+
+function normalizeCompanyNameFromAnnouncement(raw: string): string {
+  return raw
+    .replace(/\r/g, "")
+    .replace(/\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** 括號前誤判為公司簡稱（新聞體「耀穎（7772）」除外） */
+const NEWS_PAREN_NAME_BLOCKLIST = new Set<string>([
+  "本公司",
+  "該公司",
+  "此公司",
+  "集團",
+  "臺灣",
+  "台灣",
+  "董事會",
+  "股東會",
+  "發言人",
+  "總經理",
+  "董事長",
+  "股份有限公司",
+  "有限公司",
+  "電動車",
+  "半導體",
+  "日公告今",
+]);
+
+/**
+ * 四碼後接「年／年度」多為西元敘述（例：漢翔2025年配息），不應當成上市代號。
+ */
+function isFourDigitFollowedByYearParticle(
+  text: string,
+  indexAfterLastDigit: number
+): boolean {
+  const tail = text.slice(indexAfterLastDigit);
+  return /^\s*年/.test(tail) || /^\s*年度/.test(tail);
+}
+
+/** 西元日期片段：2025/03、2025-03-15，不當上市代號 */
+function isFourDigitWesternDateContinuation(
+  text: string,
+  indexAfterLastDigit: number
+): boolean {
+  const c = text.charAt(indexAfterLastDigit);
+  return c === "/" || c === "-" || c === ".";
+}
+
+/** 「2025會計年度」「2024財報」等敘事用西元，非代號 2025 */
+function isFourDigitFollowedByFiscalWord(
+  text: string,
+  indexAfterLastDigit: number
+): boolean {
+  const tail = text.slice(indexAfterLastDigit);
+  return /^(會計|財務|財報)/.test(tail);
+}
+
+/**
+ * 中文稿常見「（2025）」指西元年度；與上市代號 2025（千興）同形，括號內且為 2024–2027 時不採為四碼比對。
+ * （2330）等一般代號不受影響。
+ */
+function isFourDigitLikelyCalendarYearInParens(
+  text: string,
+  indexFirstDigit: number,
+  indexAfterLastDigit: number,
+  ticker: string
+): boolean {
+  const n = parseInt(ticker, 10);
+  if (!Number.isFinite(n) || n < 2024 || n > 2027) return false;
+  const before = indexFirstDigit > 0 ? text.charAt(indexFirstDigit - 1) : "";
+  const after = text.charAt(indexAfterLastDigit);
+  const inParen =
+    (before === "(" || before === "（") &&
+    (after === ")" || after === "）");
+  return inParen;
+}
+
+/**
+ * 括號體「日公告今(2025)」等：括號內為西元 2024–2027 且左側像敘事碎片，多為誤判千興(2025)。
+ */
+function isLikelyYearInParenNoise(
+  ticker: string,
+  zhRaw: string
+): boolean {
+  const y = parseInt(ticker, 10);
+  if (!Number.isFinite(y) || y < 2020 || y > 2035) return false;
+  if (zhRaw.length < 3) return false;
+  if (/公告|同期|年度|昨日|今日|本日|說明|較去/.test(zhRaw)) return true;
+  return false;
+}
+
+/**
+ * Yahoo／公開資訊觀測站風格：正文常有「公司名稱：保瑞(6472)」。
+ * 此類代號應顯示相關行情，但公司未必已收錄於 reports-index（byTicker），
+ * 不可再依 validTickers 過濾；/api/quote-batch 仍會以 6472.TW／TWO 查價。
+ * `displayZhByTicker` 供無站內報告時顯示中文公司名（優先於 Yahoo 英文簡稱）。
+ *
+ * 另支援財經新聞常見「耀穎（7772）」「豐興(2015)」體例（不必有「公司名稱：」）。
+ */
+function extractExplicitLabeledMeta(text: string): {
+  tickers: string[];
+  displayZhByTicker: Record<string, string>;
+} {
+  const tickers: string[] = [];
+  const displayZhByTicker: Record<string, string> = {};
+  const seen = new Set<string>();
+
+  /** 鉅亨／Yahoo 常見：3363-TW、2330.TW */
+  const reTwListed = /(\d{4})[-.](?:TW|TWO)\b/gi;
+  let m: RegExpExecArray | null;
+  while ((m = reTwListed.exec(text)) !== null) {
+    const t = m[1];
+    if (!/^\d{4}$/.test(t) || seen.has(t)) continue;
+    seen.add(t);
+    tickers.push(t);
+  }
+
+  const reCompany = /公司名稱[：:]\s*([\s\S]{0,400}?)[（(](\d{4})[）)]/g;
+  while ((m = reCompany.exec(text)) !== null) {
+    const zh = normalizeCompanyNameFromAnnouncement(m[1] || "");
+    const t = m[2];
+    if (!/^\d{4}$/.test(t) || !zh) continue;
+    if (seen.has(t)) continue;
+    seen.add(t);
+    tickers.push(t);
+    displayZhByTicker[t] = zh;
+  }
+
+  const reNewsParen =
+    /([\u4e00-\u9fff]{2,12})\s*[（(](\d{4})[）)]/g;
+  while ((m = reNewsParen.exec(text)) !== null) {
+    const zhRaw = (m[1] || "").trim();
+    const t = m[2];
+    if (!/^\d{4}$/.test(t) || !zhRaw) continue;
+    if (NEWS_PAREN_NAME_BLOCKLIST.has(zhRaw)) continue;
+    if (/公司名稱|主旨|說明[:：]/.test(zhRaw)) continue;
+    if (isLikelyYearInParenNoise(t, zhRaw)) continue;
+    if (seen.has(t)) continue;
+    seen.add(t);
+    tickers.push(t);
+    displayZhByTicker[t] = zhRaw;
+  }
+
+  const tailPatterns: RegExp[] = [
+    /證券(?:代碼|代号)[：:]\s*(\d{4})\b/g,
+    /股票代號[：:]\s*(\d{4})\b/g,
+  ];
+  for (const re of tailPatterns) {
+    re.lastIndex = 0;
+    while ((m = re.exec(text)) !== null) {
+      const t = m[1];
+      if (!/^\d{4}$/.test(t) || seen.has(t)) continue;
+      seen.add(t);
+      tickers.push(t);
+    }
+  }
+
+  return { tickers, displayZhByTicker };
+}
+
+/** `resolveTickersFromText` 回傳：代號列表＋自公告解析之中文名（若有） */
+export type ResolvedRelatedTickers = {
+  tickers: string[];
+  /** 自「公司名稱：…(代號)」等解析，無站內報告時供顯示 */
+  displayZhByTicker: Record<string, string>;
+};
 
 function mergeTickerLists(
   digits: string[],
@@ -414,10 +603,11 @@ export function formatIndustryParen(
 
 /**
  * 由標題＋摘要解析台股代號與公司名。
- * - 四碼：非「國際」分類時採用，與公司名區間不重疊。
- * - 主題：`themes`（news-theme-tickers.json）關鍵字命中則注入 tickers。
- * - 產業推斷：`industryInference` 僅在無四碼、無公司名、且 `themes` 未命中時套用（代表股）。
- * - 公司名：長度門檻、blocklist／allowlist、評分後貪婪選取不重疊區間。
+ * - 公告／新聞括號：`公司名稱：…(1234)`、`耀穎（7772）`（未收錄於 reports-index 亦採用）。
+ * - 四碼：須在 validTickers；**後接「年／年度」視為西元**（如漢翔2025年）不採為代號。
+ * - 公司名子字串：**兩字簡稱**若在 Pilot 有代號（豐興、漢翔）可比對；主題／產業籃在**其後**。
+ * - **國際**分類：不套用台股 `themes`／`industryInference`（避免國際新聞洗出台股代表股）。
+ * - 主題／產業推斷：僅非國際、且無已解析個股／主題命中時，才注入代表股。
  */
 export function resolveTickersFromText(
   title: string,
@@ -426,7 +616,7 @@ export function resolveTickersFromText(
   validTickers: Set<string>,
   category: string,
   themePayload?: NewsThemePayload | null
-): string[] {
+): ResolvedRelatedTickers {
   const mergedNameToTicker: Record<string, string> = {
     ...NEWS_EXTRA_NAME_TO_TICKER,
     ...nameToTicker,
@@ -442,6 +632,12 @@ export function resolveTickersFromText(
   const titleLen = titlePart.length;
   const isIntl = category === "國際";
 
+  const explicitMeta = !isIntl
+    ? extractExplicitLabeledMeta(text)
+    : { tickers: [] as string[], displayZhByTicker: {} as Record<string, string> };
+  const explicitLabeled = explicitMeta.tickers;
+  const displayZhFromAnnouncement = explicitMeta.displayZhByTicker;
+
   const digitTickers: string[] = [];
   const digitSeen = new Set<string>();
   const used: [number, number][] = [];
@@ -451,28 +647,54 @@ export function resolveTickersFromText(
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
       const t = m[1];
+      const idx = m.index ?? 0;
+      const endIdx = idx + (m[0]?.length ?? 4);
+      if (isFourDigitFollowedByYearParticle(text, endIdx)) continue;
+      if (isFourDigitWesternDateContinuation(text, endIdx)) continue;
+      const yNum = parseInt(t, 10);
+      if (
+        Number.isFinite(yNum) &&
+        yNum >= 2020 &&
+        yNum <= 2035 &&
+        isFourDigitFollowedByFiscalWord(text, endIdx)
+      ) {
+        continue;
+      }
+      if (isFourDigitLikelyCalendarYearInParens(text, idx, endIdx, t)) {
+        continue;
+      }
       if (!validAugmented.has(t)) continue;
       if (digitSeen.has(t)) continue;
       if (digitTickers.length >= MAX_RELATED_STOCKS) break;
-      const start = m.index ?? 0;
-      const end = start + (m[0]?.length ?? 4);
       digitSeen.add(t);
       digitTickers.push(t);
-      used.push([start, end]);
+      used.push([idx, endIdx]);
     }
   }
 
-  const themeList = collectThemeTickers(text, themePayload ?? null, validAugmented);
+  const themeList = isIntl
+    ? []
+    : collectThemeTickers(text, themePayload ?? null, validAugmented);
 
-  const baseMerged = mergeTickerLists(digitTickers, themeList, []);
-  const reserved = new Set(baseMerged);
-  const slotsLeft = MAX_RELATED_STOCKS - baseMerged.length;
+  const afterExplicitDigit = mergeTickerLists(
+    explicitLabeled,
+    digitTickers,
+    []
+  );
+  const reserved = new Set(afterExplicitDigit);
+  const slotsLeft = MAX_RELATED_STOCKS - afterExplicitDigit.length;
 
-  const hist = buildLengthHistogram(mergedNameToTicker);
+  const hist = buildLengthHistogram(
+    mergedNameToTicker,
+    mergedNameToTicker,
+    validAugmented
+  );
 
   const nameHits: NameHit[] = [];
   for (const name of Object.keys(mergedNameToTicker)) {
-    if (!isNameKeyEligibleForSubstring(name)) continue;
+    if (!isNameKeyEligibleForNews(name, mergedNameToTicker, validAugmented)) {
+      continue;
+    }
     if (!text.includes(name)) continue;
     const ticker = mergedNameToTicker[name];
     if (!ticker || !validAugmented.has(ticker)) continue;
@@ -504,10 +726,12 @@ export function resolveTickersFromText(
   }
 
   const hasExplicitStock =
-    digitTickers.length > 0 || nameTickers.length > 0;
+    explicitLabeled.length > 0 ||
+    digitTickers.length > 0 ||
+    nameTickers.length > 0;
   const hasCuratedTheme = themeList.length > 0;
   let inferenceList: string[] = [];
-  if (!hasExplicitStock && !hasCuratedTheme) {
+  if (!hasExplicitStock && !hasCuratedTheme && !isIntl) {
     inferenceList = collectTickersFromKeywordThemes(
       text,
       themePayload?.industryInference,
@@ -516,10 +740,23 @@ export function resolveTickersFromText(
     );
   }
 
-  return mergeTickerLists(digitTickers, themeList, [
-    ...nameTickers,
-    ...inferenceList,
-  ]);
+  const tickers = mergeTickerLists(
+    mergeTickerLists(
+      mergeTickerLists(
+        mergeTickerLists(explicitLabeled, digitTickers, []),
+        nameTickers,
+        []
+      ),
+      themeList,
+      []
+    ),
+    inferenceList,
+    []
+  );
+  return {
+    tickers,
+    displayZhByTicker: displayZhFromAnnouncement,
+  };
 }
 
 export function changeClass(pct: number | null): "up" | "down" | "flat" {

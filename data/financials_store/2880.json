@@ -1,7 +1,7 @@
 {
   "ticker": "2880",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-16T15:14:29Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "financial_holding",
   "sector": "Financial Services",
@@ -1938,5 +1938,7 @@
         null
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

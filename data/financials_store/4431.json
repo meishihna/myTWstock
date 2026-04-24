@@ -1,14 +1,14 @@
 {
   "ticker": "4431",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-17T20:39:17Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "Specialty Industrial Machinery",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -1275,5 +1275,7 @@
         -99.749
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

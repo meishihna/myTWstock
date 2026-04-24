@@ -1,7 +1,7 @@
 {
   "ticker": "4770",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T04:09:45Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Basic Materials",
@@ -1479,5 +1479,7 @@
         -444.81399999999996
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

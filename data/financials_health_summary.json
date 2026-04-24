@@ -1,0 +1,14 @@
+{
+  "total": 1477,
+  "complete_ok": 1194,
+  "incomplete": 283,
+  "reason_buckets": {
+    "最新一季營收為空": 212,
+    "季表期數不足 (<16)": 71,
+    "半年報主軸": 68,
+    "年表期數不足 (<5)": 5,
+    "營收欄位缺漏比例高": 147,
+    "quarterly 與 quarterlyCore 期數不一致": 6
+  },
+  "parse_errors": []
+}

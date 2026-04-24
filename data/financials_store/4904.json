@@ -1,7 +1,7 @@
 {
   "ticker": "4904",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T04:38:23Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Communication Services",
@@ -1938,5 +1938,7 @@
         -15266.598000000002
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

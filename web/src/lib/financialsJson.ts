@@ -25,6 +25,8 @@ export type FinancialsJson = {
   marketCap?: number | null;
   enterpriseValue?: number | null;
   yahooSuffix?: string;
+  /** 上市櫃（全市場 t163）或興櫃（僅半年／年報特徵）；由 update_financials 標記 */
+  listingStatus?: "listed" | "emerging";
   valuation?: Record<string, number | null>;
   annual?: FinancialsJsonBlock | null;
   /** Full merged quarterly (may drop periods when detail rows are all NaN). */

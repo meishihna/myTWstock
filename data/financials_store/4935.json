@@ -1,7 +1,7 @@
 {
   "ticker": "4935",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T05:58:19Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -1938,5 +1938,7 @@
         -888.9949999999999
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

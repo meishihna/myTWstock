@@ -1,7 +1,7 @@
 {
   "ticker": "4951",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T06:29:24Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -1632,5 +1632,7 @@
         -123.227
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

@@ -219,7 +219,7 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
       }
       var valid = new Set(Object.keys(idx.byTicker || {}));
       var nameToTicker = idx.nameToTicker || {};
-      var perArticle = articles.map(function (a) {
+      var perResolved = articles.map(function (a) {
         return resolveTickersFromText(
           a.title || "",
           a.summary || "",
@@ -228,6 +228,12 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
           a.category || "",
           themePayload
         );
+      });
+      var perArticle = perResolved.map(function (r) {
+        return r.tickers;
+      });
+      var perDisplayZh = perResolved.map(function (r) {
+        return r.displayZhByTicker || {};
       });
       var perCommodity = articles.map(function (a) {
         return resolveCommodityBenchmarks(a.title || "", a.summary || "");
@@ -280,6 +286,7 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
         if (!sec) continue;
         var tks = perArticle[ci] || [];
         var comms = perCommodity[ci] || [];
+        var zhFromArticle = perDisplayZh[ci] || {};
         sec.textContent = "";
         var label = document.createElement("div");
         label.className = "news-related-label";
@@ -293,6 +300,8 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
           var disp =
             NEWS_TICKER_DISPLAY_LABEL[tk2] ||
             (rep && rep.name) ||
+            zhFromArticle[tk2] ||
+            (q && q.shortName) ||
             tk2;
           var pct = q && q.changePct != null ? q.changePct : null;
           var cls = changeClass(pct);

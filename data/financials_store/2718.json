@@ -1,7 +1,7 @@
 {
   "ticker": "2718",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-16T12:06:09Z",
+  "updatedAt": "2026-04-23T20:21:41Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Real Estate",
@@ -1938,5 +1938,7 @@
         -533.112
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }

@@ -1,14 +1,14 @@
 {
   "ticker": "5262",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-18T18:45:11Z",
+  "updatedAt": "2026-04-23T20:21:43Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Semiconductors",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TW",
+  "yahooSuffix": ".TWO",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -38,18 +38,8 @@
         null,
         null,
         null,
-        null,
-        null
-      ],
-      "Cost of Revenue": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        2580.621,
+        2061.511
       ],
       "Gross Profit": [
         null,
@@ -58,18 +48,8 @@
         null,
         null,
         null,
-        null,
-        null
-      ],
-      "Gross Margin (%)": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        1143.253,
+        937.698
       ],
       "Selling & Marketing Exp": [
         163.933,
@@ -78,8 +58,8 @@
         292.333,
         388.886,
         1070.623,
-        1232.71,
-        1299.36
+        1232.707,
+        1299.362
       ],
       "R&D Exp": [
         18.994,
@@ -98,8 +78,8 @@
         49.149,
         51.525,
         82.35900000000001,
-        136.56,
-        135.62
+        800.931,
+        833.118
       ],
       "Operating Income": [
         null,
@@ -108,18 +88,8 @@
         null,
         null,
         null,
-        null,
-        null
-      ],
-      "Operating Margin (%)": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        342.322,
+        104.58
       ],
       "Net Income": [
         null,
@@ -128,18 +98,8 @@
         null,
         null,
         null,
-        null,
-        null
-      ],
-      "Net Margin (%)": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        271.814,
+        69.618
       ],
       "EPS": [
         null,
@@ -148,8 +108,8 @@
         null,
         null,
         null,
-        null,
-        null
+        5.409999999999999,
+        1.37
       ],
       "Op Cash Flow": [
         null,
@@ -158,8 +118,8 @@
         null,
         null,
         null,
-        null,
-        null
+        139.586,
+        210.587
       ],
       "Investing Cash Flow": [
         null,
@@ -168,8 +128,8 @@
         null,
         null,
         null,
-        null,
-        null
+        -150.662,
+        -119.16
       ],
       "Financing Cash Flow": [
         null,
@@ -178,8 +138,8 @@
         null,
         null,
         null,
-        null,
-        null
+        32.206,
+        69.59
       ],
       "CAPEX": [
         null,
@@ -188,8 +148,38 @@
         null,
         null,
         null,
-        -284.28,
-        -313.92
+        null,
+        null
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        44.301469,
+        45.485957
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        13.265102,
+        5.072978
+      ],
+      "Net Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        10.532891,
+        3.377038
       ]
     }
   },
@@ -518,18 +508,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        14.899,
+        22.764,
+        -53.271,
+        40.867,
+        -6.773,
+        68.138,
+        36.001,
+        42.22,
+        119.152,
+        -14.059,
+        125.199,
+        -19.705
       ],
       "Investing Cash Flow": [
         null,
@@ -542,18 +532,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -19.132,
+        1.55,
+        -34.738,
+        -42.335,
+        -102.707,
+        -32.891,
+        -8.381,
+        -6.683,
+        -51.527,
+        -41.152,
+        0.412,
+        -26.893
       ],
       "Financing Cash Flow": [
         null,
@@ -566,18 +556,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -21.589,
+        31.596,
+        110.879,
+        45.432,
+        72.327,
+        12.198,
+        -57.276,
+        4.957,
+        1.8,
+        131.356,
+        -196.285,
+        132.719
       ],
       "CAPEX": [
         -1.505,
@@ -930,18 +920,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        14.899,
+        22.764,
+        -53.271,
+        40.867,
+        -6.773,
+        68.138,
+        36.001,
+        42.22,
+        119.152,
+        -14.059,
+        125.199,
+        -19.705
       ],
       "Investing Cash Flow": [
         null,
@@ -954,18 +944,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -19.132,
+        1.55,
+        -34.738,
+        -42.335,
+        -102.707,
+        -32.891,
+        -8.381,
+        -6.683,
+        -51.527,
+        -41.152,
+        0.412,
+        -26.893
       ],
       "Financing Cash Flow": [
         null,
@@ -978,18 +968,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -21.589,
+        31.596,
+        110.879,
+        45.432,
+        72.327,
+        12.198,
+        -57.276,
+        4.957,
+        1.8,
+        131.356,
+        -196.285,
+        132.719
       ],
       "CAPEX": [
         -1.505,
@@ -1342,18 +1332,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        14.899,
+        37.663,
+        -53.271,
+        -12.404000000000003,
+        -6.773,
+        61.36500000000001,
+        97.36600000000001,
+        139.586,
+        119.152,
+        105.093,
+        230.292,
+        210.587
       ],
       "Investing Cash Flow": [
         null,
@@ -1366,18 +1356,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -19.132,
+        -17.582,
+        -34.738,
+        -77.07300000000001,
+        -102.707,
+        -135.59799999999998,
+        -143.97899999999998,
+        -150.66199999999998,
+        -51.527,
+        -92.679,
+        -92.267,
+        -119.16
       ],
       "Financing Cash Flow": [
         null,
@@ -1390,18 +1380,18 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -21.589,
+        10.007000000000001,
+        110.879,
+        156.311,
+        72.327,
+        84.525,
+        27.249000000000002,
+        32.206,
+        1.8,
+        133.156,
+        -63.12899999999999,
+        69.59
       ],
       "CAPEX": [
         -1.505,
@@ -1428,5 +1418,7 @@
         -313.917
       ]
     }
-  }
+  },
+  "listingStatus": "emerging",
+  "exchange": "Emerging"
 }

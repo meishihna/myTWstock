@@ -1,7 +1,7 @@
 {
   "ticker": "6561",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-19T20:32:34Z",
+  "updatedAt": "2026-04-23T20:21:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Communication Services",
@@ -1938,5 +1938,7 @@
         -3915.3289999999997
       ]
     }
-  }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
 }
