@@ -1,7 +1,7 @@
 {
   "ticker": "5262",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-23T20:21:43Z",
+  "updatedAt": "2026-05-04T13:53:47Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -41,6 +41,16 @@
         2580.621,
         2061.511
       ],
+      "Cost of Revenue": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
       "Gross Profit": [
         null,
         null,
@@ -78,8 +88,8 @@
         49.149,
         51.525,
         82.35900000000001,
-        800.931,
-        833.118
+        136.55599999999998,
+        135.621
       ],
       "Operating Income": [
         null,
@@ -128,7 +138,7 @@
         null,
         null,
         null,
-        -150.662,
+        -150.66199999999998,
         -119.16
       ],
       "Financing Cash Flow": [
@@ -138,8 +148,8 @@
         null,
         null,
         null,
-        32.206,
-        69.59
+        32.205999999999996,
+        69.58999999999999
       ],
       "CAPEX": [
         null,
@@ -148,8 +158,8 @@
         null,
         null,
         null,
-        null,
-        null
+        -284.279,
+        -313.917
       ],
       "Gross Margin (%)": [
         null,

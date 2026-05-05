@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DOCSIS數據機",
+        "pct": 83
+      },
+      {
+        "name": "Wi-Fi 7路由器",
+        "pct": 10
+      },
+      {
+        "name": "5G FWA",
+        "pct": 4
+      },
+      {
+        "name": "PON光纖設備",
+        "pct": 3
+      }
+    ],
+    "geo": "北美 MSO 市場為主，歐洲為次要成長市場"
+  }
+}

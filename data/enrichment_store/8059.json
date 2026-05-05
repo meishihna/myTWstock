@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "大型OEM代工",
+        "pct": 75
+      },
+      {
+        "name": "纜線數據機",
+        "pct": 14
+      },
+      {
+        "name": "Mesh Wi-Fi",
+        "pct": 7
+      },
+      {
+        "name": "ONT光纖終端",
+        "pct": 4
+      }
+    ],
+    "geo": "歐洲、日本、韓國、中南美洲為主要市場"
+  }
+}

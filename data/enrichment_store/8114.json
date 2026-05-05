@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "Embedded Foundry (AI測試及工業電腦)",
+        "pct": 60
+      },
+      {
+        "name": "O2O POS 及 Kiosk",
+        "pct": 34
+      },
+      {
+        "name": "其他",
+        "pct": 6
+      }
+    ],
+    "geo": "美洲 65%，亞洲 23%（含中國大陸車用及台灣），歐洲 11%（2025 Q1）"
+  }
+}

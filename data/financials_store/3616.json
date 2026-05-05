@@ -1,7 +1,7 @@
 {
   "ticker": "3616",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-23T02:42:02Z",
+  "updatedAt": "2026-04-27T21:56:32Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "N/A",
@@ -274,22 +274,22 @@
         null
       ],
       "Op Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        220.029,
+        -151.409,
+        -123.469,
+        -55.246
       ],
       "Investing Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        -121.935,
+        -315.491,
+        -166.142,
+        -13.926
       ],
       "Financing Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        -5.128,
+        97.088,
+        234.566,
+        -143.545
       ],
       "CAPEX": [
         -111.662,
@@ -380,22 +380,22 @@
         null
       ],
       "Op Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        220.029,
+        -151.409,
+        -123.469,
+        -55.246
       ],
       "Investing Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        -121.935,
+        -315.491,
+        -166.142,
+        -13.926
       ],
       "Financing Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        -5.128,
+        97.088,
+        234.566,
+        -143.545
       ],
       "CAPEX": [
         -111.662,
@@ -486,22 +486,22 @@
         null
       ],
       "Op Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        220.029,
+        -151.409,
+        -274.878,
+        -55.246
       ],
       "Investing Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        -121.935,
+        -315.491,
+        -481.633,
+        -13.926
       ],
       "Financing Cash Flow": [
-        null,
-        null,
-        null,
-        null
+        -5.128,
+        97.088,
+        331.654,
+        -143.545
       ],
       "CAPEX": [
         -111.662,

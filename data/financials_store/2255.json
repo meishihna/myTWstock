@@ -1,7 +1,7 @@
 {
   "ticker": "2255",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-23T20:21:40Z",
+  "updatedAt": "2026-05-04T13:53:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
@@ -79,7 +79,7 @@
         75.707,
         101.21,
         126.555,
-        null
+        149.979
       ],
       "R&D Exp": [
         null,
@@ -89,7 +89,7 @@
         245.10500000000002,
         275.396,
         299.10699999999997,
-        null
+        322.773
       ],
       "General & Admin Exp": [
         null,
@@ -99,7 +99,7 @@
         361.373,
         350.23199999999997,
         318.53499999999997,
-        null
+        317.116
       ],
       "Operating Income": [
         null,
@@ -204,10 +204,12 @@
       "2023-12-31",
       "2024-06-30",
       "2024-12-31",
-      "2025-06-30"
+      "2025-06-30",
+      "2025-12-31"
     ],
     "series": {
       "Revenue": [
+        null,
         null,
         null,
         null,
@@ -229,9 +231,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Gross Profit": [
+        null,
         null,
         null,
         null,
@@ -253,6 +257,7 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Selling & Marketing Exp": [
@@ -265,7 +270,8 @@
         70.714,
         41.006,
         85.549,
-        51.844
+        51.844,
+        98.135
       ],
       "R&D Exp": [
         157.57,
@@ -277,7 +283,8 @@
         183.895,
         98.857,
         200.25,
-        111.815
+        111.815,
+        210.958
       ],
       "General & Admin Exp": [
         168.719,
@@ -289,9 +296,11 @@
         227.203,
         106.85,
         211.685,
-        105.861
+        105.861,
+        211.255
       ],
       "Operating Income": [
+        null,
         null,
         null,
         null,
@@ -313,9 +322,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Net Income": [
+        null,
         null,
         null,
         null,
@@ -337,9 +348,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "EPS": [
+        null,
         null,
         null,
         null,
@@ -355,37 +368,40 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -246.636,
+        577.953,
+        167.383,
+        -238.847,
+        45.964,
+        -54.314,
+        37.415,
+        -27.582
       ],
       "Investing Cash Flow": [
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -257.461,
+        -110.937,
+        -153.103,
+        -39.077,
+        16.661,
+        -48.458,
+        -36.911,
+        -85.75
       ],
       "Financing Cash Flow": [
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        216.342,
+        205.02,
+        -11.749,
+        26.27,
+        227.122,
+        -137.429,
+        -184.105,
+        -15.329
       ],
       "CAPEX": [
         -83.419,
@@ -397,7 +413,8 @@
         -368.809,
         -137.748,
         -197.019,
-        -73.477
+        -73.477,
+        -108.698
       ]
     }
   },
@@ -412,10 +429,12 @@
       "2023-12-31",
       "2024-06-30",
       "2024-12-31",
-      "2025-06-30"
+      "2025-06-30",
+      "2025-12-31"
     ],
     "series": {
       "Revenue": [
+        null,
         null,
         null,
         null,
@@ -437,6 +456,7 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Gross Profit": [
@@ -449,9 +469,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Gross Margin (%)": [
+        null,
         null,
         null,
         null,
@@ -473,7 +495,8 @@
         70.714,
         41.006,
         85.549,
-        51.844
+        51.844,
+        98.135
       ],
       "R&D Exp": [
         157.57,
@@ -485,7 +508,8 @@
         183.895,
         98.857,
         200.25,
-        111.815
+        111.815,
+        210.958
       ],
       "General & Admin Exp": [
         168.719,
@@ -497,9 +521,11 @@
         227.203,
         106.85,
         211.685,
-        105.861
+        105.861,
+        211.255
       ],
       "Operating Income": [
+        null,
         null,
         null,
         null,
@@ -521,9 +547,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Net Income": [
+        null,
         null,
         null,
         null,
@@ -545,9 +573,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "EPS": [
+        null,
         null,
         null,
         null,
@@ -563,37 +593,40 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -246.636,
+        577.953,
+        167.383,
+        -238.847,
+        45.964,
+        -54.314,
+        37.415,
+        -27.582
       ],
       "Investing Cash Flow": [
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -257.461,
+        -110.937,
+        -153.103,
+        -39.077,
+        16.661,
+        -48.458,
+        -36.911,
+        -85.75
       ],
       "Financing Cash Flow": [
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        216.342,
+        205.02,
+        -11.749,
+        26.27,
+        227.122,
+        -137.429,
+        -184.105,
+        -15.329
       ],
       "CAPEX": [
         -83.419,
@@ -605,7 +638,8 @@
         -368.809,
         -137.748,
         -197.019,
-        -73.477
+        -73.477,
+        -108.698
       ]
     }
   },
@@ -620,10 +654,12 @@
       "2023-12-31",
       "2024-06-30",
       "2024-12-31",
-      "2025-06-30"
+      "2025-06-30",
+      "2025-12-31"
     ],
     "series": {
       "Revenue": [
+        null,
         null,
         null,
         null,
@@ -645,6 +681,7 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Gross Profit": [
@@ -657,9 +694,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Gross Margin (%)": [
+        null,
         null,
         null,
         null,
@@ -681,7 +720,8 @@
         101.21,
         41.006,
         126.555,
-        51.844
+        51.844,
+        149.979
       ],
       "R&D Exp": [
         157.57,
@@ -693,7 +733,8 @@
         275.396,
         98.857,
         299.10699999999997,
-        111.815
+        111.815,
+        322.773
       ],
       "General & Admin Exp": [
         168.719,
@@ -705,9 +746,11 @@
         350.23199999999997,
         106.85,
         318.53499999999997,
-        105.861
+        105.861,
+        317.116
       ],
       "Operating Income": [
+        null,
         null,
         null,
         null,
@@ -729,9 +772,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "Net Income": [
+        null,
         null,
         null,
         null,
@@ -753,9 +798,11 @@
         null,
         null,
         null,
+        null,
         null
       ],
       "EPS": [
+        null,
         null,
         null,
         null,
@@ -771,37 +818,40 @@
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -246.636,
+        331.317,
+        167.383,
+        -71.464,
+        45.964,
+        -8.350000000000001,
+        37.415,
+        9.832999999999998
       ],
       "Investing Cash Flow": [
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -257.461,
+        -368.398,
+        -153.103,
+        -192.18,
+        16.661,
+        -31.796999999999997,
+        -36.911,
+        -122.661
       ],
       "Financing Cash Flow": [
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        216.342,
+        421.362,
+        -11.749,
+        14.520999999999999,
+        227.122,
+        89.69300000000001,
+        -184.105,
+        -199.434
       ],
       "CAPEX": [
         -83.419,
@@ -813,7 +863,8 @@
         -506.557,
         -137.748,
         -334.767,
-        -73.477
+        -73.477,
+        -182.175
       ]
     }
   },

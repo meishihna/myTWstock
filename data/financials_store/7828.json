@@ -1,0 +1,516 @@
+{
+  "ticker": "7828",
+  "schemaVersion": 2,
+  "updatedAt": "2026-05-04T13:53:49Z",
+  "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
+  "industryType": "general",
+  "sector": "Industrials",
+  "industry": "Specialty Industrial Machinery",
+  "marketCap": null,
+  "enterpriseValue": null,
+  "yahooSuffix": ".TW",
+  "valuation": {
+    "P/E (TTM)": null,
+    "Forward P/E": null,
+    "P/S (TTM)": null,
+    "P/B": null,
+    "EV/EBITDA": null,
+    "ROE": null,
+    "Beta": null,
+    "Debt/Equity": null
+  },
+  "annual": {
+    "periods": [
+      "2018-12-31",
+      "2019-12-31",
+      "2020-12-31",
+      "2021-12-31",
+      "2022-12-31",
+      "2023-12-31",
+      "2024-12-31",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        406.017,
+        716.233
+      ],
+      "Cost of Revenue": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        80.15,
+        170.092
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        325.867,
+        546.141
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        80.259447,
+        76.251862
+      ],
+      "Selling & Marketing Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        13.964,
+        34.523
+      ],
+      "R&D Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        108.646,
+        248.333
+      ],
+      "General & Admin Exp": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        52.567,
+        207.196
+      ],
+      "Operating Income": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        150.508,
+        278.325
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        37.069384,
+        38.859561
+      ],
+      "Net Income": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        149.887,
+        227.671
+      ],
+      "Net Margin (%)": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        36.916435,
+        31.787282
+      ],
+      "EPS": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        5.25,
+        6.3
+      ],
+      "Op Cash Flow": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        279.49,
+        -82.05
+      ],
+      "Investing Cash Flow": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        -111.82,
+        -454.11
+      ],
+      "Financing Cash Flow": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        70.82,
+        486.75
+      ],
+      "CAPEX": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "quarterly": {
+    "periods": [
+      "2024-12-31",
+      "2025-06-30",
+      "2025-09-30",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        null,
+        null,
+        157.02,
+        394.37
+      ],
+      "Cost of Revenue": [
+        null,
+        null,
+        32.33,
+        81.38
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        124.69,
+        312.99
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        79.41026620812634,
+        79.3645561274945
+      ],
+      "Selling & Marketing Exp": [
+        13.964,
+        6.966,
+        5.823,
+        21.734
+      ],
+      "R&D Exp": [
+        108.646,
+        53.656,
+        40.336,
+        154.341
+      ],
+      "General & Admin Exp": [
+        52.567,
+        25.416,
+        70.35,
+        111.43
+      ],
+      "Operating Income": [
+        null,
+        null,
+        54.34,
+        201.55
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        34.607056425933,
+        51.1068286127241
+      ],
+      "Net Income": [
+        null,
+        null,
+        49.75,
+        176.92
+      ],
+      "Net Margin (%)": [
+        null,
+        null,
+        31.68386192841676,
+        44.861424550548975
+      ],
+      "EPS": [
+        null,
+        null,
+        1.39,
+        4.91
+      ],
+      "Op Cash Flow": [
+        120.036,
+        11.349,
+        -28.72,
+        -64.68
+      ],
+      "Investing Cash Flow": [
+        -11.923,
+        -307.11,
+        59.96,
+        -206.96
+      ],
+      "Financing Cash Flow": [
+        60.887,
+        356.592,
+        128.61,
+        1.55
+      ],
+      "CAPEX": [
+        -10.079,
+        -23.901,
+        -283.457,
+        -288.045
+      ]
+    }
+  },
+  "quarterlyCore": {
+    "periods": [
+      "2024-12-31",
+      "2025-06-30",
+      "2025-09-30",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        null,
+        null,
+        157.02,
+        394.37
+      ],
+      "Cost of Revenue": [
+        null,
+        null,
+        32.33,
+        81.38
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        124.69,
+        312.99
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        79.41026620812634,
+        79.3645561274945
+      ],
+      "Selling & Marketing Exp": [
+        13.964,
+        6.966,
+        5.823,
+        21.734
+      ],
+      "R&D Exp": [
+        108.646,
+        53.656,
+        40.336,
+        154.341
+      ],
+      "General & Admin Exp": [
+        52.567,
+        25.416,
+        70.35,
+        111.43
+      ],
+      "Operating Income": [
+        null,
+        null,
+        54.34,
+        201.55
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        34.607056425933,
+        51.1068286127241
+      ],
+      "Net Income": [
+        null,
+        null,
+        49.75,
+        176.92
+      ],
+      "Net Margin (%)": [
+        null,
+        null,
+        31.68386192841676,
+        44.861424550548975
+      ],
+      "EPS": [
+        null,
+        null,
+        1.39,
+        4.91
+      ],
+      "Op Cash Flow": [
+        120.036,
+        11.349,
+        -28.72,
+        -64.68
+      ],
+      "Investing Cash Flow": [
+        -11.923,
+        -307.11,
+        59.96,
+        -206.96
+      ],
+      "Financing Cash Flow": [
+        60.887,
+        356.592,
+        128.61,
+        1.55
+      ],
+      "CAPEX": [
+        -10.079,
+        -23.901,
+        -283.457,
+        -288.045
+      ]
+    }
+  },
+  "quarterlyYtd": {
+    "periods": [
+      "2024-12-31",
+      "2025-06-30",
+      "2025-09-30",
+      "2025-12-31"
+    ],
+    "series": {
+      "Revenue": [
+        null,
+        null,
+        157.02,
+        551.39
+      ],
+      "Cost of Revenue": [
+        null,
+        null,
+        32.33,
+        113.71
+      ],
+      "Gross Profit": [
+        null,
+        null,
+        124.69,
+        437.68
+      ],
+      "Gross Margin (%)": [
+        null,
+        null,
+        79.41026620812634,
+        79.37757304267397
+      ],
+      "Selling & Marketing Exp": [
+        13.964,
+        6.966,
+        12.789000000000001,
+        34.523
+      ],
+      "R&D Exp": [
+        108.646,
+        53.656,
+        93.99199999999999,
+        248.333
+      ],
+      "General & Admin Exp": [
+        52.567,
+        25.416,
+        95.76599999999999,
+        207.196
+      ],
+      "Operating Income": [
+        null,
+        null,
+        54.34,
+        255.89000000000001
+      ],
+      "Operating Margin (%)": [
+        null,
+        null,
+        34.607056425933,
+        46.40816844701573
+      ],
+      "Net Income": [
+        null,
+        null,
+        49.75,
+        226.67
+      ],
+      "Net Margin (%)": [
+        null,
+        null,
+        31.68386192841676,
+        41.10883403761403
+      ],
+      "EPS": [
+        null,
+        null,
+        1.39,
+        6.3
+      ],
+      "Op Cash Flow": [
+        120.036,
+        11.349,
+        -17.371,
+        -82.051
+      ],
+      "Investing Cash Flow": [
+        -11.923,
+        -307.11,
+        -247.15,
+        -454.11
+      ],
+      "Financing Cash Flow": [
+        60.887,
+        356.592,
+        485.202,
+        486.752
+      ],
+      "CAPEX": [
+        -10.079,
+        -23.901,
+        -307.358,
+        -595.403
+      ]
+    }
+  },
+  "listingStatus": "listed",
+  "exchange": "TPEx"
+}

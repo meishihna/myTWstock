@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "低軌衛星UT",
+        "pct": 55
+      },
+      {
+        "name": "5G O-RAN",
+        "pct": 30
+      },
+      {
+        "name": "VSAT/GEO",
+        "pct": 10
+      },
+      {
+        "name": "RFID模組",
+        "pct": 5
+      }
+    ],
+    "geo": "北美為主，亞太次之，歐洲及中東為輔"
+  }
+}

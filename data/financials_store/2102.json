@@ -1,7 +1,7 @@
 {
   "ticker": "2102",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-24T04:10:41Z",
+  "updatedAt": "2026-05-04T13:53:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
@@ -1939,5 +1939,6 @@
       ]
     }
   },
-  "listingStatus": "listed"
+  "listingStatus": "listed",
+  "exchange": "TWSE"
 }

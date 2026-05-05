@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "企業Wi-Fi AP",
+        "pct": 50
+      },
+      {
+        "name": "Mesh路由器",
+        "pct": 30
+      },
+      {
+        "name": "光纖寬頻閘道",
+        "pct": 20
+      }
+    ],
+    "geo": "歐美約70%，亞太約30%"
+  }
+}

@@ -1,24 +1,24 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "伺服器",
-        "pct": 53
+        "name": "AI伺服器",
+        "pct": 60
       },
       {
         "name": "顯示卡",
-        "pct": 28
+        "pct": 25
       },
       {
         "name": "主機板",
-        "pct": 12
+        "pct": 10
       },
       {
-        "name": "其他",
-        "pct": 7
+        "name": "其他事業",
+        "pct": 5
       }
     ],
-    "geo": null
+    "geo": "美洲約30%、歐洲約25%、亞太約45%"
   }
 }

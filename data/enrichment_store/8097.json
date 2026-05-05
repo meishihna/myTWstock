@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "GPON路由器",
+        "pct": 35
+      },
+      {
+        "name": "Wi-Fi Mesh",
+        "pct": 20
+      },
+      {
+        "name": "4G/5G無線",
+        "pct": 28
+      },
+      {
+        "name": "AIoT/VoIP",
+        "pct": 12
+      },
+      {
+        "name": "固態氫能",
+        "pct": 5
+      }
+    ],
+    "geo": "拉丁美洲（Claro）為核心，東歐、東南亞為成長市場"
+  }
+}

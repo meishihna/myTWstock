@@ -1,19 +1,19 @@
 {
   "ticker": "3717",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-23T20:21:43Z",
+  "updatedAt": "2026-05-04T13:53:46Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Electronic Components",
-  "marketCap": 4552,
+  "marketCap": 4157,
   "enterpriseValue": 6082,
   "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 0.82,
-    "P/B": 1.46,
+    "P/S (TTM)": 0.75,
+    "P/B": 1.34,
     "EV/EBITDA": 45.43,
     "ROE": -1.57,
     "Beta": 0.5,
@@ -276,19 +276,19 @@
       "Op Cash Flow": [
         null,
         -61.81,
-        null,
+        511.713,
         -147.83
       ],
       "Investing Cash Flow": [
         null,
         -214.606,
-        null,
+        -288.806,
         -175.83
       ],
       "Financing Cash Flow": [
         null,
         144.792,
-        null,
+        101.338,
         263.76
       ],
       "CAPEX": [
@@ -382,19 +382,19 @@
       "Op Cash Flow": [
         null,
         -61.81,
-        null,
+        511.713,
         -147.83
       ],
       "Investing Cash Flow": [
         null,
         -214.606,
-        null,
+        -288.806,
         -175.83
       ],
       "Financing Cash Flow": [
         null,
         144.792,
-        null,
+        101.338,
         263.76
       ],
       "CAPEX": [
@@ -488,20 +488,20 @@
       "Op Cash Flow": [
         null,
         -61.81,
-        null,
-        -147.83
+        511.713,
+        363.88300000000004
       ],
       "Investing Cash Flow": [
         null,
         -214.606,
-        null,
-        -175.83
+        -288.806,
+        -464.63599999999997
       ],
       "Financing Cash Flow": [
         null,
         144.792,
-        null,
-        263.76
+        101.338,
+        365.09799999999996
       ],
       "CAPEX": [
         null,

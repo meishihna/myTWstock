@@ -10,7 +10,8 @@ _temp_fix_*.py
 enrichment*.json
 .claude/settings.local.json
 
-# Astro / Node（web 子目錄）
+# Node modules（根目錄 & web 子目錄）
+node_modules/
 web/node_modules/
 web/dist/
 web/.astro/

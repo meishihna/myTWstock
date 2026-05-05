@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DOCSIS 閘道器",
+        "pct": 50
+      },
+      {
+        "name": "5G FWA CPE",
+        "pct": 30
+      },
+      {
+        "name": "數位機上盒",
+        "pct": 15
+      },
+      {
+        "name": "技術服務",
+        "pct": 5
+      }
+    ],
+    "geo": "歐洲逾七成，印度及美國合計約三成"
+  }
+}

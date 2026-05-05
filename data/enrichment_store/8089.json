@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "PON光纖接取",
+        "pct": 42
+      },
+      {
+        "name": "5G FWA CPE",
+        "pct": 25
+      },
+      {
+        "name": "Wi-Fi路由器",
+        "pct": 20
+      },
+      {
+        "name": "G.hn DPU",
+        "pct": 8
+      },
+      {
+        "name": "PoE/VoIP",
+        "pct": 5
+      }
+    ],
+    "geo": "印度（2024年爆發主因，2025年回落）、日本、北美、歐洲"
+  }
+}

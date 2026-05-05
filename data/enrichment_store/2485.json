@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DOCSIS升級設備",
+        "pct": 55
+      },
+      {
+        "name": "傳統LNB/STB",
+        "pct": 30
+      },
+      {
+        "name": "低軌衛星設備",
+        "pct": 15
+      }
+    ],
+    "geo": "北美為絕對核心，歐洲為輔"
+  }
+}

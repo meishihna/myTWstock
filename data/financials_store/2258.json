@@ -1,20 +1,20 @@
 {
   "ticker": "2258",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-23T20:21:40Z",
+  "updatedAt": "2026-05-04T13:53:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
   "industry": "Auto Manufacturers",
-  "marketCap": 48909,
-  "enterpriseValue": 47798,
+  "marketCap": 51263,
+  "enterpriseValue": 49460,
   "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
-    "P/S (TTM)": 11.8,
-    "P/B": 3.67,
-    "EV/EBITDA": -19.85,
+    "P/S (TTM)": 12.36,
+    "P/B": 3.84,
+    "EV/EBITDA": -20.55,
     "ROE": -24.59,
     "Beta": 1.25,
     "Debt/Equity": 3.36
@@ -97,9 +97,9 @@
         null,
         257.791,
         339.242,
-        435.065,
-        600.191,
-        711.426
+        2537.657,
+        4285.444,
+        4764.213
       ],
       "Operating Income": [
         null,
@@ -405,7 +405,7 @@
       ],
       "Op Cash Flow": [
         null,
-        null,
+        -68.507,
         -321.04,
         -40.09,
         -282.65,
@@ -421,7 +421,7 @@
       ],
       "Investing Cash Flow": [
         null,
-        null,
+        -380.555,
         -412.36,
         -351.75,
         -410.86,
@@ -437,7 +437,7 @@
       ],
       "Financing Cash Flow": [
         null,
-        null,
+        0.0,
         0.0,
         -0.71,
         -1.08,
@@ -681,7 +681,7 @@
       ],
       "Op Cash Flow": [
         null,
-        null,
+        -68.507,
         -321.04,
         -40.09,
         -282.65,
@@ -697,7 +697,7 @@
       ],
       "Investing Cash Flow": [
         null,
-        null,
+        -380.555,
         -412.36,
         -351.75,
         -410.86,
@@ -713,7 +713,7 @@
       ],
       "Financing Cash Flow": [
         null,
-        null,
+        0.0,
         0.0,
         -0.71,
         -1.08,
@@ -957,7 +957,7 @@
       ],
       "Op Cash Flow": [
         null,
-        null,
+        -68.507,
         -321.04,
         -361.13,
         -643.78,
@@ -973,7 +973,7 @@
       ],
       "Investing Cash Flow": [
         null,
-        null,
+        -380.555,
         -412.36,
         -764.11,
         -1174.97,
@@ -989,7 +989,7 @@
       ],
       "Financing Cash Flow": [
         null,
-        null,
+        0.0,
         0.0,
         -0.71,
         -1.79,

@@ -1,7 +1,7 @@
 {
   "ticker": "2644",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-23T20:21:41Z",
+  "updatedAt": "2026-05-04T13:53:45Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
@@ -327,33 +327,33 @@
       ],
       "Op Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -426.836,
+        579.849,
+        -64.094,
+        648.213,
+        -185.294,
+        626.642,
+        -1159.858
       ],
       "Investing Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        380.739,
+        -98.654,
+        200.964,
+        -300.852,
+        0.203,
+        -433.713,
+        145.345
       ],
       "Financing Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -60.488,
+        -211.533,
+        -185.874,
+        -355.652,
+        145.995,
+        -217.666,
+        937.958
       ],
       "CAPEX": [
         -99.626,
@@ -501,33 +501,33 @@
       ],
       "Op Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -426.836,
+        579.849,
+        -64.094,
+        648.213,
+        -185.294,
+        626.642,
+        -1159.858
       ],
       "Investing Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        380.739,
+        -98.654,
+        200.964,
+        -300.852,
+        0.203,
+        -433.713,
+        145.345
       ],
       "Financing Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -60.488,
+        -211.533,
+        -185.874,
+        -355.652,
+        145.995,
+        -217.666,
+        937.958
       ],
       "CAPEX": [
         -99.626,
@@ -675,33 +675,33 @@
       ],
       "Op Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -426.836,
+        153.01300000000003,
+        -64.094,
+        584.1189999999999,
+        -185.294,
+        441.34800000000007,
+        -1159.858
       ],
       "Investing Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        380.739,
+        282.085,
+        200.964,
+        -99.88799999999998,
+        0.203,
+        -433.51000000000005,
+        145.345
       ],
       "Financing Cash Flow": [
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        -60.488,
+        -272.02099999999996,
+        -185.874,
+        -541.526,
+        145.995,
+        -71.67099999999999,
+        937.958
       ],
       "CAPEX": [
         -99.626,

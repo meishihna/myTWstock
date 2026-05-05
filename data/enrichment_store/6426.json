@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DWDM濾光片",
+        "pct": 60
+      },
+      {
+        "name": "FTTx/CWDM濾光",
+        "pct": 20
+      },
+      {
+        "name": "生醫光學濾光",
+        "pct": 12
+      },
+      {
+        "name": "LiDAR/衛星",
+        "pct": 8
+      }
+    ],
+    "geo": "北美及亞太雲端客戶為主，合計逾70%"
+  }
+}
