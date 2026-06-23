@@ -25,3 +25,15 @@ data/mops_cache/*.json
 # 編輯器／工具暫存雜物
 *.Rhistory
 .claude/scheduled_tasks.lock
+
+# --- Phase 2: 停止追蹤可重生／冗餘產物（歷史仍保留；縮小 .git 需另做 history rewrite）---
+# 一次性財務備份
+data/financials_store_backup_*/
+# predev/prebuild 會重生的索引（避免每次 commit 的 diff 噪音）
+web/public/data/reports-index.json
+web/public/data/wikilink-hub-top500.json
+web/public/data/wikilink-stubs.json
+web/public/data/themes-index.json
+web/public/data/sector-stats.json
+# 舊財務鏡像（app 已改讀 data/financials_store/；保留磁碟檔但不追蹤）
+web/public/data/financials/
