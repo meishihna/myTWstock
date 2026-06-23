@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Data Network",
+        "pct": 58
+      },
+      {
+        "name": "Smart Connectivity",
+        "pct": 40
+      },
+      {
+        "name": "其他",
+        "pct": 2
+      }
+    ],
+    "geo": "北美為主要出口市場，亞太次之"
+  }
+}

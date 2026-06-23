@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "IT 系統整合",
+        "pct": 40
+      },
+      {
+        "name": "彩券系統維護",
+        "pct": 30
+      },
+      {
+        "name": "ATM 維護管理",
+        "pct": 25
+      },
+      {
+        "name": "5G/AIoT",
+        "pct": 5
+      }
+    ],
+    "geo": "台灣本地為主"
+  }
+}

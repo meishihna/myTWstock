@@ -1,0 +1,12 @@
+{
+  "revenue_mix": {
+    "year": 2025,
+    "segments": [
+      {"name": "半導體廠LFP鋰鐵UPS", "pct": 65},
+      {"name": "電動車及AGV電池模組", "pct": 20},
+      {"name": "AI伺服器BBU模組", "pct": 10},
+      {"name": "其他", "pct": 5}
+    ],
+    "geo": "台灣約 95%，海外約 5%"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "筆電電池模組",
+        "pct": 60
+      },
+      {
+        "name": "BBU伺服器備援電池",
+        "pct": 30
+      },
+      {
+        "name": "儲能/LEV電池模組",
+        "pct": 10
+      }
+    ],
+    "geo": "北美及歐洲為最大市場 (Dell/HP/Apple/CSP等客戶)，亞洲市場次之"
+  }
+}

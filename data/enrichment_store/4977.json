@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "高速光模組",
+        "pct": 78
+      },
+      {
+        "name": "Fibre Channel",
+        "pct": 18
+      },
+      {
+        "name": "CPO/其他",
+        "pct": 4
+      }
+    ],
+    "geo": "北美約 60%，亞太約 30%，歐洲約 10%"
+  }
+}

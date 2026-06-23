@@ -21,3 +21,7 @@ web/.astro/
 
 # MOPS 全市場季報快取（可很大）
 data/mops_cache/*.json
+
+# 編輯器／工具暫存雜物
+*.Rhistory
+.claude/scheduled_tasks.lock

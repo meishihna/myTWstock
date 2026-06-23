@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T16:52:32.630Z",
+  "generatedAt": "2026-06-23T22:05:32.401Z",
   "note": "Based on data/financials_store (fallback public/data/financials) from update_financials.py.",
   "sectors": {
     "Advertising Agencies": {
@@ -1531,13 +1531,13 @@
     "Healthcare": {
       "revenueLatest": {
         "n": 2,
-        "p25": 3937.23,
+        "p25": 3937.22,
         "p50": 7836.41,
-        "p75": 11735.6
+        "p75": 11735.59
       },
       "grossMarginLatest": {
         "n": 2,
-        "p25": 74.59,
+        "p25": 74.6,
         "p50": 79.47,
         "p75": 84.35
       },

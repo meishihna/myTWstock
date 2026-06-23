@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "POS 系統",
+        "pct": 55
+      },
+      {
+        "name": "自助服務 Kiosk",
+        "pct": 25
+      },
+      {
+        "name": "醫療 IPC",
+        "pct": 20
+      }
+    ],
+    "geo": "北美約 52%，歐洲約 33%，亞太約 15%"
+  }
+}

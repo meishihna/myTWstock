@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Smart Access",
+        "pct": 50
+      },
+      {
+        "name": "Smart Office",
+        "pct": 44
+      },
+      {
+        "name": "Smart Retail",
+        "pct": 6
+      }
+    ],
+    "geo": "歐洲約 45%，亞太及台灣約 40%，北美及其他約 15%"
+  }
+}

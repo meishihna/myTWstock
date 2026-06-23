@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "IP Camera及Speed Dome",
+        "pct": 58
+      },
+      {
+        "name": "NVR網路錄影系統",
+        "pct": 20
+      },
+      {
+        "name": "AI影像分析與機器視覺",
+        "pct": 15
+      },
+      {
+        "name": "其他周邊",
+        "pct": 7
+      }
+    ],
+    "geo": "歐美為主要出口市場（約60–70%），亞太市場為成長中的第二大區域"
+  }
+}

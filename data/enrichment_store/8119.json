@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Thin Client",
+        "pct": 45
+      },
+      {
+        "name": "POS 系統",
+        "pct": 30
+      },
+      {
+        "name": "車用電子",
+        "pct": 20
+      },
+      {
+        "name": "其他",
+        "pct": 5
+      }
+    ],
+    "geo": "歐美為主要市場，亞太次之"
+  }
+}

@@ -3,18 +3,22 @@
     "year": "2024",
     "segments": [
       {
-        "name": "AI/GPU伺服器",
+        "name": "AI GPU 伺服器",
         "pct": 55
       },
       {
-        "name": "一般雲端伺服器",
-        "pct": 40
+        "name": "OCP 雲端伺服器",
+        "pct": 30
+      },
+      {
+        "name": "儲存及網路設備",
+        "pct": 10
       },
       {
         "name": "其他",
         "pct": 5
       }
     ],
-    "geo": null
+    "geo": "北美超大型 CSP 超過 75%，亞太次之"
   }
 }

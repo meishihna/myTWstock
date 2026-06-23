@@ -1,20 +1,20 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "伺服器機殼",
-        "pct": 75
+        "name": "AI 伺服器機殼",
+        "pct": 62
       },
       {
-        "name": "工業應用機殼",
-        "pct": 15
+        "name": "儲存機殼",
+        "pct": 28
       },
       {
-        "name": "其他",
+        "name": "一般伺服器機殼",
         "pct": 10
       }
     ],
-    "geo": null
+    "geo": "北美（Amazon AWS 為主）約 55%，亞太約 30%，歐洲約 15%"
   }
 }

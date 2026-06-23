@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Pegasus影音儲存",
+        "pct": 40
+      },
+      {
+        "name": "Vess監控儲存",
+        "pct": 35
+      },
+      {
+        "name": "VTrak企業儲存",
+        "pct": 25
+      }
+    ],
+    "geo": "北美約 45%，歐洲約 35%，亞太約 20%"
+  }
+}

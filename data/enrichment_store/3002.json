@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Smart PDU 機房電源",
+        "pct": 52
+      },
+      {
+        "name": "旅遊轉接頭/消費性電源",
+        "pct": 30
+      },
+      {
+        "name": "物聯網智慧插座/IP Camera",
+        "pct": 18
+      }
+    ],
+    "geo": "歐美市場為主，亞太市場次之"
+  }
+}
