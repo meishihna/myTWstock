@@ -1,4 +1,4 @@
-# {file.replace('.md', '')}
+# 6781 - AES-KY
 
 ## 業務簡介
 **板塊:** Industrials

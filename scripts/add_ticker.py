@@ -61,6 +61,8 @@ def generate_report(ticker, name, sector=None, industry=None):
 
 ## 主要客戶及供應商
 *(待enrichment)*
+
+## 財務概況
 """
 
     return content, sector

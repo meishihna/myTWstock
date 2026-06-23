@@ -1,0 +1,25 @@
+# 報告結構完整性門檻：擋住 mojibake、未取代樣板、缺段落、重複 ticker、壞檔名。
+# 對應 scripts/check_report_integrity.py（純標準庫，無需安裝相依）。
+name: Report integrity
+
+on:
+  push:
+    paths:
+      - "Pilot_Reports/**"
+      - "scripts/check_report_integrity.py"
+      - ".github/workflows/report-integrity.yml"
+  pull_request:
+    paths:
+      - "Pilot_Reports/**"
+      - "scripts/check_report_integrity.py"
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check report integrity
+        run: python scripts/check_report_integrity.py
