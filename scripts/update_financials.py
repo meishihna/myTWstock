@@ -1321,11 +1321,86 @@ def _mirror_public_enabled() -> bool:
     )
 
 
+def _merge_financial_block(old_block, new_block):
+    """合併兩個 {periods, series} 區塊:期數取聯集並排序;重疊期以 new 值優先（new 為
+    None 時保留 old 值）；僅存在於 old 的期數一律保留。→ 期數「只增不減」,避免抓不全
+    的新資料覆蓋造成歷史截斷(2026-06 截斷事故的防護)。"""
+    if not isinstance(new_block, dict) or not new_block.get("periods"):
+        return old_block if isinstance(old_block, dict) else new_block
+    if not isinstance(old_block, dict) or not old_block.get("periods"):
+        return new_block
+
+    def to_map(block):
+        periods = block.get("periods") or []
+        series = block.get("series") or {}
+        m = {}
+        for i, p in enumerate(periods):
+            m[p] = {k: (arr[i] if i < len(arr) else None) for k, arr in series.items()}
+        return m
+
+    old_map, new_map = to_map(old_block), to_map(new_block)
+    all_periods = sorted(set(old_block["periods"]) | set(new_block["periods"]))
+    metrics = list(
+        dict.fromkeys(
+            list((old_block.get("series") or {}).keys())
+            + list((new_block.get("series") or {}).keys())
+        )
+    )
+    series = {k: [] for k in metrics}
+    for p in all_periods:
+        o, n = old_map.get(p, {}), new_map.get(p, {})
+        for k in metrics:
+            nv = n.get(k)
+            series[k].append(nv if nv is not None else o.get(k))
+    return {"periods": all_periods, "series": series}
+
+
+def _trim_block_tail(block, max_cols):
+    """只保留最新 max_cols 期(滾動視窗);丟最舊的。"""
+    if not isinstance(block, dict):
+        return block
+    periods = block.get("periods") or []
+    if len(periods) <= max_cols:
+        return block
+    cut = len(periods) - max_cols
+    block["periods"] = periods[cut:]
+    for k, arr in (block.get("series") or {}).items():
+        block["series"][k] = arr[cut:]
+    return block
+
+
+def _merge_with_existing(ticker: str, payload: dict) -> dict:
+    """寫入前與既有 store 檔合併:四個時間序列區塊期數只增不減,再滾動裁到上限。
+    其餘欄位(valuation/marketCap/updatedAt…)一律用新值。"""
+    store_path = os.path.join(FINANCIALS_STORE_DIR, f"{ticker}.json")
+    if not os.path.exists(store_path):
+        return payload
+    try:
+        with open(store_path, encoding="utf-8") as f:
+            old = json.load(f)
+    except (OSError, ValueError):
+        return payload
+    caps = {
+        "annual": ANNUAL_JSON_MAX_COLS,
+        "quarterly": QUARTERLY_JSON_MAX_COLS,
+        "quarterlyCore": QUARTERLY_JSON_MAX_COLS,
+        "quarterlyYtd": QUARTERLY_JSON_MAX_COLS,
+    }
+    for key, cap in caps.items():
+        if key in payload or key in old:
+            merged = _merge_financial_block(old.get(key), payload.get(key))
+            if isinstance(merged, dict):
+                payload[key] = _trim_block_tail(merged, cap)
+    return payload
+
+
 def write_financials_store(ticker: str, data: dict, dry_run: bool = False) -> None:
-    """原子寫入 data/financials_store/{ticker}.json；可選鏡像到 public。"""
+    """原子寫入 data/financials_store/{ticker}.json；可選鏡像到 public。
+    寫入前與既有檔合併(期數只增不減),避免抓不全時截斷歷史。"""
     if dry_run:
         return
     payload = build_financials_payload(ticker, data)
+    payload = _merge_with_existing(ticker, payload)
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     store_path = os.path.join(FINANCIALS_STORE_DIR, f"{ticker}.json")
     _write_utf8_atomic(store_path, text)
