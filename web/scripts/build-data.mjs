@@ -31,10 +31,11 @@ function run(script) {
 
 const t0 = Date.now();
 await run("build-index.mjs");
-// hub/themes/sector only depend on reports-index.json -> run concurrently
+// hub/themes/sector/screener only depend on reports-index.json -> run concurrently
 const hub = run("build-wikilink-hub.mjs");
 const themes = run("build-themes-index.mjs");
 const sector = run("build-sector-stats.mjs");
+const screener = run("build-screener-index.mjs");
 await hub; // stubs reads wikilink-hub output, so wait for hub specifically
-await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector]);
+await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener]);
 console.error(`[build-data] all indexes built in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
