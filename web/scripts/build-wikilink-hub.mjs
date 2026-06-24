@@ -44,6 +44,7 @@ async function main() {
 
   const linkCount = new Map();
   const linkTickers = new Map();
+  const reportLabels = new Map(); // ticker -> Set<label>(該報告出現的實體),供共現計算
 
   const wikiRe = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
 
@@ -58,9 +59,11 @@ async function main() {
     const content = readFileSync(fp, "utf8");
     wikiRe.lastIndex = 0;
     let w;
+    const labelsInReport = new Set();
     while ((w = wikiRe.exec(content)) !== null) {
       const label = w[1].trim();
       if (!label) continue;
+      labelsInReport.add(label);
       linkCount.set(label, (linkCount.get(label) || 0) + 1);
       if (!linkTickers.has(label)) linkTickers.set(label, new Map());
       linkTickers.get(label).set(ticker, {
@@ -70,6 +73,7 @@ async function main() {
         sectorSlug: meta.sectorSlug,
       });
     }
+    reportLabels.set(ticker, labelsInReport);
   }
 
   const sorted = [...linkCount.entries()].sort((a, b) => b[1] - a[1]);
@@ -90,6 +94,29 @@ async function main() {
       : [];
     return { label, slug, count, tickers };
   });
+
+  // 共現:對每個 top 實體,找最常一起出現(同報告)的其他 top 實體 → 供「相關實體」探索。
+  // 僅納入同為 top-500 者(才有 wiki 頁可連結);門檻共現 >= 2 篇,取前 8。
+  const labelToSlug = new Map(entries.map((e) => [e.label, e.slug]));
+  for (const e of entries) {
+    const co = new Map();
+    const tmap = linkTickers.get(e.label);
+    if (tmap) {
+      for (const ticker of tmap.keys()) {
+        const labs = reportLabels.get(ticker);
+        if (!labs) continue;
+        for (const ol of labs) {
+          if (ol === e.label || !labelToSlug.has(ol)) continue;
+          co.set(ol, (co.get(ol) || 0) + 1);
+        }
+      }
+    }
+    e.related = [...co.entries()]
+      .filter(([, c]) => c >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([label, c]) => ({ label, slug: labelToSlug.get(label), count: c }));
+  }
 
   mkdirSync(path.dirname(OUT_FILE), { recursive: true });
   await writeJsonAtomicWithRetry(OUT_FILE, {

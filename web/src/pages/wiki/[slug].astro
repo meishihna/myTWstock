@@ -12,6 +12,7 @@ type HubEntry = {
   label: string;
   slug: string;
   count: number;
+  related?: { label: string; slug: string; count: number }[];
   tickers: {
     ticker: string;
     name: string;
@@ -120,6 +121,21 @@ const pageDesc = entry ? `${entry.label} — ${WIKI.lead}` : WIKI_STUB.badge;
             ))}
           </tbody>
         </table>
+
+        {entry.related && entry.related.length > 0 && (
+          <section class="wiki-related">
+            <h2 class="wiki-related__h">常一起出現的實體（相關供應鏈／同業）</h2>
+            <p class="wiki-related__sub muted">與本實體最常出現在同一篇報告的其他實體,可循此探索供應鏈關聯。</p>
+            <ul class="wiki-related__list">
+              {entry.related.map((r) => (
+                <li>
+                  <a href={`/wiki/${r.slug}`}>{r.label}</a>
+                  <span class="wiki-related__n">{r.count}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </>
     )
   }
@@ -169,3 +185,14 @@ const pageDesc = entry ? `${entry.label} — ${WIKI.lead}` : WIKI_STUB.badge;
     )
   }
 </Layout>
+
+<style>
+  .wiki-related { margin-top: 2rem; }
+  .wiki-related__h { font-size: 1.05rem; margin: 0 0 0.25rem; }
+  .wiki-related__sub { font-size: 0.8rem; margin: 0 0 0.75rem; }
+  .wiki-related__list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .wiki-related__list li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border, rgba(255,255,255,0.14)); border-radius: 999px; background: var(--bg2, rgba(255,255,255,0.04)); }
+  .wiki-related__list a { text-decoration: none; color: var(--link-report, #7dd3c0); }
+  .wiki-related__list a:hover { text-decoration: underline; }
+  .wiki-related__n { font-size: 0.72rem; color: var(--muted, #9aa0a6); font-variant-numeric: tabular-nums; }
+</style>
