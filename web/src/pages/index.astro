@@ -59,31 +59,38 @@ if (fs.existsSync(idxPath)) {
     const emptyMsg = box?.dataset.emptyMsg || "";
     const indexLoading = box?.dataset.indexLoading || "";
     const indexError = box?.dataset.indexError || "";
-    /** @type {"loading" | "ready" | "error"} */
-    let indexState = "loading";
+    /** @type {"idle" | "loading" | "ready" | "error"} */
+    let indexState = "idle";
 
-    fetch("/data/reports-index.json")
-      .then((r) => {
-        if (!r.ok) throw new Error("bad");
-        return r.json();
-      })
-      .then((idx) => {
-        rows = Object.values(idx.byTicker ?? {}).map((m) => ({
-          ticker: m.ticker,
-          name: m.name,
-          sector: m.sector,
-        }));
-        indexState = "ready";
-      })
-      .catch(() => {
-        indexState = "error";
-      });
+    // 延遲載入:聚焦或開始輸入時才抓 reports-index.json(首頁不再無條件下載 ~319KB)
+    function loadIndex() {
+      if (indexState !== "idle") return;
+      indexState = "loading";
+      fetch("/data/reports-index.json")
+        .then((r) => {
+          if (!r.ok) throw new Error("bad");
+          return r.json();
+        })
+        .then((idx) => {
+          rows = Object.values(idx.byTicker ?? {}).map((m) => ({
+            ticker: m.ticker,
+            name: m.name,
+            sector: m.sector,
+          }));
+          indexState = "ready";
+        })
+        .catch(() => {
+          indexState = "error";
+        });
+    }
+    input?.addEventListener("focus", loadIndex, { once: true });
 
     function norm(s) {
       return s.trim().toLowerCase();
     }
 
     input?.addEventListener("input", () => {
+      loadIndex();
       const q = norm(/** @type {HTMLInputElement} */ (input).value);
       if (!box) return;
       if (!q) {
