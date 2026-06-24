@@ -1,6 +1,5 @@
 ---
 import { getPrice } from "../lib/priceCache";
-import { buildCandlestickChart } from "../lib/priceChartSvg";
 import { QUOTE } from "../lib/ui";
 
 interface Props {
@@ -9,29 +8,10 @@ interface Props {
 
 const { ticker } = Astro.props;
 
+// 向 Yahoo 取數:供價格 header 與持股／殖利率資訊列。
+// 走勢圖（含區間選擇與互動 OHLCV）由前端 Lightweight Charts 讀 /api/bars 繪製。
 const priceData = await getPrice(ticker);
-const chart =
-  priceData && priceData.close.length >= 2
-    ? buildCandlestickChart(
-        priceData.dates,
-        priceData.open,
-        priceData.high,
-        priceData.low,
-        priceData.close,
-        priceData.volume,
-        priceData.ma5,
-        priceData.ma10,
-        priceData.ma20,
-        660,
-        320,
-        62,
-        10,
-        8,
-        5,
-      )
-    : null;
 
-/** 最後一根＝最新收盤；前一根＝前一交易日收盤（與 K 線一致，用於當日漲跌與昨收） */
 const nClose = priceData?.close.length ?? 0;
 const headlineClose =
   nClose >= 1 && priceData ? priceData.close[nClose - 1]! : null;
@@ -42,9 +22,7 @@ const dayChange =
     ? Math.round((headlineClose - prevSessionClose) * 100) / 100
     : null;
 const dayChangePct =
-  dayChange != null &&
-  prevSessionClose != null &&
-  prevSessionClose !== 0
+  dayChange != null && prevSessionClose != null && prevSessionClose !== 0
     ? Math.round((dayChange / prevSessionClose) * 10000) / 100
     : null;
 
@@ -57,14 +35,6 @@ function fmtPrice(n: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-}
-
-/** Proposal C 成交量列（B / M / K） */
-function fmtVolLine(v: number): string {
-  if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
-  if (v >= 1e3) return (v / 1e3).toFixed(0) + "K";
-  return String(Math.round(v));
 }
 
 function fmtPctOrDash(v: number | null | undefined): string {
@@ -85,33 +55,6 @@ if (priceData?.marketTime) {
   timeDisplay = priceData.dates[priceData.dates.length - 1] ?? "";
 }
 
-const high90 = priceData ? Math.max(...priceData.high) : null;
-const low90 = priceData ? Math.min(...priceData.low) : null;
-
-const lastIdx = nClose >= 1 ? nClose - 1 : -1;
-const lastOpen =
-  lastIdx >= 0 && priceData ? priceData.open[lastIdx]! : null;
-const lastHigh =
-  lastIdx >= 0 && priceData ? priceData.high[lastIdx]! : null;
-const lastLow =
-  lastIdx >= 0 && priceData ? priceData.low[lastIdx]! : null;
-const lastCloseBar =
-  lastIdx >= 0 && priceData ? priceData.close[lastIdx]! : null;
-const lastVol =
-  lastIdx >= 0 && priceData ? priceData.volume[lastIdx]! : null;
-
-const currentInRange =
-  headlineClose ?? (priceData?.latest ?? 0);
-const rangeSpan =
-  high90 != null && low90 != null ? high90 - low90 : 0;
-let currentPctInRange = 50;
-if (rangeSpan > 0 && high90 != null && low90 != null) {
-  currentPctInRange = Math.round(
-    ((currentInRange - low90) / rangeSpan) * 100,
-  );
-  currentPctInRange = Math.max(0, Math.min(100, currentPctInRange));
-}
-
 const chgBigStr =
   dayChange == null
     ? "—"
@@ -123,19 +66,24 @@ const chgPctStr =
     ? "—"
     : (dayChangePct === 0
         ? "0.00"
-        : (dayChangePct > 0 ? "+" : "-") +
-          Math.abs(dayChangePct).toFixed(2)) + "%";
+        : (dayChangePct > 0 ? "+" : "-") + Math.abs(dayChangePct).toFixed(2)) +
+      "%";
 
-const hoverZoneW = chart
-  ? chart.svgWidth - chart.leftPad - chart.rightPad
-  : 0;
+const ranges: { label: string; months: number }[] = [
+  { label: "1月", months: 1 },
+  { label: "3月", months: 3 },
+  { label: "6月", months: 6 },
+  { label: "1年", months: 12 },
+  { label: "2年", months: 24 },
+];
+const defaultMonths = 6;
 ---
 
 <section class="quote-widget-wrap" aria-label={QUOTE.title}>
   <h2 class="quote-widget-sr-only">{QUOTE.title}</h2>
 
   {
-    priceData && chart ? (
+    priceData ? (
       <div class="quote-widget">
         <div class="quote-top">
           <div class="quote-top-left">
@@ -147,12 +95,12 @@ const hoverZoneW = chart
                     : fmtPrice(priceData.latest)}
                 </div>
               </div>
-              <div class={`quote-change-block quote-change-block--next-price`}>
+              <div class="quote-change-block quote-change-block--next-price">
                 <div class={`quote-chg-big ${badgeClass}`}>{chgBigStr}</div>
                 <div class={`quote-chg-pct ${badgeClass}`}>{chgPctStr}</div>
               </div>
             </div>
-            <div class="quote-sub">NT$ · {ticker}.TW</div>
+            <div class="quote-sub">NT$ · {ticker}</div>
           </div>
           <div class="quote-top-metrics" aria-label={QUOTE.holdingsStripAria}>
             <div class="quote-metric">
@@ -176,252 +124,37 @@ const hoverZoneW = chart
           </div>
         </div>
 
-        <div class="quote-mid">
-          <div>
-            {QUOTE.midOpen}{" "}
-            <b>{lastOpen != null ? fmtPrice(lastOpen) : "—"}</b>
-          </div>
-          <div>
-            {QUOTE.midHigh}{" "}
-            <b>{lastHigh != null ? fmtPrice(lastHigh) : "—"}</b>
-          </div>
-          <div>
-            {QUOTE.midClose}{" "}
-            <b>
-              {lastCloseBar != null
-                ? fmtPrice(lastCloseBar)
-                : headlineClose != null
-                  ? fmtPrice(headlineClose)
-                  : "—"}
-            </b>
-          </div>
-          <div>
-            {QUOTE.midLow}{" "}
-            <b>{lastLow != null ? fmtPrice(lastLow) : "—"}</b>
-          </div>
-          <div>
-            {QUOTE.midVol}{" "}
-            <b>{lastVol != null ? fmtVolLine(lastVol) : "—"}</b>
-          </div>
+        <div class="quote-lwc-ranges" role="group" aria-label="日期區間">
+          {
+            ranges.map((r) => (
+              <button
+                type="button"
+                class:list={["quote-lwc-range", { "is-active": r.months === defaultMonths }]}
+                data-months={r.months}
+              >
+                {r.label}
+              </button>
+            ))
+          }
         </div>
 
-        <div class="quote-chart" data-ticker={ticker}>
-          <svg
-            class="price-svg"
-            viewBox={`0 0 ${chart.svgWidth} ${chart.svgHeight}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            {
-              chart.priceLabels.map((tick) => (
-                <g class="price-grid-row">
-                  <line
-                    x1={chart.leftPad}
-                    y1={tick.y}
-                    x2={chart.svgWidth}
-                    y2={tick.y}
-                    stroke="rgba(255,255,255,0.04)"
-                    stroke-width="0.5"
-                    stroke-dasharray="2,4"
-                  />
-                  <text
-                    x={chart.leftPad - 10}
-                    y={tick.y + 3}
-                    fill="var(--muted)"
-                    font-size="9"
-                    text-anchor="end"
-                    font-family="ui-monospace, monospace"
-                  >
-                    {tick.label}
-                  </text>
-                </g>
-              ))
-            }
+        <div
+          class="quote-lwc"
+          data-ticker={ticker}
+          data-default-months={defaultMonths}
+          role="img"
+          aria-label={QUOTE.title}
+        ></div>
 
-            <line
-              x1={chart.leftPad}
-              y1="0"
-              x2={chart.leftPad}
-              y2={chart.priceAreaHeight}
-              stroke="var(--border)"
-              stroke-width="0.5"
-            />
-
-            {
-              chart.candles.map((c) => (
-                <g class="candle-group">
-                  <line
-                    x1={c.x}
-                    y1={c.wickTop}
-                    x2={c.x}
-                    y2={c.wickBottom}
-                    stroke={c.color}
-                    stroke-width="1"
-                  />
-                  <rect
-                    x={c.x - chart.candleWidth / 2}
-                    y={c.bodyTop}
-                    width={chart.candleWidth}
-                    height={Math.max(2, c.bodyBottom - c.bodyTop)}
-                    fill={c.color}
-                    rx="1"
-                  />
-                </g>
-              ))
-            }
-
-            {
-              chart.maPaths.map((mp) => (
-                <path
-                  d={mp.d}
-                  fill="none"
-                  stroke={mp.color}
-                  stroke-width="1.35"
-                  stroke-opacity="0.9"
-                  stroke-linejoin="round"
-                  stroke-linecap="round"
-                />
-              ))
-            }
-
-            {
-              chart.dateLabels.map((dl) => (
-                <text
-                  x={dl.x}
-                  y={chart.dateLabelY}
-                  fill="var(--muted)"
-                  font-size="9"
-                  text-anchor="middle"
-                  font-family="ui-monospace, monospace"
-                >
-                  {dl.label}
-                </text>
-              ))
-            }
-
-            <line
-              x1={chart.leftPad}
-              y1={chart.volumeSeparatorY}
-              x2={chart.svgWidth}
-              y2={chart.volumeSeparatorY}
-              stroke="rgba(255,255,255,0.08)"
-              stroke-width="0.5"
-            />
-
-            {
-              chart.candles.map((c) => (
-                <rect
-                  x={c.x - chart.candleWidth / 2}
-                  y={chart.volumeAreaTop + chart.volumeAreaHeight - c.volHeight}
-                  width={chart.candleWidth}
-                  height={c.volHeight}
-                  fill={c.volColor}
-                  rx="1"
-                />
-              ))
-            }
-
-            <line
-              class="crosshair-v"
-              x1="0"
-              y1="0"
-              x2="0"
-              y2={chart.svgHeight}
-              stroke="rgba(255,255,255,0.28)"
-              stroke-width="0.5"
-              stroke-dasharray="3,3"
-              style="display:none"
-            />
-            <line
-              class="crosshair-h"
-              x1={chart.leftPad}
-              y1="0"
-              x2={chart.svgWidth}
-              y2="0"
-              stroke="rgba(255,255,255,0.28)"
-              stroke-width="0.5"
-              stroke-dasharray="3,3"
-              style="display:none"
-            />
-
-            <rect
-              class="hover-zone"
-              x={chart.leftPad}
-              y="0"
-              width={hoverZoneW}
-              height={chart.svgHeight}
-              fill="transparent"
-              style="cursor:crosshair"
-            />
-          </svg>
-
-          <div class="price-tooltip" style="display:none">
-            <div class="price-tooltip-date"></div>
-            <div class="price-tooltip-ohlc"></div>
-            <div class="price-tooltip-chg"></div>
-            <div class="price-tooltip-vol"></div>
+        <div class="quote-foot">
+          <div class="quote-ma-legend">
+            <span class="quote-ma-legend__item"><i style="background:#F0B429"></i>5MA</span>
+            <span class="quote-ma-legend__item"><i style="background:#6BA3E8"></i>10MA</span>
+            <span class="quote-ma-legend__item"><i style="background:#B388FF"></i>20MA</span>
           </div>
-        </div>
-
-        <div class="quote-bottom">
-          <div class="quote-bottom__range">
-            <div class="quote-range">
-              {low90 != null && high90 != null && (
-                <>
-                  <b>{fmtPrice(low90)}</b>
-                  <div class="quote-rangebar">
-                    <div class="quote-rangebar-gradient"></div>
-                    <div
-                      class="quote-rangebar-dot"
-                      style={`left: ${currentPctInRange}%`}
-                    ></div>
-                  </div>
-                  <b>{fmtPrice(high90)}</b>
-                  <span class="quote-range-label">{QUOTE.range90Label}</span>
-                </>
-              )}
-            </div>
-          </div>
-          <div class="quote-bottom__center">
-            {
-              chart.maPaths.length > 0 && (
-                <div
-                  class="quote-ma-legend quote-ma-legend--footer"
-                  aria-label={`${QUOTE.ma5Leg}、${QUOTE.ma10Leg}、${QUOTE.ma20Leg}`}
-                >
-                  <span class="quote-ma-legend__item">
-                    <span
-                      class="quote-ma-legend__swatch"
-                      style="background:#F0B429"
-                      aria-hidden="true"
-                    />
-                    {QUOTE.ma5Leg}
-                  </span>
-                  <span class="quote-ma-legend__item">
-                    <span
-                      class="quote-ma-legend__swatch"
-                      style="background:#6BA3E8"
-                      aria-hidden="true"
-                    />
-                    {QUOTE.ma10Leg}
-                  </span>
-                  <span class="quote-ma-legend__item">
-                    <span
-                      class="quote-ma-legend__swatch"
-                      style="background:#B388FF"
-                      aria-hidden="true"
-                    />
-                    {QUOTE.ma20Leg}
-                  </span>
-                </div>
-              )
-            }
-          </div>
-          <div class="quote-bottom__time">
-            <div class="quote-timestamp">
-              {QUOTE.delayedShort}
-              {timeDisplay ? ` · ${timeDisplay}` : ""}
-            </div>
+          <div class="quote-foot__time">
+            {QUOTE.delayedShort}
+            {timeDisplay ? ` · ${timeDisplay}` : ""}
           </div>
         </div>
       </div>
@@ -432,193 +165,279 @@ const hoverZoneW = chart
       </div>
     )
   }
-
-  {
-    priceData && chart && (
-      <script
-        is:inline
-        define:vars={{
-          ticker,
-          chartDates: priceData.dates,
-          chartOpen: priceData.open,
-          chartHigh: priceData.high,
-          chartLow: priceData.low,
-          chartCloses: priceData.close,
-          chartVolume: priceData.volume,
-          svgWidth: chart.svgWidth,
-          svgHeight: chart.svgHeight,
-          leftPad: chart.leftPad,
-          rightPad: chart.rightPad,
-          slotSvg: chart.slotSvg,
-          candleCount: priceData.close.length,
-          quotePctLabel: QUOTE.pct,
-        }}
-      >
-        document.addEventListener("DOMContentLoaded", function () {
-          var container = document.querySelector(
-            '.quote-chart[data-ticker="' + ticker + '"]',
-          );
-          if (!container || !candleCount) return;
-
-          var svgEl = container.querySelector(".price-svg");
-          var zone = container.querySelector(".hover-zone");
-          var vLine = container.querySelector(".crosshair-v");
-          var hLine = container.querySelector(".crosshair-h");
-          var tooltip = container.querySelector(".price-tooltip");
-          var tooltipDate = container.querySelector(".price-tooltip-date");
-          var tooltipOhlc = container.querySelector(".price-tooltip-ohlc");
-          var tooltipVol = container.querySelector(".price-tooltip-vol");
-          var tooltipChg = container.querySelector(".price-tooltip-chg");
-
-          if (!zone || !svgEl || !vLine || !hLine || !tooltip) return;
-
-          var n = candleCount;
-          var slotW = slotSvg;
-
-          function fmtNum(x) {
-            return x.toLocaleString("zh-TW", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            });
-          }
-
-          function fmtVol(v) {
-            if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
-            if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
-            if (v >= 1e3) return (v / 1e3).toFixed(0) + "K";
-            return String(Math.round(v));
-          }
-
-          function hide() {
-            vLine.style.display = "none";
-            hLine.style.display = "none";
-            tooltip.style.display = "none";
-            tooltip.style.left = "";
-            tooltip.style.top = "";
-            tooltip.style.transform = "";
-          }
-
-          function onPointer(ev) {
-            var zrect = zone.getBoundingClientRect();
-            var srect = svgEl.getBoundingClientRect();
-            if (zrect.width <= 0 || srect.height <= 0) return;
-
-            var xIn = ev.clientX - zrect.left;
-            var frac = Math.max(0, Math.min(1, xIn / zrect.width));
-            var idx = Math.min(n - 1, Math.floor(frac * n));
-
-            var candleX = leftPad + idx * slotW + slotW / 2;
-
-            vLine.setAttribute("x1", String(candleX));
-            vLine.setAttribute("x2", String(candleX));
-            vLine.setAttribute("y1", "0");
-            vLine.setAttribute("y2", String(svgHeight));
-            vLine.style.display = "";
-
-            var svgMouseY =
-              ((ev.clientY - srect.top) / srect.height) * svgHeight;
-            svgMouseY = Math.max(0, Math.min(svgHeight, svgMouseY));
-
-            hLine.setAttribute("x1", String(leftPad));
-            hLine.setAttribute("x2", String(svgWidth));
-            hLine.setAttribute("y1", String(svgMouseY));
-            hLine.setAttribute("y2", String(svgMouseY));
-            hLine.style.display = "";
-
-            var o = chartOpen[idx];
-            var h = chartHigh[idx];
-            var l = chartLow[idx];
-            var c = chartCloses[idx];
-            var v = chartVolume[idx];
-            var isUpDay = c >= o;
-            var color = isUpDay ? "#1D9E75" : "#E24B4A";
-
-            if (tooltipDate) tooltipDate.textContent = chartDates[idx] || "";
-            if (tooltipOhlc) {
-              tooltipOhlc.innerHTML =
-                "開 <b>" +
-                fmtNum(o) +
-                "</b>　高 <b style=\"color:" +
-                color +
-                '">' +
-                fmtNum(h) +
-                "</b><br>低 <b style=\"color:" +
-                color +
-                '">' +
-                fmtNum(l) +
-                "</b>　收 <b style=\"color:" +
-                color +
-                '">' +
-                fmtNum(c) +
-                "</b>";
-            }
-            if (tooltipChg) {
-              if (idx > 0) {
-                var prevClose = chartCloses[idx - 1];
-                var dCh =
-                  Math.round((c - prevClose) * 100) / 100;
-                var dPct =
-                  prevClose !== 0
-                    ? Math.round((dCh / prevClose) * 10000) / 100
-                    : 0;
-                var sg = dCh > 0 ? "+" : dCh < 0 ? "-" : "";
-                var chCol =
-                  dCh > 0 ? "#5ee9b5" : dCh < 0 ? "#ff9a9a" : "#a8a8a8";
-                tooltipChg.innerHTML =
-                  quotePctLabel +
-                  ' <b style="color:' +
-                  chCol +
-                  '">' +
-                  sg +
-                  Math.abs(dPct).toFixed(2) +
-                  "%</b>";
-              } else {
-                tooltipChg.innerHTML =
-                  quotePctLabel + ' <span style="color:#888">—</span>';
-              }
-            }
-            if (tooltipVol) tooltipVol.textContent = "量 " + fmtVol(v);
-
-            /**
-             * 互動小卡在十字線「左」或「右」：偏左的 K 棒 → 小卡在右側；偏右 → 小卡在左側。
-             * 以視窗 fixed + translate(-50%,-50%) 置中於游標高度，不壓在當日柱體上。
-             */
-            var cxScreen = srect.left + (candleX / svgWidth) * srect.width;
-            var halfW = 118;
-            var gap = 12;
-            var edge = 10;
-            var midX = srect.left + srect.width * 0.5;
-            var preferRight = cxScreen < midX;
-            var tipCx = preferRight
-              ? cxScreen + halfW + gap
-              : cxScreen - halfW - gap;
-            if (preferRight && tipCx + halfW > window.innerWidth - edge) {
-              tipCx = cxScreen - halfW - gap;
-            } else if (!preferRight && tipCx - halfW < edge) {
-              tipCx = cxScreen + halfW + gap;
-            }
-            tipCx = Math.max(
-              halfW + edge,
-              Math.min(window.innerWidth - halfW - edge, tipCx),
-            );
-
-            var tipCy = Math.max(
-              srect.top + 56,
-              Math.min(srect.bottom - 48, ev.clientY),
-            );
-
-            tooltip.style.display = "block";
-            tooltip.style.left = tipCx + "px";
-            tooltip.style.top = tipCy + "px";
-            tooltip.style.transform = "translate(-50%, -50%)";
-          }
-
-          zone.addEventListener("pointermove", onPointer);
-          zone.addEventListener("pointerdown", onPointer);
-          zone.addEventListener("pointerleave", hide);
-          zone.addEventListener("pointercancel", hide);
-        });
-      </script>
-    )
-  }
 </section>
+
+<script>
+  import { createChart, CrosshairMode } from "lightweight-charts";
+
+  interface Bar {
+    time: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }
+
+  function fmtNum(n: number): string {
+    return n.toLocaleString("zh-TW", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  function fmtVol(v: number): string {
+    if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
+    if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+    if (v >= 1e3) return (v / 1e3).toFixed(0) + "K";
+    return String(Math.round(v));
+  }
+  function sma(bars: Bar[], period: number): { time: string; value: number }[] {
+    const out: { time: string; value: number }[] = [];
+    for (let i = period - 1; i < bars.length; i++) {
+      let s = 0;
+      for (let j = i - period + 1; j <= i; j++) s += bars[j]!.close;
+      out.push({ time: bars[i]!.time, value: Math.round((s / period) * 100) / 100 });
+    }
+    return out;
+  }
+  /** crosshair 的 time 可能是 'YYYY-MM-DD' 字串或 {year,month,day}；統一成字串 key */
+  function timeKey(t: unknown): string {
+    if (typeof t === "string") return t;
+    if (t && typeof t === "object" && "year" in (t as any)) {
+      const o = t as { year: number; month: number; day: number };
+      return `${o.year}-${String(o.month).padStart(2, "0")}-${String(o.day).padStart(2, "0")}`;
+    }
+    return String(t);
+  }
+
+  async function initQuoteChart(): Promise<void> {
+    const el = document.querySelector<HTMLElement>(".quote-lwc[data-ticker]");
+    if (!el || el.dataset.lwcInit) return;
+    el.dataset.lwcInit = "1";
+    const ticker = el.getAttribute("data-ticker");
+
+    let bars: Bar[] = [];
+    try {
+      const r = await fetch(`/api/bars/${ticker}`);
+      const j = await r.json();
+      bars = (j.bars as Bar[]) || [];
+    } catch {
+      /* ignore */
+    }
+    if (bars.length < 2) {
+      el.innerHTML = '<div class="quote-lwc-msg">走勢資料暫時無法載入</div>';
+      return;
+    }
+
+    const chart = createChart(el, {
+      autoSize: true,
+      layout: { background: { color: "transparent" }, textColor: "#cbd5e1", fontSize: 11 },
+      grid: {
+        vertLines: { color: "rgba(255,255,255,0.05)" },
+        horzLines: { color: "rgba(255,255,255,0.05)" },
+      },
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.12)" },
+      timeScale: { borderColor: "rgba(255,255,255,0.12)", rightOffset: 4 },
+      crosshair: { mode: CrosshairMode.Normal },
+    });
+
+    const candle = chart.addCandlestickSeries({
+      upColor: "#1D9E75",
+      downColor: "#E24B4A",
+      borderVisible: false,
+      wickUpColor: "#1D9E75",
+      wickDownColor: "#E24B4A",
+    });
+    candle.setData(
+      bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })),
+    );
+
+    const vol = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
+    vol.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    vol.setData(
+      bars.map((b) => ({
+        time: b.time,
+        value: b.volume,
+        color: b.close >= b.open ? "rgba(29,158,117,0.45)" : "rgba(226,75,74,0.45)",
+      })),
+    );
+
+    const maDefs: [number, string][] = [
+      [5, "#F0B429"],
+      [10, "#6BA3E8"],
+      [20, "#B388FF"],
+    ];
+    for (const [period, color] of maDefs) {
+      const line = chart.addLineSeries({
+        color,
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      line.setData(sma(bars, period));
+    }
+
+    // ── 互動式 OHLCV 圖例(隨游標更新,預設最新一根)─────────────
+    const legend = document.createElement("div");
+    legend.className = "quote-lwc-legend";
+    el.appendChild(legend);
+    const byTime = new Map(bars.map((b, i) => [b.time, i] as const));
+    function renderAt(idx: number): void {
+      const b = bars[idx];
+      if (!b) return;
+      const prev = idx > 0 ? bars[idx - 1]!.close : null;
+      const up = b.close >= b.open;
+      const col = up ? "#3fd6a0" : "#ff7b78";
+      let chg = "";
+      if (prev != null && prev !== 0) {
+        const d = Math.round((b.close - prev) * 100) / 100;
+        const p = (d / prev) * 100;
+        const c2 = d >= 0 ? "#5ee9b5" : "#ff9a9a";
+        chg = ` <b style="color:${c2}">${d >= 0 ? "+" : ""}${p.toFixed(2)}%</b>`;
+      }
+      legend.innerHTML =
+        `<span class="t">${b.time}</span> 開<b>${fmtNum(b.open)}</b> ` +
+        `高<b style="color:${col}">${fmtNum(b.high)}</b> ` +
+        `低<b style="color:${col}">${fmtNum(b.low)}</b> ` +
+        `收<b style="color:${col}">${fmtNum(b.close)}</b> ` +
+        `量<b>${fmtVol(b.volume)}</b>${chg}`;
+    }
+    renderAt(bars.length - 1);
+    chart.subscribeCrosshairMove((param) => {
+      if (!param || !param.point || param.time == null) {
+        renderAt(bars.length - 1);
+        return;
+      }
+      const idx = byTime.get(timeKey(param.time));
+      renderAt(idx == null ? bars.length - 1 : idx);
+    });
+
+    // ── 日期區間選擇 ───────────────────────────────────────────
+    function applyRange(months: number): void {
+      try {
+        if (months >= 24) {
+          chart.timeScale().fitContent();
+          return;
+        }
+        const lastT = bars[bars.length - 1]!.time;
+        const f = new Date(lastT + "T00:00:00Z");
+        f.setUTCMonth(f.getUTCMonth() - months);
+        chart.timeScale().setVisibleRange({
+          from: f.toISOString().split("T")[0]! as any,
+          to: lastT as any,
+        });
+      } catch {
+        chart.timeScale().fitContent();
+      }
+    }
+    const section = el.closest(".quote-widget-wrap");
+    const btns = section
+      ? Array.from(section.querySelectorAll<HTMLButtonElement>(".quote-lwc-range"))
+      : [];
+    for (const btn of btns) {
+      btn.addEventListener("click", () => {
+        for (const b of btns) b.classList.remove("is-active");
+        btn.classList.add("is-active");
+        applyRange(Number(btn.getAttribute("data-months")));
+      });
+    }
+    const defMonths = Number(el.getAttribute("data-default-months")) || 6;
+    requestAnimationFrame(() => applyRange(defMonths));
+  }
+
+  initQuoteChart();
+  document.addEventListener("astro:page-load", initQuoteChart);
+</script>
+
+<style>
+  .quote-lwc-ranges {
+    display: flex;
+    gap: 6px;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .quote-lwc-range {
+    font-size: 11px;
+    line-height: 1;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+    background: transparent;
+    color: var(--muted, #9aa0a6);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .quote-lwc-range:hover {
+    color: var(--fg, #e5e7eb);
+  }
+  .quote-lwc-range.is-active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--fg, #fff);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  .quote-lwc {
+    width: 100%;
+    height: 380px;
+    margin-top: 0.5rem;
+    position: relative;
+  }
+  /* 圖例與訊息為 JS 動態建立,Astro scoped 屬性套不到 → 用 :global()（限定在 .quote-lwc 內) */
+  .quote-lwc :global(.quote-lwc-legend) {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    z-index: 3;
+    pointer-events: none;
+    font-size: 11px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    color: var(--muted, #aab);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    max-width: calc(100% - 16px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quote-lwc :global(.quote-lwc-legend b) {
+    color: #e5e7eb;
+    font-weight: 500;
+  }
+  .quote-lwc :global(.quote-lwc-legend .t) {
+    color: #9aa0a6;
+    margin-right: 5px;
+  }
+  .quote-lwc :global(.quote-lwc-msg) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--muted, #888);
+    font-size: 0.85rem;
+  }
+  .quote-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.4rem;
+    font-size: 11px;
+    color: var(--muted, #888);
+  }
+  .quote-ma-legend {
+    display: flex;
+    gap: 0.85rem;
+  }
+  .quote-ma-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .quote-ma-legend__item i {
+    display: inline-block;
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+  }
+</style>

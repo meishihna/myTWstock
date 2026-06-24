@@ -16,6 +16,7 @@
   "dependencies": {
     "@astrojs/node": "^8.3.4",
     "astro": "^4.16.0",
+    "lightweight-charts": "^4.2.3",
     "marked": "^15.0.0",
     "rss-parser": "^3.13.0",
     "yahoo-finance2": "^3.14.0"

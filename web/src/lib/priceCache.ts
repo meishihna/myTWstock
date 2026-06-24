@@ -322,3 +322,75 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
   cache.set(ticker, { data: merged, ts: now });
   return merged;
 }
+
+export interface Bar {
+  /** YYYY-MM-DD */
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+const barsCache = new Map<string, { bars: Bar[] | null; ts: number }>();
+
+/**
+ * 完整 2 年日線 OHLCV（未裁切），供 Lightweight Charts 與未來 Charting Library Datafeed 使用。
+ * 與 getPrice 共用 Yahoo Chart v8 與 .TW/.TWO 解析；不裁成 90 根、不算 MA（指標交由圖層處理）。
+ */
+export async function getBars(ticker: string): Promise<Bar[] | null> {
+  if (!/^\d{4}$/.test(ticker)) return null;
+  const now = Date.now();
+  const hit = barsCache.get(ticker);
+  if (hit && now - hit.ts < TTL_MS) return hit.bars;
+
+  for (const suffix of [".TW", ".TWO"] as const) {
+    try {
+      const symbol = `${ticker}${suffix}`;
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TWstock/1.0)" },
+      });
+      if (!res.ok) continue;
+      const json = (await res.json()) as YahooChartJson;
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+
+      const ts: number[] = result.timestamp || [];
+      const q = result.indicators?.quote?.[0];
+      const rawOpen = q?.open || [];
+      const rawHigh = q?.high || [];
+      const rawLow = q?.low || [];
+      const rawClose = q?.close || [];
+      const rawVol = q?.volume || [];
+
+      const bars: Bar[] = [];
+      for (let i = 0; i < ts.length; i++) {
+        if (
+          rawOpen[i] == null ||
+          rawHigh[i] == null ||
+          rawLow[i] == null ||
+          rawClose[i] == null
+        ) {
+          continue;
+        }
+        bars.push({
+          time: new Date(ts[i]! * 1000).toISOString().split("T")[0]!,
+          open: Math.round(Number(rawOpen[i]) * 100) / 100,
+          high: Math.round(Number(rawHigh[i]) * 100) / 100,
+          low: Math.round(Number(rawLow[i]) * 100) / 100,
+          close: Math.round(Number(rawClose[i]) * 100) / 100,
+          volume: rawVol[i] ?? 0,
+        });
+      }
+      if (bars.length < 2) continue;
+      barsCache.set(ticker, { bars, ts: now });
+      return bars;
+    } catch {
+      continue;
+    }
+  }
+  barsCache.set(ticker, { bars: null, ts: now });
+  return null;
+}
