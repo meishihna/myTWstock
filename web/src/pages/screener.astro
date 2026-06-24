@@ -1,0 +1,241 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="財務選股器 Screener — TWstock"
+  description="以最新年度財務與估值指標篩選、排序全市場 1,700+ 檔台股。"
+>
+  <main class="screener">
+    <h1 class="screener__h1">財務選股器 <span class="screener__h1-en">Screener</span></h1>
+    <p class="screener__intro">
+      以最新年度損益與估值指標篩選、排序全市場上市櫃。資料同報告頁(來源
+      <code>financials_store</code>);部分小型股估值欄位可能從缺。點欄位標題可排序。
+    </p>
+
+    <div class="scr-controls">
+      <input id="scr-q" class="scr-input" type="search" placeholder="代號或名稱…" aria-label="代號或名稱搜尋" />
+      <select id="scr-sector" class="scr-input" aria-label="產業篩選">
+        <option value="">全部產業</option>
+      </select>
+      <label class="scr-flab">P/E ≤ <input id="scr-pe" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
+      <label class="scr-flab">ROE% ≥ <input id="scr-roe" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
+      <label class="scr-flab">毛利率% ≥ <input id="scr-gm" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
+      <label class="scr-flab">營收YoY% ≥ <input id="scr-yoy" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
+      <button id="scr-reset" class="scr-reset" type="button">重設</button>
+      <span id="scr-count" class="scr-count" role="status"></span>
+    </div>
+
+    <div class="scr-table-wrap">
+      <table class="scr-table">
+        <thead><tr id="scr-head"></tr></thead>
+        <tbody id="scr-body"></tbody>
+      </table>
+      <p id="scr-empty" class="scr-empty" hidden>無符合條件的標的。</p>
+    </div>
+  </main>
+
+  <script>
+    type Row = Record<string, string | number | null>;
+    const COLS: { k: string; label: string; num: boolean; fmt?: (v: number) => string }[] = [
+      { k: "t", label: "代號", num: false },
+      { k: "n", label: "名稱", num: false },
+      { k: "s", label: "產業", num: false },
+      { k: "mc", label: "市值(百萬)", num: true, fmt: (v) => Math.round(v).toLocaleString("zh-TW") },
+      { k: "pe", label: "P/E", num: true, fmt: (v) => v.toFixed(1) },
+      { k: "pb", label: "P/B", num: true, fmt: (v) => v.toFixed(2) },
+      { k: "roe", label: "ROE%", num: true, fmt: (v) => v.toFixed(1) },
+      { k: "gm", label: "毛利率%", num: true, fmt: (v) => v.toFixed(1) },
+      { k: "nm", label: "淨利率%", num: true, fmt: (v) => v.toFixed(1) },
+      { k: "eps", label: "EPS", num: true, fmt: (v) => v.toFixed(2) },
+      { k: "revYoy", label: "營收YoY%", num: true, fmt: (v) => v.toFixed(1) },
+    ];
+    const MAX_SHOW = 500;
+
+    let rows: Row[] = [];
+    let sortKey = "mc";
+    let sortDir = -1; // 1 asc, -1 desc
+
+    const $ = (id: string) => document.getElementById(id);
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+    function buildHead() {
+      const tr = $("scr-head");
+      if (!tr) return;
+      tr.innerHTML = COLS.map(
+        (c) =>
+          `<th data-key="${c.k}" class="${c.num ? "scr-th--num" : ""}" role="button" tabindex="0">${c.label}<span class="scr-arrow" data-arrow="${c.k}"></span></th>`,
+      ).join("");
+      tr.querySelectorAll("th").forEach((th) => {
+        const handler = () => {
+          const k = th.getAttribute("data-key")!;
+          if (sortKey === k) sortDir = -sortDir;
+          else {
+            sortKey = k;
+            sortDir = COLS.find((c) => c.k === k)?.num ? -1 : 1;
+          }
+          render();
+        };
+        th.addEventListener("click", handler);
+        th.addEventListener("keydown", (e) => {
+          if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") {
+            e.preventDefault();
+            handler();
+          }
+        });
+      });
+    }
+
+    function initSectors() {
+      const sel = $("scr-sector") as HTMLSelectElement | null;
+      if (!sel) return;
+      const sectors = Array.from(new Set(rows.map((r) => String(r.s || "")).filter(Boolean))).sort();
+      for (const s of sectors) {
+        const o = document.createElement("option");
+        o.value = s;
+        o.textContent = s;
+        sel.appendChild(o);
+      }
+    }
+
+    function getFilters() {
+      const q = (($("scr-q") as HTMLInputElement)?.value || "").trim().toLowerCase();
+      const sector = ($("scr-sector") as HTMLSelectElement)?.value || "";
+      const peMax = parseFloat(($("scr-pe") as HTMLInputElement)?.value);
+      const roeMin = parseFloat(($("scr-roe") as HTMLInputElement)?.value);
+      const gmMin = parseFloat(($("scr-gm") as HTMLInputElement)?.value);
+      const yoyMin = parseFloat(($("scr-yoy") as HTMLInputElement)?.value);
+      return { q, sector, peMax, roeMin, gmMin, yoyMin };
+    }
+
+    function applyFilters(): Row[] {
+      const f = getFilters();
+      return rows.filter((r) => {
+        if (f.q && !(String(r.t).toLowerCase().includes(f.q) || String(r.n).toLowerCase().includes(f.q)))
+          return false;
+        if (f.sector && r.s !== f.sector) return false;
+        if (Number.isFinite(f.peMax)) {
+          const v = num(r.pe);
+          if (v == null || v > f.peMax) return false;
+        }
+        if (Number.isFinite(f.roeMin)) {
+          const v = num(r.roe);
+          if (v == null || v < f.roeMin) return false;
+        }
+        if (Number.isFinite(f.gmMin)) {
+          const v = num(r.gm);
+          if (v == null || v < f.gmMin) return false;
+        }
+        if (Number.isFinite(f.yoyMin)) {
+          const v = num(r.revYoy);
+          if (v == null || v < f.yoyMin) return false;
+        }
+        return true;
+      });
+    }
+
+    function sortRows(list: Row[]) {
+      const col = COLS.find((c) => c.k === sortKey);
+      list.sort((a, b) => {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (col?.num) {
+          const an = num(av);
+          const bn = num(bv);
+          if (an == null && bn == null) return 0;
+          if (an == null) return 1; // nulls last
+          if (bn == null) return -1;
+          return (an - bn) * sortDir;
+        }
+        return String(av ?? "").localeCompare(String(bv ?? "")) * sortDir;
+      });
+    }
+
+    function render() {
+      const list = applyFilters();
+      sortRows(list);
+      const body = $("scr-body");
+      const empty = $("scr-empty");
+      const count = $("scr-count");
+      if (count) count.textContent = `符合 ${list.length} 檔` + (list.length > MAX_SHOW ? `(顯示前 ${MAX_SHOW})` : "");
+      if (empty) (empty as HTMLElement).hidden = list.length > 0;
+      // sort arrows
+      document.querySelectorAll(".scr-arrow").forEach((el) => (el.textContent = ""));
+      const arrow = document.querySelector(`[data-arrow="${sortKey}"]`);
+      if (arrow) arrow.textContent = sortDir === 1 ? " ▲" : " ▼";
+      if (!body) return;
+      const shown = list.slice(0, MAX_SHOW);
+      body.innerHTML = shown
+        .map((r) => {
+          const cells = COLS.map((c) => {
+            if (c.k === "t")
+              return `<td class="scr-td--t"><a href="/report/${r.t}">${r.t}</a></td>`;
+            if (c.k === "n")
+              return `<td><a href="/report/${r.t}">${r.n ?? ""}</a></td>`;
+            if (!c.num) return `<td>${r[c.k] ?? ""}</td>`;
+            const v = num(r[c.k]);
+            return `<td class="scr-td--num">${v == null ? "—" : c.fmt!(v)}</td>`;
+          });
+          return `<tr>${cells.join("")}</tr>`;
+        })
+        .join("");
+    }
+
+    function attachFilterEvents() {
+      ["scr-q", "scr-pe", "scr-roe", "scr-gm", "scr-yoy"].forEach((id) =>
+        $(id)?.addEventListener("input", render),
+      );
+      $("scr-sector")?.addEventListener("change", render);
+      $("scr-reset")?.addEventListener("click", () => {
+        ["scr-q", "scr-pe", "scr-roe", "scr-gm", "scr-yoy"].forEach((id) => {
+          const el = $(id) as HTMLInputElement | null;
+          if (el) el.value = "";
+        });
+        const sel = $("scr-sector") as HTMLSelectElement | null;
+        if (sel) sel.value = "";
+        sortKey = "mc";
+        sortDir = -1;
+        render();
+      });
+    }
+
+    buildHead();
+    attachFilterEvents();
+    fetch("/data/screener-index.json")
+      .then((r) => r.json())
+      .then((j) => {
+        rows = j.rows || [];
+        initSectors();
+        render();
+      })
+      .catch(() => {
+        const count = $("scr-count");
+        if (count) count.textContent = "載入失敗";
+      });
+  </script>
+
+  <style>
+    .screener { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .screener__h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+    .screener__h1-en { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 1rem; }
+    .screener__intro { color: var(--muted, #9aa0a6); font-size: 0.85rem; margin: 0 0 1rem; line-height: 1.6; }
+    .scr-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+    .scr-input { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.14)); background: var(--bg2, rgba(255,255,255,0.04)); color: inherit; font-size: 0.85rem; }
+    .scr-flab { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted, #9aa0a6); }
+    .scr-num { width: 72px; padding: 5px 7px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.14)); background: var(--bg2, rgba(255,255,255,0.04)); color: inherit; font-size: 0.85rem; }
+    .scr-reset { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.18)); background: transparent; color: inherit; cursor: pointer; font-size: 0.8rem; }
+    .scr-count { color: var(--muted, #9aa0a6); font-size: 0.8rem; margin-left: auto; }
+    .scr-table-wrap { overflow-x: auto; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; }
+    .scr-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .scr-table th { position: sticky; top: 0; background: var(--bg2, #14161a); padding: 8px 10px; text-align: left; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border, rgba(255,255,255,0.14)); }
+    .scr-th--num { text-align: right; }
+    .scr-table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+    .scr-td--num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+    .scr-td--t a { font-family: ui-monospace, monospace; }
+    .scr-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+    .scr-table a { color: var(--link-report, #7dd3c0); text-decoration: none; }
+    .scr-table a:hover { text-decoration: underline; }
+    .scr-arrow { color: var(--muted, #9aa0a6); }
+    .scr-empty { padding: 1.5rem; text-align: center; color: var(--muted, #9aa0a6); }
+  </style>
+</Layout>
