@@ -233,7 +233,8 @@ _QUARTER_END_TO_SEASON = {
 
 
 def mops_adapter_enabled() -> bool:
-    return os.environ.get("MYTWSTOCK_MOPS", "0").strip().lower() in (
+    # 預設開啟(MOPS 市場級批次為財務取得骨幹);以 MYTWSTOCK_MOPS=0 或 --no-mops 關閉。
+    return os.environ.get("MYTWSTOCK_MOPS", "1").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -592,6 +593,14 @@ def _should_use_mops_cache_without_fetch(
     )
     fresh_enough = within_ref_ttl or large_mtime_fresh
     recent = (roc_year, season) in _recent_roc_seasons(2)
+
+    # Fix A:最近季但既有 cache 實質為空/過薄(上次抓取可能不完整)→ 強制重抓,
+    # 不因「在 TTL 內」就信任薄 cache(2026 Q1 漏季事故的防護)。
+    # 用 _mops_cache_is_effectively_empty(>2KB 且 by_ticker 非空)避免誤判銀行/金控等小檔。
+    if recent and _mops_cache_is_effectively_empty(
+        path, payload, _by_ticker_from_mops_payload(payload)
+    ):
+        return (False, False)
 
     if fresh_enough:
         return (True, True)
@@ -2298,6 +2307,25 @@ def ensure_mops_market_cache_for_period_labels(period_labels: Iterable[str]) -> 
             _load_or_fetch_season_data(typek, roc_y, se)
             _load_or_fetch_season_sb06(typek, roc_y, se)
             _load_or_fetch_season_sb20(typek, roc_y, se)
+
+
+def prefetch_mops_market_for_run(period_labels: Iterable[str]) -> None:
+    """開跑前一次性預載相關季的 MOPS 全市場快取（sii+otc t163sb04/sb06/sb20）。
+
+    將「抓取」與「逐檔組裝」解耦:之後每檔皆為純 cache 讀取,避免逐檔執行時
+    cache 尚未備齊而漏季(2026 Q1 漏季事故的根因)。最近季的薄/空快取會由
+    Fix A(``_should_use_mops_cache_without_fetch``)強制重抓。MOPS 關閉時為 no-op。
+    """
+    if not mops_adapter_enabled():
+        return
+    labels = [str(p).strip().split()[0] for p in period_labels]
+    n_seasons = len({rs for pl in labels if (rs := period_label_to_roc_season(pl)) is not None})
+    print(
+        f"[prefetch] 預載 MOPS 全市場季快取（{n_seasons} 季 × 上市/上櫃）…",
+        file=sys.stderr,
+    )
+    ensure_mops_market_cache_for_period_labels(labels)
+    print("[prefetch] MOPS 全市場快取就緒", file=sys.stderr)
 
 
 def build_mops_market_core_quarterly_dataframe(

@@ -88,6 +88,7 @@ from mops_financials import (
     mops_adapter_enabled,
     mops_industry_type_for_ticker,
     mops_quarterly_premerge_dataframe,
+    prefetch_mops_market_for_run,
     quarter_end_labels_newest_first,
 )
 from finmind_financials import (
@@ -1502,6 +1503,11 @@ def main():
             os.remove(CHECKPOINT_PATH)
         print("Cleared financials update checkpoint.")
 
+    if "--no-mops" in args:
+        args.remove("--no-mops")
+        os.environ["MYTWSTOCK_MOPS"] = "0"
+        print("MOPS 已停用（--no-mops）；季表改走 FinMind + Yahoo。")
+
     args, sleep_cli = _parse_sleep_sec_cli(args)
     sleep_between = sleep_cli if sleep_cli is not None else _sleep_seconds_between_tickers()
 
@@ -1524,6 +1530,17 @@ def main():
     tickers_order = sorted(ticker_map.keys())
     print(f"Found {len(tickers_order)} files.\n")
     print(f"每檔間隔: {sleep_between} 秒（最後一檔處理完不等待）\n")
+
+    # 開跑前一次性預載 MOPS 全市場季快取(批次抓取與逐檔組裝解耦;
+    # 避免逐檔執行時 cache 未備齊而漏季)。失敗則退回逐檔 on-demand,不中斷整批。
+    try:
+        if mops_adapter_enabled():
+            prefetch_mops_market_for_run(
+                quarter_end_labels_newest_first(QUARTERLY_JSON_MAX_COLS + 5)
+            )
+    except Exception as e:
+        print(f"[prefetch] MOPS 市場快取預載略過(改逐檔 on-demand): {e}")
+
     updated = failed = skipped = 0
     pending = set(ckpt_pending) if resume else set()
 
