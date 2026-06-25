@@ -2,24 +2,21 @@
 
 > 特斯拉電動車台灣供應鏈成員
 
-**涵蓋公司數:** 47
+**涵蓋公司數:** 52
 
-**相關主題:** [[電動車]] (129) | [[碳化矽]] (22)
+**相關主題:** [[電動車]] (182) | [[碳化矽]] (25)
 
 ---
 
-## 上游 (8)
+## 上游 (5)
 
-- **4915 致伸** (Consumer Electronics)
-- **3290 東浦** (Electrical Equipment & Parts)
-- **7788 松川精密** (Electrical Equipment & Parts)
 - **3357 臺慶科** (Electronic Components)
 - **5243 乙盛-KY** (Electronic Components)
 - **5457 宣德** (Electronic Components)
 - **1586 和勤** (Metal Fabrication)
 - **4739 康普** (Specialty Chemicals)
 
-## 下游 (22)
+## 下游 (23)
 
 - **1536 和大** (Auto Parts)
 - **2101 南港** (Auto Parts)
@@ -28,9 +25,10 @@
 - **1609 大亞** (Electrical Equipment & Parts)
 - **3003 健和興** (Electrical Equipment & Parts)
 - **3071 協禧** (Electrical Equipment & Parts)
-- **3092 鴻碩** (Electrical Equipment & Parts)
-- **3665 貿聯-KY** (Electrical Equipment & Parts)
-- **2355 敬鵬** (Electronic Components)
+- **3290 東浦** (Electrical Equipment & Parts)
+- **3501 維熹** (Electrical Equipment & Parts)
+- **7788 松川精密** (Electrical Equipment & Parts)
+- **2327 國巨** (Electronic Components)
 - **2492 華新科** (Electronic Components)
 - **3019 亞光** (Electronic Components)
 - **3042 晶技** (Electronic Components)
@@ -44,15 +42,22 @@
 - **6603 富強鑫** (Specialty Industrial Machinery)
 - **2066 世德** (Tools & Accessories)
 
-## 相關公司 (17)
+## 相關公司 (24)
 
+- **2207 和泰車** (Auto & Truck Dealerships)
+- **2258 鴻華先進-創** (Auto Manufacturers)
 - **1319 東陽** (Auto Parts)
 - **1563 巧新** (Auto Parts)
 - **2245 詠勝昌** (Auto Parts)
 - **2248 華勝-KY** (Auto Parts)
 - **4551 智伸科** (Auto Parts)
+- **3380 明泰** (Communication Equipment)
+- **4915 致伸** (Consumer Electronics)
+- **3092 鴻碩** (Electrical Equipment & Parts)
 - **3484 崧騰** (Electrical Equipment & Parts)
-- **3501 維熹** (Electrical Equipment & Parts)
+- **3665 貿聯-KY** (Electrical Equipment & Parts)
+- **2308 台達電** (Electronic Components)
+- **2355 敬鵬** (Electronic Components)
 - **3008 大立光** (Electronic Components)
 - **3023 信邦** (Electronic Components)
 - **3044 健鼎** (Electronic Components)

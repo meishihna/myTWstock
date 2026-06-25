@@ -2,17 +2,17 @@
 
 > 蘋果公司台灣供應鏈成員
 
-**涵蓋公司數:** 80
+**涵蓋公司數:** 88
 
-**相關主題:** [[台積電]] (182) | [[鴻海]] (63)
+**相關主題:** [[台積電]] (192) | [[鴻海]] (66)
 
 ---
 
 ## 上游 (14)
 
 - **2414 精技** (Computer Hardware)
-- **3406 玉晶光** (Computer Hardware)
-- **4943 康控-KY** (Electronic Components)
+- **4938 和碩** (Computer Hardware)
+- **2317 鴻海** (Electronic Components)
 - **5457 宣德** (Electronic Components)
 - **2347 聯強** (Electronics & Computer Distribution)
 - **2450 神腦** (Electronics & Computer Distribution)
@@ -25,24 +25,22 @@
 - **3518 柏騰** (Specialty Industrial Machinery)
 - **2430 燦坤** (Specialty Retail)
 
-## 中游 (2)
+## 中游 (1)
 
-- **2367 燿華** (Electronic Components)
 - **6821 聯寶** (Electronic Components)
 
-## 下游 (39)
+## 下游 (36)
 
-- **2382 廣達** (Computer Hardware)
 - **2385 群光** (Computer Hardware)
 - **5215 科嘉-KY** (Computer Hardware)
 - **2439 美律** (Consumer Electronics)
 - **4915 致伸** (Consumer Electronics)
 - **3211 順達** (Electrical Equipment & Parts)
-- **3501 維熹** (Electrical Equipment & Parts)
 - **3504 揚明光** (Electrical Equipment & Parts)
-- **2317 鴻海** (Electronic Components)
+- **6121 新普** (Electrical Equipment & Parts)
+- **2313 華通** (Electronic Components)
+- **2392 正崴** (Electronic Components)
 - **3008 大立光** (Electronic Components)
-- **3036 文曄** (Electronic Components)
 - **3037 欣興** (Electronic Components)
 - **3042 晶技** (Electronic Components)
 - **3322 建舜電** (Electronic Components)
@@ -52,7 +50,6 @@
 - **3679 新至陞** (Electronic Components)
 - **3714 富采** (Electronic Components)
 - **4935 茂林-KY** (Electronic Components)
-- **4956 光鋐** (Electronic Components)
 - **4958 臻鼎-KY** (Electronic Components)
 - **6114 久威** (Electronic Components)
 - **6176 瑞儀** (Electronic Components)
@@ -64,7 +61,6 @@
 - **6859 伯特光** (Metal Fabrication)
 - **7610 聯友金屬-創** (Other Industrial Metals & Mining)
 - **3030 德律** (Scientific & Technical Instruments)
-- **3034 聯詠** (Semiconductors)
 - **6937 天虹** (Semiconductors)
 - **6146 耕興** (Specialty Business Services)
 - **6585 鼎基** (Specialty Chemicals)
@@ -72,11 +68,20 @@
 - **6706 惠特** (Specialty Industrial Machinery)
 - **1444 力麗** (Textile Manufacturing)
 
-## 相關公司 (25)
+## 相關公司 (37)
 
+- **2255 凱銳光電** (Auto Parts)
 - **8438 昶昕** (Chemicals)
+- **2332 友訊** (Communication Equipment)
+- **3380 明泰** (Communication Equipment)
 - **3419 譁裕** (Communication Equipment)
+- **2382 廣達** (Computer Hardware)
 - **3057 喬鼎** (Computer Hardware)
+- **3231 緯創** (Computer Hardware)
+- **6805 富世達** (Computer Hardware)
+- **3501 維熹** (Electrical Equipment & Parts)
+- **6290 良維** (Electrical Equipment & Parts)
+- **2383 台光電** (Electronic Components)
 - **3044 健鼎** (Electronic Components)
 - **3095 及成** (Electronic Components)
 - **3149 正達** (Electronic Components)
@@ -84,12 +89,15 @@
 - **3305 昇貿** (Electronic Components)
 - **3645 達邁** (Electronic Components)
 - **4573 高明鐵** (Electronic Components)
+- **4942 嘉彰** (Electronic Components)
 - **6153 嘉聯益** (Electronic Components)
 - **6165 浪凡** (Electronic Components)
 - **6217 中探針** (Electronic Components)
 - **8046 南電** (Electronic Components)
 - **5278 尚凡** (Internet Content & Information)
 - **3189 景碩** (Semiconductor Equipment & Materials)
+- **2330 台積電** (Semiconductors)
+- **3034 聯詠** (Semiconductors)
 - **6278 台表科** (Semiconductors)
 - **6488 環球晶** (Semiconductors)
 - **1717 長興** (Specialty Chemicals)

@@ -1,0 +1,75 @@
+# ADAS 先進駕駛輔助
+
+> 車用感測、運算與自動駕駛供應鏈
+
+**涵蓋公司數:** 57
+
+**相關主題:** [[電動車]] (182) | [[MOSFET]] (49) | [[連接器]] (36)
+
+---
+
+## 中游 (8)
+
+- **2241 艾姆勒** (Auto Parts)
+- **2256 歐特明** (Auto Parts)
+- **3406 玉晶光** (Computer Hardware)
+- **3659 百辰** (Computer Hardware)
+- **4915 致伸** (Consumer Electronics)
+- **3019 亞光** (Electronic Components)
+- **3362 先進光** (Electronic Components)
+- **6283 淳安** (Electronic Components)
+
+## 下游 (17)
+
+- **6680 鑫創電子** (Computer Hardware)
+- **2367 燿華** (Electronic Components)
+- **2374 佳能** (Electronic Components)
+- **2375 凱美** (Electronic Components)
+- **2492 華新科** (Electronic Components)
+- **3042 晶技** (Electronic Components)
+- **3206 志豐** (Electronic Components)
+- **5228 鈺鎧** (Electronic Components)
+- **6668 中揚光** (Electronic Components)
+- **8183 精星** (Electronic Components)
+- **3232 昱捷** (Electronics & Computer Distribution)
+- **3360 尚立** (Electronics & Computer Distribution)
+- **3059 華晶科** (Scientific & Technical Instruments)
+- **6787 晶瑞光** (Semiconductor Equipment & Materials)
+- **2344 華邦電** (Semiconductors)
+- **2401 凌陽** (Semiconductors)
+- **6695 芯鼎** (Semiconductors)
+
+## 相關公司 (32)
+
+- **1533 車王電** (Auto Parts)
+- **2252 為昇科** (Auto Parts)
+- **6190 萬泰科** (Communication Equipment)
+- **6220 岳豐** (Communication Equipment)
+- **2301 光寶科** (Computer Hardware)
+- **2324 仁寶** (Computer Hardware)
+- **2385 群光** (Computer Hardware)
+- **3021 鴻名** (Computer Hardware)
+- **3349 寶德** (Computer Hardware)
+- **3706 神達** (Computer Hardware)
+- **5271 紘通** (Computer Hardware)
+- **6737 秀育** (Computer Hardware)
+- **8119 公信** (Computer Hardware)
+- **4989 榮科** (Copper)
+- **3290 東浦** (Electrical Equipment & Parts)
+- **3550 聯穎** (Electrical Equipment & Parts)
+- **2484 希華** (Electronic Components)
+- **3008 大立光** (Electronic Components)
+- **3011 今皓** (Electronic Components)
+- **3044 健鼎** (Electronic Components)
+- **3236 千如** (Electronic Components)
+- **3357 臺慶科** (Electronic Components)
+- **3441 聯一光** (Electronic Components)
+- **4976 佳凌** (Electronic Components)
+- **6205 詮欣** (Electronic Components)
+- **6209 今國光** (Electronic Components)
+- **6269 台郡** (Electronic Components)
+- **6516 勤崴國際** (Scientific & Technical Instruments)
+- **6271 同欣電** (Semiconductor Equipment & Materials)
+- **2337 旺宏** (Semiconductors)
+- **2436 偉詮電** (Semiconductors)
+- **6233 旺玖** (Semiconductors)
