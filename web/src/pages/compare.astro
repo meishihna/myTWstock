@@ -4,43 +4,67 @@ import Layout from "../layouts/Layout.astro";
 
 <Layout title="個股比較 Compare — TWstock" description="並排比較多檔台股的估值與財務指標。">
   <main class="cmp">
-    <h1 class="cmp__h1">個股比較 <span class="cmp__en">Compare</span></h1>
-    <p class="cmp__intro">並排比較估值與最新年度財務。網址 <code>?tickers=2330,2317</code> 可分享。</p>
+    <header class="cmp__head">
+      <div>
+        <h1 class="cmp__h1">個股比較 <span class="cmp__en">Compare</span></h1>
+        <p class="cmp__intro">並排比較估值、獲利、成長與風險。每列 <span class="cmp__legend">◆ 較優值</span> 以青色標示;網址 <code>?tickers=2330,2317</code> 可分享。</p>
+      </div>
+    </header>
 
     <div class="cmp__add">
       <input id="cmp-input" class="cmp__inp" type="text" inputmode="numeric" maxlength="4" placeholder="加入代號(如 2330)" aria-label="加入代號" />
-      <button id="cmp-add" class="cmp__btn" type="button">加入</button>
-      <a class="cmp__btn cmp__btn--ghost" href="/watchlist">用自選股</a>
+      <button id="cmp-add" class="cmp__btn cmp__btn--primary" type="button">加入</button>
+      <button id="cmp-wl" class="cmp__btn" type="button">用自選股</button>
       <span id="cmp-msg" class="cmp__msg" role="status"></span>
     </div>
 
-    <div class="cmp__table-wrap">
-      <table class="cmp__table"><tbody id="cmp-body"></tbody></table>
-      <p id="cmp-empty" class="cmp__empty" hidden>輸入代號或從<a href="/watchlist">自選股</a>/<a href="/screener">選股器</a>加入比較。</p>
+    <div class="cmp__card">
+      <div class="cmp__table-wrap">
+        <table class="cmp__table"><tbody id="cmp-body"></tbody></table>
+      </div>
+      <div id="cmp-empty" class="cmp__empty" hidden>
+        <div class="cmp__empty-icon">⊞</div>
+        <p>輸入代號開始比較。</p>
+        <p class="cmp__empty-sub">或從<a href="/watchlist">自選股</a>、<a href="/screener">選股器</a>加入標的。</p>
+      </div>
     </div>
   </main>
 
   <script>
+    import { getWatchlist } from "../lib/watchlist";
+
     type Row = Record<string, string | number | null>;
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
     const $ = (id: string) => document.getElementById(id);
     const MAX = 8;
+    const BARS = ["#5b9fd4", "#7dd3c0", "#9fd4ff", "#8eb4e6", "#b8a8e0", "#c0a8e0", "#88c4b0", "#d6b98e"];
 
-    const METRICS: { k: string; label: string; fmt: (v: number) => string }[] = [
-      { k: "mc", label: "市值(百萬)", fmt: (v) => Math.round(v).toLocaleString("zh-TW") },
-      { k: "pe", label: "P/E", fmt: (v) => v.toFixed(1) },
-      { k: "fpe", label: "Forward P/E", fmt: (v) => v.toFixed(1) },
-      { k: "pb", label: "P/B", fmt: (v) => v.toFixed(2) },
-      { k: "ps", label: "P/S", fmt: (v) => v.toFixed(2) },
-      { k: "ev", label: "EV/EBITDA", fmt: (v) => v.toFixed(1) },
-      { k: "roe", label: "ROE%", fmt: (v) => v.toFixed(1) },
-      { k: "gm", label: "毛利率%", fmt: (v) => v.toFixed(1) },
-      { k: "om", label: "營益率%", fmt: (v) => v.toFixed(1) },
-      { k: "nm", label: "淨利率%", fmt: (v) => v.toFixed(1) },
-      { k: "eps", label: "EPS(元)", fmt: (v) => v.toFixed(2) },
-      { k: "revYoy", label: "營收YoY%", fmt: (v) => v.toFixed(1) },
-      { k: "beta", label: "Beta", fmt: (v) => v.toFixed(2) },
-      { k: "de", label: "負債/權益", fmt: (v) => v.toFixed(1) },
+    type Metric = { k: string; label: string; dir: "hi" | "lo" | ""; fmt: (v: number) => string };
+    const f1 = (v: number) => v.toFixed(1);
+    const f2 = (v: number) => v.toFixed(2);
+    const SECTIONS: { h: string; items: Metric[] }[] = [
+      { h: "估值 Valuation", items: [
+        { k: "mc", label: "市值(百萬)", dir: "", fmt: (v) => Math.round(v).toLocaleString("zh-TW") },
+        { k: "pe", label: "P/E", dir: "lo", fmt: f1 },
+        { k: "fpe", label: "Forward P/E", dir: "lo", fmt: f1 },
+        { k: "pb", label: "P/B", dir: "lo", fmt: f2 },
+        { k: "ps", label: "P/S", dir: "lo", fmt: f2 },
+        { k: "ev", label: "EV/EBITDA", dir: "lo", fmt: f1 },
+      ]},
+      { h: "獲利能力 Profitability", items: [
+        { k: "roe", label: "ROE%", dir: "hi", fmt: f1 },
+        { k: "gm", label: "毛利率%", dir: "hi", fmt: f1 },
+        { k: "om", label: "營益率%", dir: "hi", fmt: f1 },
+        { k: "nm", label: "淨利率%", dir: "hi", fmt: f1 },
+        { k: "eps", label: "EPS(元)", dir: "hi", fmt: f2 },
+      ]},
+      { h: "成長 Growth", items: [
+        { k: "revYoy", label: "營收YoY%", dir: "hi", fmt: f1 },
+      ]},
+      { h: "風險 Risk", items: [
+        { k: "beta", label: "Beta", dir: "", fmt: f2 },
+        { k: "de", label: "負債/權益", dir: "lo", fmt: f1 },
+      ]},
     ];
 
     let index: Record<string, Row> = {};
@@ -57,34 +81,58 @@ import Layout from "../layouts/Layout.astro";
       history.replaceState(null, "", u);
     }
 
+    function bestSet(m: Metric): Set<string> {
+      const s = new Set<string>();
+      if (!m.dir || tickers.length < 2) return s;
+      const vals = tickers.map((t) => num(index[t]?.[m.k])).filter((v): v is number => v != null);
+      if (vals.length < 2) return s;
+      const best = m.dir === "hi" ? Math.max(...vals) : Math.min(...vals);
+      tickers.forEach((t) => {
+        const v = num(index[t]?.[m.k]);
+        if (v != null && v === best) s.add(t);
+      });
+      return s;
+    }
+
     function render() {
       const body = $("cmp-body");
       const empty = $("cmp-empty");
       if (empty) (empty as HTMLElement).hidden = tickers.length > 0;
       if (!body) return;
-      if (!tickers.length) {
-        body.innerHTML = "";
-        return;
-      }
-      const head = `<tr><th class="cmp__corner">指標</th>${tickers
-        .map((t) => {
+      if (!tickers.length) { body.innerHTML = ""; return; }
+
+      const head = `<tr>
+        <th class="cmp__corner">指標</th>
+        ${tickers.map((t, i) => {
           const r = index[t];
-          return `<th><a href="/report/${t}">${t}</a><br><span class="cmp__nm">${r?.n ?? "—"}</span><button class="cmp__rm" data-rm="${t}" title="移除">✕</button></th>`;
-        })
-        .join("")}</tr>`;
-      const sectorRow = `<tr><td class="cmp__rlabel">產業</td>${tickers
-        .map((t) => `<td>${index[t]?.s ?? "—"}</td>`)
-        .join("")}</tr>`;
-      const rows = METRICS.map((m) => {
-        const tds = tickers
-          .map((t) => {
+          return `<th class="cmp__tk">
+            <span class="cmp__bar" style="background:linear-gradient(90deg,${BARS[i % BARS.length]},transparent 82%)"></span>
+            <span class="cmp__tk-top">
+              <a class="cmp__chip" href="/report/${t}">${t}</a>
+              <button class="cmp__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">✕</button>
+            </span>
+            <a class="cmp__name" href="/report/${t}">${r?.n ?? "—"}</a>
+            <span class="cmp__sector">${r?.s ?? "—"}</span>
+          </th>`;
+        }).join("")}
+      </tr>`;
+
+      const sections = SECTIONS.map((sec) => {
+        const secHead = `<tr class="cmp__sec"><td colspan="${tickers.length + 1}"><span class="cmp__dot"></span>${sec.h}</td></tr>`;
+        const rows = sec.items.map((m) => {
+          const best = bestSet(m);
+          const tds = tickers.map((t) => {
             const v = num(index[t]?.[m.k]);
-            return `<td class="num">${v == null ? "—" : m.fmt(v)}</td>`;
-          })
-          .join("");
-        return `<tr><td class="cmp__rlabel">${m.label}</td>${tds}</tr>`;
+            const on = best.has(t);
+            const mark = on ? `<span class="cmp__mk">◆</span>` : "";
+            return `<td class="cmp__v${on ? " is-best" : ""}">${v == null ? "—" : mark + m.fmt(v)}</td>`;
+          }).join("");
+          return `<tr><th class="cmp__rlabel">${m.label}</th>${tds}</tr>`;
+        }).join("");
+        return secHead + rows;
       }).join("");
-      body.innerHTML = head + sectorRow + rows;
+
+      body.innerHTML = head + sections;
       body.querySelectorAll("[data-rm]").forEach((b) =>
         b.addEventListener("click", () => {
           tickers = tickers.filter((x) => x !== b.getAttribute("data-rm"));
@@ -96,20 +144,12 @@ import Layout from "../layouts/Layout.astro";
 
     function addTicker(t: string) {
       const msg = $("cmp-msg");
-      if (!/^\d{4}$/.test(t)) {
-        if (msg) msg.textContent = "請輸入 4 位代號";
-        return;
-      }
+      const say = (m: string) => { if (msg) msg.textContent = m; };
+      if (!/^\d{4}$/.test(t)) return say("請輸入 4 位代號");
       if (tickers.includes(t)) return;
-      if (tickers.length >= MAX) {
-        if (msg) msg.textContent = `最多比較 ${MAX} 檔`;
-        return;
-      }
-      if (!index[t]) {
-        if (msg) msg.textContent = `查無 ${t}`;
-        return;
-      }
-      if (msg) msg.textContent = "";
+      if (tickers.length >= MAX) return say(`最多比較 ${MAX} 檔`);
+      if (!index[t]) return say(`查無 ${t}`);
+      say("");
       tickers.push(t);
       syncUrl();
       render();
@@ -127,6 +167,14 @@ import Layout from "../layouts/Layout.astro";
         inp.value = "";
       }
     });
+    $("cmp-wl")?.addEventListener("click", () => {
+      const wl = getWatchlist().slice(0, MAX);
+      const msg = $("cmp-msg");
+      if (!wl.length) { if (msg) msg.textContent = "自選股是空的"; return; }
+      tickers = wl;
+      syncUrl();
+      render();
+    });
 
     tickers = parseUrl();
     render();
@@ -140,26 +188,97 @@ import Layout from "../layouts/Layout.astro";
   </script>
 
   <style>
-    .cmp { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-    .cmp__h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
-    .cmp__en { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 1rem; }
-    .cmp__intro { color: var(--muted, #9aa0a6); font-size: 0.85rem; margin: 0 0 1rem; }
-    .cmp__add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-    .cmp__inp { width: 160px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.14)); background: var(--bg2, rgba(255,255,255,0.04)); color: inherit; font-size: 0.85rem; }
-    .cmp__btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.18)); background: transparent; color: inherit; cursor: pointer; font-size: 0.85rem; text-decoration: none; }
-    .cmp__btn--ghost { color: var(--muted, #9aa0a6); }
-    .cmp__msg { color: var(--muted, #9aa0a6); font-size: 0.8rem; }
-    .cmp__table-wrap { overflow-x: auto; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; }
-    .cmp__table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-    .cmp__table th, .cmp__table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: right; white-space: nowrap; }
-    .cmp__table th { background: var(--bg2, #14161a); text-align: right; vertical-align: top; }
-    .cmp__corner, .cmp__rlabel { text-align: left !important; color: var(--muted, #c8ccd2); position: sticky; left: 0; background: var(--bg2, #14161a); }
-    .cmp__table td.num { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
-    .cmp__table a { color: var(--link-report, #7dd3c0); text-decoration: none; font-family: ui-monospace, monospace; }
-    .cmp__nm { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 0.78rem; }
-    .cmp__rm { display: block; margin: 2px 0 0 auto; background: transparent; border: none; color: var(--muted, #9aa0a6); cursor: pointer; }
-    .cmp__rm:hover { color: #ff7b78; }
-    .cmp__empty { padding: 1.5rem; text-align: center; color: var(--muted, #9aa0a6); }
-    .cmp__empty a { color: var(--link-report, #7dd3c0); }
+    .cmp { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
+    .cmp__head { margin-bottom: 1.1rem; }
+    .cmp__h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+    .cmp__en { color: var(--muted); font-weight: 400; font-size: 1rem; }
+    .cmp__intro { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.6; }
+    .cmp__intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 5px; }
+    .cmp__legend { color: #7dd3c0; }
+
+    .cmp__add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; margin-bottom: 1.1rem; }
+    .cmp__inp {
+      width: 180px; height: 36px; padding: 0 12px; border-radius: var(--radius-sm, 8px);
+      border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text); font-size: 0.85rem;
+    }
+    .cmp__inp:focus { outline: none; border-color: var(--accent); }
+    .cmp__btn {
+      height: 36px; padding: 0 16px; border-radius: var(--radius-sm, 8px); font-size: 0.85rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text); cursor: pointer;
+      transition: border-color var(--duration) var(--ease-out), filter var(--duration) var(--ease-out);
+    }
+    .cmp__btn:hover { border-color: var(--accent); }
+    .cmp__btn--primary { color: #06141f; background: var(--accent); border-color: transparent; }
+    .cmp__btn--primary:hover { filter: brightness(1.08); }
+    .cmp__msg { color: var(--muted); font-size: 0.8rem; }
+
+    .cmp__card {
+      border: 1px solid var(--border); border-radius: var(--radius-lg, 14px); overflow: hidden;
+      background: linear-gradient(168deg, rgba(91,159,212,0.05) 0%, var(--surface) 46%, var(--surface-elevated) 100%);
+      box-shadow: var(--shadow-md);
+    }
+    .cmp__table-wrap { overflow-x: auto; }
+    .cmp__table { border-collapse: collapse; font-size: 0.85rem; width: 100%; }
+
+    .cmp__corner, .cmp__rlabel {
+      position: sticky; left: 0; z-index: 2; text-align: left;
+      background: #101216; color: var(--muted); white-space: nowrap;
+      min-width: 148px; padding: 12px 16px; font-weight: 500;
+    }
+    .cmp__corner {
+      z-index: 3; vertical-align: bottom;
+      font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .cmp__rlabel { font-size: 0.82rem; border-top: 1px solid rgba(255,255,255,0.045); }
+
+    .cmp__tk {
+      position: relative; vertical-align: top; text-align: left;
+      min-width: 158px; padding: 15px 16px 13px;
+      background: #121419; border-left: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid var(--border);
+    }
+    .cmp__bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .cmp__tk-top { display: flex; align-items: center; justify-content: space-between; }
+    .cmp__chip {
+      font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; text-decoration: none;
+      color: var(--link-report); background: color-mix(in srgb, var(--link-report) 14%, transparent);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .cmp__name {
+      display: block; margin-top: 8px; font-family: var(--font-display); font-size: 1.02rem; font-weight: 600;
+      color: var(--text-heading, #fff); text-decoration: none; letter-spacing: -0.01em;
+    }
+    .cmp__name:hover { color: var(--link-report); }
+    .cmp__sector { display: block; margin-top: 2px; font-size: 0.72rem; color: var(--muted); }
+    .cmp__rm {
+      background: transparent; border: none; color: var(--muted); cursor: pointer;
+      font-size: 0.78rem; width: 24px; height: 24px; border-radius: 50%; line-height: 1;
+      transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+    }
+    .cmp__rm:hover { background: rgba(226,75,74,0.15); color: #ff7b78; }
+
+    .cmp__sec td {
+      padding: 9px 16px 7px; background: rgba(91,159,212,0.05);
+      border-top: 1px solid var(--border); border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #8fa6bd;
+    }
+    .cmp__dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: middle; }
+
+    .cmp__v {
+      padding: 12px 16px; text-align: right; white-space: nowrap;
+      font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; font-weight: 600;
+      color: #e6e8eb; border-top: 1px solid rgba(255,255,255,0.045); border-left: 1px solid rgba(255,255,255,0.05);
+    }
+    .cmp__v.is-best { color: #7dd3c0; background: rgba(125,211,192,0.07); }
+    .cmp__mk { font-size: 0.6rem; margin-right: 5px; vertical-align: 1px; }
+    .cmp__table tbody tr:hover .cmp__v { background: rgba(255,255,255,0.025); }
+    .cmp__table tbody tr:hover .cmp__v.is-best { background: rgba(125,211,192,0.1); }
+
+    .cmp__empty { padding: 3.5rem 1.5rem; text-align: center; }
+    .cmp__empty-icon { font-size: 2rem; color: var(--muted); opacity: 0.45; margin-bottom: 0.4rem; }
+    .cmp__empty p { margin: 0.2rem 0; color: var(--text); }
+    .cmp__empty-sub { color: var(--muted); font-size: 0.85rem; }
+    .cmp__empty a { color: var(--link-report); }
   </style>
 </Layout>
