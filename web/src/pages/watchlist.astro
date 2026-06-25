@@ -64,7 +64,7 @@ import Layout from "../layouts/Layout.astro";
         .map((t, i) => {
           const r = index[t] || { t, n: "", s: "" };
           return `<article class="wl__item" style="--wl-bar:${BARS[i % BARS.length]}">
-            <button class="wl__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">✕</button>
+            <button class="wl__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">×</button>
             <a class="wl__item-head" href="/report/${t}">
               <span class="wl__tk">${t}</span>
               <span class="wl__name">${r.n ?? ""}</span>
@@ -100,7 +100,7 @@ import Layout from "../layouts/Layout.astro";
     render();
   </script>
 
-  <style>
+  <style is:global>
     .wl { max-width: 1120px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
     .wl__head {
       display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;

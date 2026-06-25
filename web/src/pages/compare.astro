@@ -109,7 +109,7 @@ import Layout from "../layouts/Layout.astro";
             <span class="cmp__bar" style="background:linear-gradient(90deg,${BARS[i % BARS.length]},transparent 82%)"></span>
             <span class="cmp__tk-top">
               <a class="cmp__chip" href="/report/${t}">${t}</a>
-              <button class="cmp__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">✕</button>
+              <button class="cmp__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">×</button>
             </span>
             <a class="cmp__name" href="/report/${t}">${r?.n ?? "—"}</a>
             <span class="cmp__sector">${r?.s ?? "—"}</span>
@@ -187,7 +187,7 @@ import Layout from "../layouts/Layout.astro";
       .catch(render);
   </script>
 
-  <style>
+  <style is:global>
     .cmp { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
     .cmp__head { margin-bottom: 1.1rem; }
     .cmp__h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
