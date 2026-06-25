@@ -607,16 +607,6 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
 
         body.appendChild(row);
         body.appendChild(h2);
-        if (a.summary) {
-          var p = document.createElement("p");
-          p.className = "news-card-sum";
-          p.textContent = a.summary;
-          body.appendChild(p);
-        }
-
-        var bottom = document.createElement("div");
-        bottom.className = "news-card-bottom";
-
         if (a.wikilinks && a.wikilinks.length) {
           var wlrow = document.createElement("div");
           wlrow.className = "news-card-wikilinks";
@@ -629,8 +619,17 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
             chip.textContent = w.label || w.slug;
             wlrow.appendChild(chip);
           }
-          bottom.appendChild(wlrow);
+          body.appendChild(wlrow);
         }
+        if (a.summary) {
+          var p = document.createElement("p");
+          p.className = "news-card-sum";
+          p.textContent = a.summary;
+          body.appendChild(p);
+        }
+
+        var bottom = document.createElement("div");
+        bottom.className = "news-card-bottom";
 
         var relatedSec = document.createElement("section");
         relatedSec.className = "news-card-related";

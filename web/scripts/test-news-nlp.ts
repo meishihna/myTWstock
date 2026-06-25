@@ -109,6 +109,18 @@ function testWikiCowosAndSlugPassthrough() {
   assert.equal(c!.slug, "cowos");
 }
 
+function testWikiExcludeCompanies() {
+  const tags = tagWikilinks(
+    "台積電擴產 CoWoS",
+    "",
+    hub,
+    5,
+    new Set(["台積電", "台積"])
+  );
+  assert.ok(!tags.some((t) => t.label === "台積電"), "排除清單中的公司不應出現");
+  assert.ok(tags.some((t) => t.label === "CoWoS"), "非公司題材 CoWoS 仍應出現");
+}
+
 // ---- 去重 / 事件聚類 ----
 function mkArt(
   id: string,
@@ -155,7 +167,9 @@ function testClusterDeterministic() {
 
 // ---- 總成 ----
 function testEnrichEndToEnd() {
-  const arts = [mkArt("a", "台積電營收創新高", "cnyes", "2026-06-25T01:00:00Z")];
+  const arts = [
+    mkArt("a", "台積電營收創新高，CoWoS 與 AI 需求強", "cnyes", "2026-06-25T01:00:00Z"),
+  ];
   const r = enrichArticlesNlp(arts, {
     lexicon: lex,
     wikilinkEntries: hub,
@@ -164,8 +178,16 @@ function testEnrichEndToEnd() {
     themePayload: null,
   });
   assert.equal(r.byId["a"].sentiment.label, "利多");
-  assert.ok(r.byId["a"].wikilinks.some((w) => w.label === "台積電"));
-  assert.ok(r.tickerSentiment["2330"], "應彙總 2330 情緒");
+  // 公司(台積電)應排除,改由相關行情顯示;題材 CoWoS/AI 保留
+  assert.ok(
+    !r.byId["a"].wikilinks.some((w) => w.label === "台積電"),
+    "wikilink chips 不應含公司"
+  );
+  assert.ok(
+    r.byId["a"].wikilinks.some((w) => w.label === "CoWoS" || w.label === "AI"),
+    "應保留題材標籤"
+  );
+  assert.ok(r.tickerSentiment["2330"], "應仍彙總 2330 情緒(由公司名解析)");
   assert.equal(r.tickerSentiment["2330"].pos, 1);
 }
 
@@ -179,6 +201,7 @@ testWikiBlocklistRejected();
 testWikiLongestWinsDedup();
 testWikiLatinBoundary();
 testWikiCowosAndSlugPassthrough();
+testWikiExcludeCompanies();
 testClusterCrossSourceMerge();
 testClusterSameSourceNotMerged();
 testClusterDeterministic();

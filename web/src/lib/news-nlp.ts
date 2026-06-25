@@ -110,6 +110,38 @@ export interface NewsNlpDeps {
 }
 
 export const MAX_WIKILINKS_PER_ARTICLE = 5;
+
+/**
+ * Wikilink 標籤排除「公司」(已由「相關行情」個股膠囊顯示)。
+ * 台廠以 nameToTicker 動態排除;國際大廠以此固定清單排除,讓 chips 聚焦技術/材料/題材。
+ */
+export const FOREIGN_COMPANY_WIKILINKS = new Set<string>([
+  "NVIDIA", "Nvidia", "AMD", "Intel", "Apple", "Samsung", "三星",
+  "Dell", "Microsoft", "微軟", "Google", "谷歌", "Alphabet",
+  "Amazon", "亞馬遜", "Meta", "Qualcomm", "高通", "Broadcom", "博通",
+  "Sony", "索尼", "Tesla", "特斯拉", "ASML", "Micron", "美光",
+  "Supermicro", "美超微", "ARM", "Arm", "IBM", "Oracle", "甲骨文",
+  "Cisco", "思科", "HPE", "Nokia", "Ericsson", "SK海力士", "海力士",
+  "OpenAI", "Huawei", "華為", "SMIC", "中芯", "中芯國際", "BYD", "比亞迪",
+  "MediaTek", "Marvell", "Qorvo", "Infineon", "英飛凌", "Renesas", "瑞薩",
+  "Foxconn", "TSMC", "SpaceX", "Starlink",
+]);
+
+/**
+ * 非題材類 wikilink:地名、政府機關、泛稱——對新聞 chips 無價值,一併排除,
+ * 讓 chips 聚焦技術/材料/產品/題材。(與 NAME_MATCH_BLOCKLIST 互補,不重複)
+ */
+export const NON_TOPIC_WIKILINKS = new Set<string>([
+  // 地名
+  "台北", "臺北", "新北", "台中", "臺中", "台南", "臺南", "高雄", "桃園",
+  "新竹", "基隆", "嘉義", "彰化", "雲林", "屏東", "宜蘭", "花蓮", "台東",
+  // 政府機關
+  "財政部", "經濟部", "教育部", "衛福部", "勞動部", "內政部", "外交部",
+  "國防部", "交通部", "法務部", "國發會", "數位部", "農業部", "環境部",
+  "環保署", "NCC", "公平會", "經濟日報", "工商時報",
+  // 泛稱
+  "政府", "政院",
+]);
 const SENTIMENT_DEAD_BAND = 0.15;
 const SENTIMENT_K = 4;
 const TITLE_WEIGHT = 1.5;
@@ -242,7 +274,8 @@ export function tagWikilinks(
   title: string,
   summary: string,
   entries: WikiHubEntry[],
-  limit = MAX_WIKILINKS_PER_ARTICLE
+  limit = MAX_WIKILINKS_PER_ARTICLE,
+  excludeLabels?: Set<string>
 ): WikiTag[] {
   const titleText = title || "";
   const fullText = `${titleText}\n${summary || ""}`;
@@ -255,6 +288,7 @@ export function tagWikilinks(
   for (const e of entries) {
     if (!e || !e.label || !e.slug) continue;
     if (seenSlug.has(e.slug)) continue;
+    if (excludeLabels && excludeLabels.has(e.label.trim())) continue;
     if (!isWikiLabelEligible(e.label)) continue;
 
     let hit = false;
@@ -427,9 +461,20 @@ export function enrichArticlesNlp(
   const byId: Record<string, NewsNlpFields> = {};
   const agg: Record<string, TickerSentiment> = {};
 
+  // 公司類 wikilink 由「相關行情」膠囊呈現,chips 不重複顯示
+  const companyLabels = new Set<string>(Object.keys(deps.nameToTicker));
+  for (const c of FOREIGN_COMPANY_WIKILINKS) companyLabels.add(c);
+  for (const c of NON_TOPIC_WIKILINKS) companyLabels.add(c);
+
   for (const a of articles) {
     const sentiment = computeSentiment(a.title, a.summary, deps.lexicon);
-    const wikilinks = tagWikilinks(a.title, a.summary, deps.wikilinkEntries);
+    const wikilinks = tagWikilinks(
+      a.title,
+      a.summary,
+      deps.wikilinkEntries,
+      MAX_WIKILINKS_PER_ARTICLE,
+      companyLabels
+    );
     byId[a.id] = { sentiment, wikilinks, clusterId: null };
 
     const resolved = resolveTickersFromText(
