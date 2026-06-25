@@ -7,15 +7,16 @@ import Layout from "../layouts/Layout.astro";
   description="以最新年度財務與估值指標篩選、排序全市場 1,700+ 檔台股。"
 >
   <main class="screener">
-    <h1 class="screener__h1">財務選股器 <span class="screener__h1-en">Screener</span></h1>
-    <p class="screener__intro">
-      以最新年度損益與估值指標篩選、排序全市場上市櫃。資料同報告頁(來源
-      <code>financials_store</code>);部分小型股估值欄位可能從缺。點欄位標題可排序。
-    </p>
+    <header class="scr-head">
+      <h1 class="scr-h1">財務選股器 <span class="scr-h1-en">Screener</span></h1>
+      <p class="scr-intro">
+        以最新年度損益與估值指標篩選、排序全市場上市櫃(來源 <code>financials_store</code>);部分小型股估值欄位可能從缺。點欄位標題可排序。
+      </p>
+    </header>
 
     <div class="scr-controls">
       <input id="scr-q" class="scr-input" type="search" placeholder="代號或名稱…" aria-label="代號或名稱搜尋" />
-      <select id="scr-sector" class="scr-input" aria-label="產業篩選">
+      <select id="scr-sector" class="scr-input scr-select" aria-label="產業篩選">
         <option value="">全部產業</option>
       </select>
       <label class="scr-flab">P/E ≤ <input id="scr-pe" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
@@ -26,11 +27,13 @@ import Layout from "../layouts/Layout.astro";
       <span id="scr-count" class="scr-count" role="status"></span>
     </div>
 
-    <div class="scr-table-wrap">
-      <table class="scr-table">
-        <thead><tr id="scr-head"></tr></thead>
-        <tbody id="scr-body"></tbody>
-      </table>
+    <div class="scr-card">
+      <div class="scr-table-wrap">
+        <table class="scr-table">
+          <thead><tr id="scr-head"></tr></thead>
+          <tbody id="scr-body"></tbody>
+        </table>
+      </div>
       <p id="scr-empty" class="scr-empty" hidden>無符合條件的標的。</p>
     </div>
   </main>
@@ -54,7 +57,7 @@ import Layout from "../layouts/Layout.astro";
 
     let rows: Row[] = [];
     let sortKey = "mc";
-    let sortDir = -1; // 1 asc, -1 desc
+    let sortDir = -1;
 
     const $ = (id: string) => document.getElementById(id);
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -143,7 +146,7 @@ import Layout from "../layouts/Layout.astro";
           const an = num(av);
           const bn = num(bv);
           if (an == null && bn == null) return 0;
-          if (an == null) return 1; // nulls last
+          if (an == null) return 1;
           if (bn == null) return -1;
           return (an - bn) * sortDir;
         }
@@ -159,7 +162,6 @@ import Layout from "../layouts/Layout.astro";
       const count = $("scr-count");
       if (count) count.textContent = `符合 ${list.length} 檔` + (list.length > MAX_SHOW ? `(顯示前 ${MAX_SHOW})` : "");
       if (empty) (empty as HTMLElement).hidden = list.length > 0;
-      // sort arrows
       document.querySelectorAll(".scr-arrow").forEach((el) => (el.textContent = ""));
       const arrow = document.querySelector(`[data-arrow="${sortKey}"]`);
       if (arrow) arrow.textContent = sortDir === 1 ? " ▲" : " ▼";
@@ -169,11 +171,17 @@ import Layout from "../layouts/Layout.astro";
         .map((r) => {
           const cells = COLS.map((c) => {
             if (c.k === "t")
-              return `<td class="scr-td--t"><a href="/report/${r.t}">${r.t}</a></td>`;
+              return `<td class="scr-td--t"><a class="scr-chip" href="/report/${r.t}">${r.t}</a></td>`;
             if (c.k === "n")
-              return `<td><a href="/report/${r.t}">${r.n ?? ""}</a></td>`;
-            if (!c.num) return `<td>${r[c.k] ?? ""}</td>`;
+              return `<td class="scr-td--n"><a href="/report/${r.t}">${r.n ?? ""}</a></td>`;
+            if (c.k === "s") return `<td class="scr-td--s">${r.s ?? "—"}</td>`;
             const v = num(r[c.k]);
+            if (c.k === "revYoy") {
+              if (v == null) return `<td class="scr-td--num">—</td>`;
+              const cls = v > 0 ? "is-pos" : v < 0 ? "is-neg" : "";
+              const arr = v > 0 ? "▲" : v < 0 ? "▼" : "";
+              return `<td class="scr-td--num scr-chg ${cls}">${arr}${Math.abs(v).toFixed(1)}</td>`;
+            }
             return `<td class="scr-td--num">${v == null ? "—" : c.fmt!(v)}</td>`;
           });
           return `<tr>${cells.join("")}</tr>`;
@@ -214,28 +222,68 @@ import Layout from "../layouts/Layout.astro";
       });
   </script>
 
-  <style>
-    .screener { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-    .screener__h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
-    .screener__h1-en { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 1rem; }
-    .screener__intro { color: var(--muted, #9aa0a6); font-size: 0.85rem; margin: 0 0 1rem; line-height: 1.6; }
-    .scr-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
-    .scr-input { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.14)); background: var(--bg2, rgba(255,255,255,0.04)); color: inherit; font-size: 0.85rem; }
-    .scr-flab { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted, #9aa0a6); }
-    .scr-num { width: 72px; padding: 5px 7px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.14)); background: var(--bg2, rgba(255,255,255,0.04)); color: inherit; font-size: 0.85rem; }
-    .scr-reset { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.18)); background: transparent; color: inherit; cursor: pointer; font-size: 0.8rem; }
-    .scr-count { color: var(--muted, #9aa0a6); font-size: 0.8rem; margin-left: auto; }
-    .scr-table-wrap { overflow-x: auto; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; }
-    .scr-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .scr-table th { position: sticky; top: 0; background: var(--bg2, #14161a); padding: 8px 10px; text-align: left; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border, rgba(255,255,255,0.14)); }
+  <style is:global>
+    .screener { max-width: 1200px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
+    .scr-head { margin-bottom: 1.1rem; }
+    .scr-h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+    .scr-h1-en { color: var(--muted); font-weight: 400; font-size: 1rem; }
+    .scr-intro { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.6; }
+    .scr-intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 5px; }
+
+    .scr-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.1rem; }
+    .scr-input, .scr-num {
+      height: 36px; padding: 0 12px; border-radius: var(--radius-sm, 8px);
+      border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text); font-size: 0.85rem;
+    }
+    .scr-input { min-width: 150px; }
+    .scr-select { cursor: pointer; }
+    .scr-input:focus, .scr-num:focus { outline: none; border-color: var(--accent); }
+    .scr-flab { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--muted); }
+    .scr-num { width: 76px; padding: 0 9px; }
+    .scr-reset {
+      height: 36px; padding: 0 14px; border-radius: var(--radius-sm, 8px); cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text);
+      transition: border-color var(--duration) var(--ease-out);
+    }
+    .scr-reset:hover { border-color: var(--accent); }
+    .scr-count { color: var(--muted); font-size: 0.8rem; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+    .scr-card {
+      border: 1px solid var(--border); border-radius: var(--radius-lg, 14px); overflow: hidden;
+      background: linear-gradient(168deg, rgba(91,159,212,0.05) 0%, var(--surface) 46%, var(--surface-elevated) 100%);
+      box-shadow: var(--shadow-md);
+    }
+    .scr-table-wrap { overflow-x: auto; }
+    .scr-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+
+    .scr-table thead th {
+      position: sticky; top: 0; z-index: 1; background: #121419;
+      padding: 11px 14px; text-align: left; white-space: nowrap; cursor: pointer; user-select: none;
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .scr-table thead th:hover { color: var(--text); }
     .scr-th--num { text-align: right; }
-    .scr-table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
-    .scr-td--num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
-    .scr-td--t a { font-family: ui-monospace, monospace; }
-    .scr-table tbody tr:hover { background: rgba(255,255,255,0.04); }
-    .scr-table a { color: var(--link-report, #7dd3c0); text-decoration: none; }
-    .scr-table a:hover { text-decoration: underline; }
-    .scr-arrow { color: var(--muted, #9aa0a6); }
-    .scr-empty { padding: 1.5rem; text-align: center; color: var(--muted, #9aa0a6); }
+    .scr-arrow { color: var(--accent); }
+
+    .scr-table tbody td {
+      padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.045);
+    }
+    .scr-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+    .scr-td--num {
+      text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; color: #e6e8eb;
+    }
+    .scr-td--s { color: var(--muted); font-size: 0.8rem; }
+    .scr-td--n a { color: var(--text); text-decoration: none; font-weight: 500; }
+    .scr-td--n a:hover { color: var(--link-report); }
+    .scr-chip {
+      font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; text-decoration: none;
+      color: var(--link-report); background: color-mix(in srgb, var(--link-report) 14%, transparent);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .scr-chg.is-pos { color: #1d9e75; }
+    .scr-chg.is-neg { color: #e24b4a; }
+
+    .scr-empty { padding: 2.5rem 1.5rem; text-align: center; color: var(--muted); }
   </style>
 </Layout>
