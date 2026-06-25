@@ -57,14 +57,26 @@ import {
 } from "../../lib/businessIntro";
 import { REPORT, SITE } from "../../lib/ui";
 
-/** 即時 Yahoo 走勢／延遲行情：每次請求 SSR，不在 build 時預抓 */
-export const prerender = false;
+/**
+ * 預渲染所有報告頁:build 時讀本地資料(financials_store / Pilot_Reports /
+ * 索引)烘焙成靜態頁。如此 Vercel serverless 不需打包 web/ 以外的 data 即可運作;
+ * 走勢圖仍由前端 Lightweight Charts 即時讀 /api/bars(SSR API)繪製。
+ */
+export const prerender = true;
 
-/** `web/` 目錄（不依賴 process.cwd，避免從 repo 根目錄啟動 dev 時路徑錯到找不到 enrichment） */
-const __reportDir = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(__reportDir, "..", "..", "..");
-const repoRoot = path.resolve(__reportDir, "..", "..", "..", "..");
+/**
+ * 路徑以 process.cwd() 為錨(build 與 dev 皆從 web/ 執行;Vercel Root Directory=web)。
+ * 改用 cwd 而非 import.meta.url,因預渲染/建置後 import.meta.url 會指向 dist/ 而錯位。
+ */
+const webRoot = process.cwd();
+const repoRoot = path.resolve(webRoot, "..");
 const idxPath = path.join(webRoot, "public", "data", "reports-index.json");
+
+export function getStaticPaths() {
+  const p = path.join(process.cwd(), "public", "data", "reports-index.json");
+  const j = JSON.parse(fs.readFileSync(p, "utf8"));
+  return Object.keys(j.byTicker || {}).map((t) => ({ params: { ticker: t } }));
+}
 
 const { ticker } = Astro.params;
 const idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
@@ -80,7 +92,8 @@ const meta = idx.byTicker[ticker!] as
   | undefined;
 
 if (!meta) {
-  return new Response(null, { status: 404 });
+  // getStaticPaths 只產生有效代號,正常不會發生(預渲染頁不可回傳 Response)
+  throw new Error(`report: unknown ticker ${ticker}`);
 }
 
 const mdPath = path.join(repoRoot, "Pilot_Reports", ...meta.relPath.split("/"));
