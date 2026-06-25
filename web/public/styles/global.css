@@ -263,6 +263,11 @@ html::-webkit-scrollbar-corner,
   background: var(--accent-soft);
 }
 
+.nav-links a[aria-current="page"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .nav-links a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
