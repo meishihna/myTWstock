@@ -27,9 +27,24 @@ function walkHtml(dir, acc = []) {
     const full = join(dir, name);
     const st = statSync(full);
     if (st.isDirectory()) walkHtml(full, acc);
-    else if (name.endsWith(".html")) acc.push(full);
+    else if (name.endsWith(".html")) acc.push({ path: full, mtime: st.mtime });
   }
   return acc;
+}
+
+/** 由 Pilot_Reports 的 .md mtime 取得各 ticker 最後修改日(報告頁為 SSR,dist 無靜態檔) */
+function reportMtimeMap(dir, map = new Map()) {
+  if (!existsSync(dir)) return map;
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    const st = statSync(full);
+    if (st.isDirectory()) reportMtimeMap(full, map);
+    else if (name.endsWith(".md")) {
+      const m = name.match(/^(\d{4})_/);
+      if (m) map.set(m[1], st.mtime.toISOString().slice(0, 10));
+    }
+  }
+  return map;
 }
 
 function fileToUrl(absPath) {
@@ -59,27 +74,41 @@ if (!existsSync(clientDir)) {
 }
 
 const files = walkHtml(clientDir);
-const urls = files
-  .map(fileToUrl)
-  .filter((u) => !/\/404\/?$/.test(u) && !u.includes("/404.html"));
+/** url -> YYYY-MM-DD lastmod(可為 null) */
+const lastmod = new Map();
+for (const f of files) {
+  const u = fileToUrl(f.path);
+  if (/\/404\/?$/.test(u) || u.includes("/404.html")) continue;
+  lastmod.set(u, f.mtime.toISOString().slice(0, 10));
+}
 
-// 報告頁改 SSR 後 dist 可能無各 ticker 的靜態 index.html，從索引補齊 URL
+// 報告頁改 SSR 後 dist 無各 ticker 靜態檔，從索引補齊 URL,lastmod 取 .md mtime
+const reportMtimes = reportMtimeMap(join(webRoot, "..", "Pilot_Reports"));
 const idxPath = join(webRoot, "public", "data", "reports-index.json");
-let reportUrls = [];
 if (existsSync(idxPath)) {
   try {
     const idx = JSON.parse(readFileSync(idxPath, "utf8"));
-    reportUrls = Object.keys(idx.byTicker || {}).map((t) => `${site}/report/${t}`);
+    for (const t of Object.keys(idx.byTicker || {})) {
+      const u = `${site}/report/${t}`;
+      lastmod.set(u, reportMtimes.get(t) ?? lastmod.get(u) ?? null);
+    }
   } catch {
     console.warn("[sitemap] could not parse reports-index.json");
   }
 }
 
-const unique = [...new Set([...urls, ...reportUrls])].sort();
+const unique = [...lastmod.keys()].sort();
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${unique.map((u) => `  <url><loc>${escapeXml(u)}</loc></url>`).join("\n")}
+${unique
+  .map((u) => {
+    const lm = lastmod.get(u);
+    return lm
+      ? `  <url><loc>${escapeXml(u)}</loc><lastmod>${lm}</lastmod></url>`
+      : `  <url><loc>${escapeXml(u)}</loc></url>`;
+  })
+  .join("\n")}
 </urlset>
 `;
 

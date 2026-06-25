@@ -9,17 +9,28 @@ interface Props {
   ogImage?: string;
   /** 不讓搜尋引擎索引（例如預覽環境） */
   noIndex?: boolean;
+  /** 頁面層級 JSON-LD 結構化資料(單一或陣列),會與全站 Organization 一併輸出 */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 const {
   title,
   description = SITE.desc,
   ogImage = "/og-default.svg",
   noIndex = false,
+  jsonLd,
 } = Astro.props;
 
 const siteBase = Astro.site ?? new URL("/", Astro.url);
 const canonicalUrl = new URL(Astro.url.pathname + Astro.url.search, siteBase);
 const ogImageUrl = new URL(ogImage, siteBase);
+
+const orgLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE.name,
+  url: siteBase.href,
+};
+const pageLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 <!doctype html>
 <html lang="zh-Hant">
@@ -43,6 +54,10 @@ const ogImageUrl = new URL(ogImage, siteBase);
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl.href} />
+    <script type="application/ld+json" set:html={JSON.stringify(orgLd)} />
+    {pageLdList.map((obj) => (
+      <script type="application/ld+json" set:html={JSON.stringify(obj)} />
+    ))}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
