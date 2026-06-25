@@ -143,16 +143,6 @@ async function main() {
     "| sectors:",
     sectors.length
   );
-
-  const netSrc = path.join(REPO_ROOT, "network");
-  const netDest = path.join(WEB_ROOT, "public", "network");
-  if (existsSync(netSrc)) {
-    mkdirSync(path.dirname(netDest), { recursive: true });
-    cpSync(netSrc, netDest, { recursive: true });
-    console.log("Copied network/ → public/network/");
-  } else {
-    console.warn("No network/ folder at repo root (graph page optional).");
-  }
 }
 
 main().catch((e) => {

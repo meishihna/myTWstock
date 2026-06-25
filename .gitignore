@@ -35,5 +35,6 @@ web/public/data/wikilink-hub-top500.json
 web/public/data/wikilink-stubs.json
 web/public/data/themes-index.json
 web/public/data/sector-stats.json
+web/public/data/screener-index.json
 # 舊財務鏡像（app 已改讀 data/financials_store/；保留磁碟檔但不追蹤）
 web/public/data/financials/
