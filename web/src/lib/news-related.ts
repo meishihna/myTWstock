@@ -181,7 +181,7 @@ export type NewsThemePayload = {
   industryInference?: NewsThemeEntry[];
 };
 
-function rangesOverlap(
+export function rangesOverlap(
   s: number,
   e: number,
   used: readonly [number, number][]
@@ -192,7 +192,7 @@ function rangesOverlap(
   return false;
 }
 
-function findNeedleStarts(text: string, needle: string): number[] {
+export function findNeedleStarts(text: string, needle: string): number[] {
   const out: number[] = [];
   if (!needle) return out;
   let from = 0;

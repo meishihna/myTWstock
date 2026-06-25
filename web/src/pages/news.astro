@@ -75,6 +75,7 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
       </fieldset>
     </div>
 
+    <section class="news-digest" id="news-digest" aria-label="每日簡報" hidden></section>
     <p class="news-status" id="news-status" aria-live="polite">{NEWS_PAGE.loading}</p>
     <p class="news-meta" id="news-meta" hidden></p>
     <p class="news-source-stats" id="news-source-stats" hidden></p>
@@ -107,6 +108,7 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
     var listEl = document.getElementById("news-list");
     var loadMoreBtn = document.getElementById("news-load-more");
     var statsEl = document.getElementById("news-source-stats");
+    var digestEl = document.getElementById("news-digest");
     if (!root || !statusEl || !listEl || !loadMoreBtn || !statsEl) return;
 
     var category = "all";
@@ -403,12 +405,125 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
       }
     }
 
-    function renderArticles(articles) {
+    function toggleCluster(clusterId, btn, sourceCount) {
+      var dups = listEl.querySelectorAll(
+        '.news-card--dup[data-cluster="' + clusterId + '"]'
+      );
+      var show = !btn.classList.contains("is-open");
+      btn.classList.toggle("is-open", show);
+      for (var i = 0; i < dups.length; i++) {
+        dups[i].classList.toggle("is-shown", show);
+      }
+      btn.textContent = (show ? "收合 · " : "同一事件 · ") + sourceCount + " 來源";
+    }
+
+    function renderDigest(digest) {
+      if (!digestEl) return;
+      if (!digest || !digest.digest) {
+        digestEl.hidden = true;
+        digestEl.textContent = "";
+        return;
+      }
+      var d = digest.digest;
+      digestEl.textContent = "";
+      var head = document.createElement("div");
+      head.className = "news-digest-head";
+      var h = document.createElement("h2");
+      h.className = "news-digest-title";
+      h.textContent = "每日簡報";
+      head.appendChild(h);
+      if (d.marketTone) {
+        var toneCls =
+          d.marketTone === "利多"
+            ? "is-pos"
+            : d.marketTone === "利空"
+              ? "is-neg"
+              : "is-neu";
+        var tone = document.createElement("span");
+        tone.className = "news-card-sentiment " + toneCls;
+        tone.textContent = "盤勢 " + d.marketTone;
+        head.appendChild(tone);
+      }
+      digestEl.appendChild(head);
+      if (d.headline) {
+        var hl = document.createElement("p");
+        hl.className = "news-digest-headline";
+        hl.textContent = d.headline;
+        digestEl.appendChild(hl);
+      }
+      if (d.bullets && d.bullets.length) {
+        var ul = document.createElement("ul");
+        ul.className = "news-digest-bullets";
+        for (var bi = 0; bi < d.bullets.length; bi++) {
+          var bli = document.createElement("li");
+          bli.textContent = d.bullets[bi];
+          ul.appendChild(bli);
+        }
+        digestEl.appendChild(ul);
+      }
+      function sectorRow(labelTxt, arr, cls) {
+        if (!arr || !arr.length) return;
+        var row = document.createElement("div");
+        row.className = "news-digest-sectors";
+        var lab = document.createElement("span");
+        lab.className = "news-digest-sectors-label";
+        lab.textContent = labelTxt;
+        row.appendChild(lab);
+        for (var si = 0; si < arr.length; si++) {
+          var chip = document.createElement("span");
+          chip.className = "news-digest-chip " + cls;
+          chip.textContent = arr[si];
+          row.appendChild(chip);
+        }
+        digestEl.appendChild(row);
+      }
+      sectorRow("強勢", d.sectorsHot, "is-pos");
+      sectorRow("弱勢", d.sectorsWeak, "is-neg");
+      if (digest.generatedAt) {
+        var ts = document.createElement("p");
+        ts.className = "news-digest-ts";
+        ts.textContent =
+          "更新：" + new Date(digest.generatedAt).toLocaleString("zh-TW");
+        digestEl.appendChild(ts);
+      }
+      digestEl.hidden = false;
+    }
+
+    function renderArticles(articles, clusters) {
       listEl.innerHTML = "";
+      var clusterById = {};
+      (clusters || []).forEach(function (c) {
+        clusterById[c.clusterId] = c;
+      });
+      var presentIds = {};
+      articles.forEach(function (a) {
+        presentIds[a.id] = true;
+      });
       articles.forEach(function (a) {
         var li = document.createElement("li");
         li.className =
           "news-card news-card--" + String(a.sourceId || "").replace(/[^a-z0-9_-]/gi, "");
+
+        var cl = a.clusterId || null;
+        var cluster = cl ? clusterById[cl] : null;
+        var isClusterPrimary = !!(
+          cluster &&
+          cluster.sourceCount >= 2 &&
+          a.id === cluster.primaryId &&
+          cluster.memberIds.some(function (m) {
+            return m !== cluster.primaryId && presentIds[m];
+          })
+        );
+        var isClusterDup = !!(
+          cluster &&
+          cluster.sourceCount >= 2 &&
+          a.id !== cluster.primaryId &&
+          presentIds[cluster.primaryId]
+        );
+        if (isClusterDup) {
+          li.className += " news-card--dup";
+          li.setAttribute("data-cluster", cl);
+        }
 
         var href = safeHttpUrl(a.url);
 
@@ -450,6 +565,30 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
           cat.textContent = a.category;
           badges.appendChild(cat);
         }
+        if (a.sentiment && a.sentiment.label) {
+          var sentCls =
+            a.sentiment.label === "利多"
+              ? "is-pos"
+              : a.sentiment.label === "利空"
+                ? "is-neg"
+                : "is-neu";
+          var sent = document.createElement("span");
+          sent.className = "news-card-sentiment " + sentCls;
+          sent.textContent = a.sentiment.label;
+          sent.title = "情緒分數 " + a.sentiment.score;
+          badges.appendChild(sent);
+        }
+        if (isClusterPrimary) {
+          var cbadge = document.createElement("button");
+          cbadge.type = "button";
+          cbadge.className = "news-cluster-badge";
+          cbadge.setAttribute("data-cluster", cl);
+          cbadge.textContent = "同一事件 · " + cluster.sourceCount + " 來源";
+          cbadge.addEventListener("click", function () {
+            toggleCluster(cl, cbadge, cluster.sourceCount);
+          });
+          badges.appendChild(cbadge);
+        }
         var tm = document.createElement("time");
         tm.className = "news-card-time";
         tm.dateTime = a.published || "";
@@ -477,6 +616,21 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
 
         var bottom = document.createElement("div");
         bottom.className = "news-card-bottom";
+
+        if (a.wikilinks && a.wikilinks.length) {
+          var wlrow = document.createElement("div");
+          wlrow.className = "news-card-wikilinks";
+          for (var wi = 0; wi < a.wikilinks.length; wi++) {
+            var w = a.wikilinks[wi];
+            if (!w || !w.slug) continue;
+            var chip = document.createElement("a");
+            chip.className = "news-wiki-chip";
+            chip.href = "/wiki/" + encodeURIComponent(w.slug);
+            chip.textContent = w.label || w.slug;
+            wlrow.appendChild(chip);
+          }
+          bottom.appendChild(wlrow);
+        }
 
         var relatedSec = document.createElement("section");
         relatedSec.className = "news-card-related";
@@ -545,7 +699,8 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
             }
             return;
           }
-          renderArticles(data.articles);
+          renderDigest(data.digest);
+          renderArticles(data.articles, data.clusters);
           void hydrateRelatedCards(data.articles);
           var parts = [];
           if (data.lastUpdated) {

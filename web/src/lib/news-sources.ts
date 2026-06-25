@@ -3,6 +3,13 @@
  */
 import { createHash } from "node:crypto";
 import Parser from "rss-parser";
+import type {
+  NewsCluster,
+  NewsDigest,
+  SentimentResult,
+  TickerSentiment,
+  WikiTag,
+} from "./news-nlp";
 
 export interface NewsArticle {
   id: string;
@@ -14,6 +21,10 @@ export interface NewsArticle {
   category: NewsCategoryLabel;
   image: string;
   published: string;
+  /** 本地 NLP 層(api/news.ts 於回應前掛上;全為 optional 以向後相容) */
+  sentiment?: SentimentResult;
+  wikilinks?: WikiTag[];
+  clusterId?: string | null;
 }
 
 export type NewsSourceId =
@@ -39,6 +50,12 @@ export interface NewsResponse {
   sources: Record<string, { name: string; count: number }>;
   lastUpdated: string;
   total: number;
+  /** 本頁相關的事件群(成員出現在本頁者) */
+  clusters?: NewsCluster[];
+  /** 全域個股情緒彙總(over 快取集) */
+  tickerSentiment?: Record<string, TickerSentiment>;
+  /** Phase B 每日簡報;未產出時為 null */
+  digest?: NewsDigest | null;
 }
 
 export const SOURCE_LABELS: Record<NewsSourceId, string> = {
