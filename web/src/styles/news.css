@@ -646,6 +646,7 @@
 .news-card-sentiment {
   display: inline-flex;
   align-items: center;
+  margin-left: 0.55rem;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -676,6 +677,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
+  margin-left: 0.45rem;
   padding: 1px 9px;
   border-radius: 999px;
   color: var(--news-link);
