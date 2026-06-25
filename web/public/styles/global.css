@@ -1,24 +1,26 @@
 :root {
   --layout-max: min(88rem, calc(100vw - 2.5rem));
-  --bg: #000000;
-  --bg-mid: #000000;
-  --surface: #0e0e0e;
-  --surface-elevated: #161616;
-  --border: #2a2a2a;
+  /* 編輯室(Editorial)暖墨色盤:暖近黑底、墨色文字、克制金色強調。
+     沿用 /news 的暖色系語言,全站統一。 */
+  --bg: #100e0b;
+  --bg-mid: #100e0b;
+  --surface: #1a1613;
+  --surface-elevated: #221d18;
+  --border: #2e2820;
   --border-subtle: rgba(var(--ink), 0.08);
-  --text: #ececec;
-  --text-secondary: #b3b3b3;
-  --muted: #8a8a8a;
-  --accent: #5b9fd4;
-  --accent-hover: #7cb8e8;
-  --accent-soft: rgba(91, 159, 212, 0.14);
-  --accent-glow: rgba(91, 159, 212, 0.22);
-  --accent-data: #9fd4ff;
-  --text-heading: #f0f0f0;
-  --link-report: #7dd3c0;
+  --text: #ece7dd;
+  --text-secondary: #bab2a4;
+  --muted: #8f8779;
+  --accent: #c2a36a;
+  --accent-hover: #d8c79a;
+  --accent-soft: rgba(194, 163, 106, 0.14);
+  --accent-glow: rgba(194, 163, 106, 0.22);
+  --accent-data: #c2a36a;
+  --text-heading: #f2ede2;
+  --link-report: #c2a36a;
   /** 報告內文／關係摘要連結 hover（略亮於 --link-report） */
-  --link-report-hover: #9ee4d4;
-  --wikilink-none: #c4a574;
+  --link-report-hover: #d8c79a;
+  --wikilink-none: #a98f5e;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -27,7 +29,7 @@
   --shadow-inset: inset 0 1px 0 rgba(var(--ink), 0.04);
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --duration: 0.18s;
-  --font-display: "Plus Jakarta Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-display: Georgia, "Noto Serif TC", "Source Han Serif TC", "Songti TC", "新細明體", serif;
   --font-body: "Noto Sans TC", "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
   /** 自訂滾動軸（與深色介面一致；Firefox 用 scrollbar-color，WebKit 用下方偽元素） */
   --scrollbar-size: 8px;
@@ -209,7 +211,7 @@ html::-webkit-scrollbar-corner,
   top: 0;
   z-index: 10;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(0, 0, 0, 0.82);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--shadow-sm);
@@ -268,7 +270,7 @@ html::-webkit-scrollbar-corner,
 
 .market-ticker {
   border-top: none;
-  background: #000000;
+  background: var(--bg);
   opacity: 0;
   transition: opacity 0.45s ease;
 }
@@ -1140,7 +1142,7 @@ a:focus-visible {
 }
 
 .biz-card {
-  background: #000000;
+  background: var(--surface);
   border: 1px solid rgba(var(--ink), 0.1);
   border-radius: 16px;
   padding: 1.65rem 1.85rem;
@@ -1487,60 +1489,18 @@ a:focus-visible {
 
 .meta-card {
   position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(
-      165deg,
-      rgba(91, 159, 212, 0.07) 0%,
-      var(--surface) 42%,
-      var(--surface-elevated) 100%
-    );
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: 1.15rem 1.25rem 1.2rem;
-  box-shadow: var(--shadow-sm), var(--shadow-inset);
   transition:
     border-color var(--duration) var(--ease-out),
-    box-shadow var(--duration) var(--ease-out),
-    transform var(--duration) var(--ease-out);
-}
-
-.meta-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: linear-gradient(90deg, var(--meta-bar, var(--accent)), transparent 85%);
-  opacity: 0.95;
-}
-
-.meta-card[data-meta="sector"] {
-  --meta-bar: #5b9fd4;
-}
-
-.meta-card[data-meta="industry"] {
-  --meta-bar: #7dd3c0;
-}
-
-.meta-card[data-meta="mcap"] {
-  --meta-bar: #9fd4ff;
-}
-
-.meta-card[data-meta="ev"] {
-  --meta-bar: #8eb4e6;
-}
-
-.meta-card[data-meta="note"] {
-  --meta-bar: #b8a8e0;
+    box-shadow var(--duration) var(--ease-out);
 }
 
 .meta-card:hover {
-  border-color: rgba(91, 159, 212, 0.35);
-  box-shadow: var(--shadow-md), 0 0 0 1px rgba(91, 159, 212, 0.08);
-  transform: translateY(-2px);
+  border-color: rgba(194, 163, 106, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .meta-card-wide {
@@ -1605,7 +1565,7 @@ a:focus-visible {
 }
 
 .valuation-section {
-  background: #0a0a0a;
+  background: var(--surface);
   border: 1px solid rgba(var(--ink), 0.08);
   border-radius: var(--radius-lg);
   padding: 1.15rem 1.2rem 1.25rem;
@@ -1688,7 +1648,7 @@ a:focus-visible {
 
 .valuation-chip:hover {
   border-color: rgba(var(--ink), 0.2);
-  background: #1a1a1a;
+  background: var(--surface-elevated);
   transform: translateY(-2px);
   box-shadow:
     0 1px 0 rgba(var(--ink), 0.04) inset,
@@ -2474,7 +2434,7 @@ a:focus-visible {
 }
 
 .quote-widget {
-  background: #000000;
+  background: var(--surface);
   border: 1px solid rgba(var(--ink), 0.08);
   border-radius: 14px;
   /* 允許行情 tooltip 以 fixed 伸出圖區，避免裁切；圓角由子區塊視覺收斂 */
@@ -2914,7 +2874,7 @@ a:focus-visible {
 .relation-summary {
   margin-bottom: 1.5rem;
   padding: 1.15rem 1.2rem 1.25rem;
-  background: #0a0a0a;
+  background: var(--surface);
   border: 1px solid rgba(var(--ink), 0.08);
   border-radius: var(--radius-lg);
   box-shadow:
