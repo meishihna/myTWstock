@@ -50,6 +50,7 @@ FINMIND_V4_DATA = "https://api.finmindtrade.com/api/v4/data"
 _V3_TO_V4_DATASET: dict[str, str] = {
     "FinancialStatements": "TaiwanStockFinancialStatements",
     "TaiwanCashFlowsStatement": "TaiwanStockCashFlowsStatement",
+    "TaiwanStockMonthRevenue": "TaiwanStockMonthRevenue",
 }
 
 def _default_start_date() -> str:

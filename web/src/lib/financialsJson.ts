@@ -6,6 +6,20 @@ export type FinancialsJsonBlock = {
   series: Record<string, (number | null)[]>;
 };
 
+/** 月營收(每月營收)區塊;由 update_month_revenue.py 寫入。periods 為 "YYYY-MM"。 */
+export type MonthlyRevenueBlock = {
+  periods: string[];
+  /** 月營收(百萬台幣) */
+  revenue: (number | null)[];
+  /** 月營收年增率 % */
+  yoy: (number | null)[];
+  /** 今年累計營收(百萬台幣) */
+  cum: (number | null)[];
+  /** 累計營收年增率 % */
+  cumYoy: (number | null)[];
+  updatedAt?: string;
+};
+
 export type IndustryType =
   | "general"
   | "financial_holding"
@@ -38,6 +52,8 @@ export type FinancialsJson = {
    * 與 quarterly 同期別對齊；EPS 為同年單季 EPS 加總（近似累積每股）。
    */
   quarterlyYtd?: FinancialsJsonBlock | null;
+  /** 月營收(近 36 月);由 update_month_revenue.py(FinMind)寫入。 */
+  monthlyRevenue?: MonthlyRevenueBlock | null;
 };
 
 /** 與 JSON 欄位一一對齊（含 null），供近 32 季柱狀圖對齊期數 */
