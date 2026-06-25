@@ -35,6 +35,40 @@
   --scrollbar-thumb: rgba(255, 255, 255, 0.2);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
   --scrollbar-thumb-active: rgba(255, 255, 255, 0.42);
+  --bg2: rgba(255, 255, 255, 0.04);
+  --fg: #ececec;
+}
+
+/* 明亮模式:覆寫變數調色盤(由 <html data-theme="light"> 切換)。
+   ~90% 顏色經 var() 驅動會自動翻轉;少數寫死的 rgba(255,255,255,…) 細邊/圖表格線仍為深色假設,需後續微調。 */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-mid: #f6f7f9;
+  --surface: #ffffff;
+  --surface-elevated: #f1f3f5;
+  --border: #d6dadf;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --text: #1a1d21;
+  --text-secondary: #454b52;
+  --muted: #687078;
+  --accent: #1e6fb8;
+  --accent-hover: #15558f;
+  --accent-soft: rgba(30, 111, 184, 0.1);
+  --accent-glow: rgba(30, 111, 184, 0.18);
+  --accent-data: #1462a8;
+  --text-heading: #0f1115;
+  --link-report: #0e8a76;
+  --link-report-hover: #0b6f5f;
+  --wikilink-none: #8a6e34;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.12);
+  --shadow-inset: inset 0 1px 0 rgba(0, 0, 0, 0.03);
+  --scrollbar-track: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.32);
+  --scrollbar-thumb-active: rgba(0, 0, 0, 0.42);
+  --bg2: rgba(0, 0, 0, 0.04);
+  --fg: #1a1d21;
 }
 
 *,

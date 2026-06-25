@@ -36,6 +36,25 @@ const pageLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
+    <script is:inline>
+      // 在繪製前套用主題(避免閃爍)+ 以事件委派處理切換鈕
+      (function () {
+        try {
+          document.documentElement.dataset.theme =
+            localStorage.getItem("tw:theme") || "dark";
+        } catch (e) {}
+        document.addEventListener("click", function (e) {
+          var btn = e.target && e.target.closest && e.target.closest("#theme-toggle");
+          if (!btn) return;
+          var next =
+            document.documentElement.dataset.theme === "light" ? "dark" : "light";
+          document.documentElement.dataset.theme = next;
+          try {
+            localStorage.setItem("tw:theme", next);
+          } catch (e2) {}
+        });
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta name="description" content={description} />
@@ -80,6 +99,13 @@ const pageLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
           <a href="/discover">{DISCOVER_PAGE.nav}</a>
           <a href="/wiki">Wikilink 索引</a>
           <a href="/graph">供應鏈網路圖</a>
+          <button
+            id="theme-toggle"
+            type="button"
+            aria-label="切換深色／明亮模式"
+            title="深色／明亮"
+            style="background:transparent;border:1px solid var(--border);color:inherit;cursor:pointer;font-size:1rem;line-height:1;padding:4px 8px;border-radius:6px;"
+          >◐</button>
         </div>
       </nav>
     </header>
