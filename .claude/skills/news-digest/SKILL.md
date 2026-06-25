@@ -89,6 +89,9 @@ cd web && npx tsx scripts/build-news-snapshot.ts
   `web/src/pages/news.astro` 的 `renderDigest`)依上述欄位讀取;勿更動鍵名。
 - **clusterId 時效**:clusterId 由主篇 URL 推導,僅在新聞窗內穩定。若 `/api/news` 已刷新導致
   對不上,事件徽章會自動退回顯示「同一事件 · N 來源」(不會出錯)。
-- **排程(選用)**:若想自動化,可用 Windows 工作排程器每日呼叫
-  `claude -p "/news-digest"`(沿用你登入的 Claude Code,仍無需 API 金鑰)。
+- **排程(選用)**:`scripts/refresh-news-digest.ps1` 為自動更新包裝(步驟1 本地跑快照,
+  步驟2 以 `claude -p` 無頭生成,工具僅 `Read`/`Write`、無 Bash 以降低注入風險)。
+  以 Windows 工作排程器每日呼叫即可;**首次請手動跑一次確認可寫出 digest**。
+  安全提醒:無頭代理會讀取外部新聞內容(不可信),故刻意不給 Bash;digest 內容以 textContent
+  呈現(非 HTML),blast radius 受限。
 - `web/news-snapshot.json` 為暫存輸入,已在 `.gitignore`;`news-digest.json` 為內容需追蹤。
