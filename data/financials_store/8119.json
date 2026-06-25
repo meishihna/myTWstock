@@ -1,14 +1,14 @@
 {
   "ticker": "8119",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:49Z",
+  "updatedAt": "2026-06-25T15:01:37Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Computer Hardware",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -537,6 +537,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2017-06-30",
@@ -1224,7 +1225,5 @@
         -37.863
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

@@ -1,23 +1,23 @@
 {
   "ticker": "3454",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-26T17:40:07Z",
+  "updatedAt": "2026-06-25T09:26:57Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "Security & Protection Services",
-  "marketCap": 8605,
-  "enterpriseValue": 7660,
+  "marketCap": null,
+  "enterpriseValue": null,
   "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
-    "Forward P/E": 16.19,
-    "P/S (TTM)": 1.15,
-    "P/B": 2.6,
-    "EV/EBITDA": 102.79,
-    "ROE": 0.06,
-    "Beta": 0.6,
-    "Debt/Equity": 15.68
+    "Forward P/E": null,
+    "P/S (TTM)": null,
+    "P/B": null,
+    "EV/EBITDA": null,
+    "ROE": null,
+    "Beta": null,
+    "Debt/Equity": null
   },
   "annual": {
     "periods": [
@@ -622,6 +622,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2020-06-30",
@@ -1479,6 +1480,5 @@
         null
       ]
     }
-  },
-  "listingStatus": "listed"
+  }
 }

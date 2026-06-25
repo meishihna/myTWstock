@@ -1,14 +1,14 @@
 {
   "ticker": "6826",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:48Z",
+  "updatedAt": "2026-06-25T14:05:26Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Semiconductor Equipment & Materials",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -452,6 +452,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2019-12-31",
@@ -969,7 +970,5 @@
         -263.877
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

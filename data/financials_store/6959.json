@@ -1,14 +1,14 @@
 {
   "ticker": "6959",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:49Z",
+  "updatedAt": "2026-06-25T14:22:51Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Basic Materials",
   "industry": "Specialty Chemicals",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -367,6 +367,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2021-12-31",
@@ -714,7 +715,5 @@
         -473.918
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

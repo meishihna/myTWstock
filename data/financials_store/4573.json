@@ -1,14 +1,14 @@
 {
   "ticker": "4573",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:47Z",
+  "updatedAt": "2026-06-25T10:35:12Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Electronic Components",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -537,6 +537,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2017-12-31",
@@ -1224,7 +1225,5 @@
         -112.881
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

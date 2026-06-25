@@ -1,14 +1,14 @@
 {
   "ticker": "6035",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:47Z",
+  "updatedAt": "2026-06-25T12:00:09Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Software - Infrastructure",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -401,6 +401,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2020-12-31",
@@ -816,7 +817,5 @@
         -108.636
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

@@ -1,14 +1,14 @@
 {
   "ticker": "6977",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:49Z",
+  "updatedAt": "2026-06-25T14:24:20Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Utilities",
   "industry": "Utilities - Regulated Water",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -350,6 +350,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2022-12-31",
@@ -663,7 +664,5 @@
         -28.939
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

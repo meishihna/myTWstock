@@ -1,14 +1,14 @@
 {
   "ticker": "6738",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:48Z",
+  "updatedAt": "2026-06-25T13:44:47Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Software - Application",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -503,6 +503,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2018-12-31",
@@ -1122,7 +1123,5 @@
         -2.3930000000000002
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

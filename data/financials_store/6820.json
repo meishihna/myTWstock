@@ -1,14 +1,14 @@
 {
   "ticker": "6820",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:48Z",
+  "updatedAt": "2026-06-25T14:04:09Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
   "industry": "Communication Equipment",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -452,6 +452,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2018-12-31",
@@ -969,7 +970,5 @@
         -138.75300000000001
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

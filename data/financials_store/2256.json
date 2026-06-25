@@ -1,14 +1,14 @@
 {
   "ticker": "2256",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:45Z",
+  "updatedAt": "2026-06-25T06:47:37Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Consumer Cyclical",
   "industry": "Auto Parts",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -435,6 +435,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2019-12-31",
@@ -918,7 +919,5 @@
         -38.429
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

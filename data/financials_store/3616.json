@@ -1,14 +1,14 @@
 {
   "ticker": "3616",
   "schemaVersion": 2,
-  "updatedAt": "2026-04-27T21:56:32Z",
+  "updatedAt": "2026-06-25T09:54:44Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "N/A",
   "industry": "Specialty Industrial Machinery",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -299,6 +299,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2023-12-31",
@@ -510,6 +511,5 @@
         -97.49
       ]
     }
-  },
-  "listingStatus": "emerging"
+  }
 }

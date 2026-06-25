@@ -1,14 +1,14 @@
 {
   "ticker": "6027",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:47Z",
+  "updatedAt": "2026-06-25T11:59:30Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Financial Services",
   "industry": "Capital Markets",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -469,6 +469,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2018-06-30",
@@ -1020,7 +1021,5 @@
         -0.254
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

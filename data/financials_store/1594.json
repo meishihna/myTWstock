@@ -1,14 +1,14 @@
 {
   "ticker": "1594",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:44Z",
+  "updatedAt": "2026-06-25T06:06:40Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "Engineering & Construction",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -486,6 +486,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2018-06-30",
@@ -1037,7 +1038,5 @@
         -0.098
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }

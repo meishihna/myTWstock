@@ -1,7 +1,7 @@
 {
   "ticker": "4987",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:47Z",
+  "updatedAt": "2026-06-25T11:03:14Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Technology",
@@ -775,6 +775,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2018-03-31",
@@ -1938,7 +1939,5 @@
         -51.117
       ]
     }
-  },
-  "listingStatus": "listed",
-  "exchange": "TPEx"
+  }
 }

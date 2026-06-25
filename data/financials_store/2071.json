@@ -1,14 +1,14 @@
 {
   "ticker": "2071",
   "schemaVersion": 2,
-  "updatedAt": "2026-05-04T13:53:45Z",
+  "updatedAt": "2026-06-25T06:35:54Z",
   "unit": "Million NTD; margin rows are percent; EPS is TWD per share",
   "industryType": "general",
   "sector": "Industrials",
   "industry": "Tools & Accessories",
   "marketCap": null,
   "enterpriseValue": null,
-  "yahooSuffix": ".TWO",
+  "yahooSuffix": ".TW",
   "valuation": {
     "P/E (TTM)": null,
     "Forward P/E": null,
@@ -486,6 +486,7 @@
       ]
     }
   },
+  "listingStatus": "listed",
   "quarterlyCore": {
     "periods": [
       "2018-12-31",
@@ -1071,7 +1072,5 @@
         -43.926
       ]
     }
-  },
-  "listingStatus": "emerging",
-  "exchange": "Emerging"
+  }
 }
