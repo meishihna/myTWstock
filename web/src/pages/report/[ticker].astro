@@ -510,6 +510,10 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
         <span class="report-sector-en" lang="en">GICS-style industry</span>
       </p>
     </div>
+    <button class="report-watch" data-watch-ticker={meta.ticker} type="button" aria-pressed="false" title="加入／移除自選股">
+      <span class="report-watch__star" aria-hidden="true">☆</span>
+      <span class="report-watch__txt">自選</span>
+    </button>
   </header>
 
   <section class="meta-card-grid" aria-label={REPORT.summaryAria}>
@@ -826,3 +830,34 @@ const pageDesc = `${meta.ticker} ${meta.name} · ${meta.sector} — Taiwan cover
   </div>
   <script is:inline src="/scripts/report-financial-tables.js"></script>
 </Layout>
+
+<script>
+  import { hasWatch, toggleWatch } from "../../lib/watchlist";
+  const btn = document.querySelector(".report-watch[data-watch-ticker]");
+  if (btn) {
+    const t = btn.getAttribute("data-watch-ticker");
+    const star = btn.querySelector(".report-watch__star");
+    const txt = btn.querySelector(".report-watch__txt");
+    const sync = (on) => {
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.classList.toggle("is-on", on);
+      if (star) star.textContent = on ? "★" : "☆";
+      if (txt) txt.textContent = on ? "已收藏" : "自選";
+    };
+    sync(hasWatch(t));
+    btn.addEventListener("click", () => sync(toggleWatch(t)));
+  }
+</script>
+
+<style>
+  .report-watch {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+    background: transparent; color: var(--muted, #b3b3b3);
+    cursor: pointer; font-size: 0.85rem; white-space: nowrap; align-self: flex-start;
+  }
+  .report-watch:hover { color: var(--fg, #ececec); border-color: rgba(255, 255, 255, 0.35); }
+  .report-watch.is-on { color: #f0b429; border-color: rgba(240, 180, 41, 0.5); }
+  .report-watch__star { font-size: 1rem; line-height: 1; }
+</style>

@@ -1,0 +1,165 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="個股比較 Compare — TWstock" description="並排比較多檔台股的估值與財務指標。">
+  <main class="cmp">
+    <h1 class="cmp__h1">個股比較 <span class="cmp__en">Compare</span></h1>
+    <p class="cmp__intro">並排比較估值與最新年度財務。網址 <code>?tickers=2330,2317</code> 可分享。</p>
+
+    <div class="cmp__add">
+      <input id="cmp-input" class="cmp__inp" type="text" inputmode="numeric" maxlength="4" placeholder="加入代號(如 2330)" aria-label="加入代號" />
+      <button id="cmp-add" class="cmp__btn" type="button">加入</button>
+      <a class="cmp__btn cmp__btn--ghost" href="/watchlist">用自選股</a>
+      <span id="cmp-msg" class="cmp__msg" role="status"></span>
+    </div>
+
+    <div class="cmp__table-wrap">
+      <table class="cmp__table"><tbody id="cmp-body"></tbody></table>
+      <p id="cmp-empty" class="cmp__empty" hidden>輸入代號或從<a href="/watchlist">自選股</a>/<a href="/screener">選股器</a>加入比較。</p>
+    </div>
+  </main>
+
+  <script>
+    type Row = Record<string, string | number | null>;
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const $ = (id: string) => document.getElementById(id);
+    const MAX = 8;
+
+    const METRICS: { k: string; label: string; fmt: (v: number) => string }[] = [
+      { k: "mc", label: "市值(百萬)", fmt: (v) => Math.round(v).toLocaleString("zh-TW") },
+      { k: "pe", label: "P/E", fmt: (v) => v.toFixed(1) },
+      { k: "fpe", label: "Forward P/E", fmt: (v) => v.toFixed(1) },
+      { k: "pb", label: "P/B", fmt: (v) => v.toFixed(2) },
+      { k: "ps", label: "P/S", fmt: (v) => v.toFixed(2) },
+      { k: "ev", label: "EV/EBITDA", fmt: (v) => v.toFixed(1) },
+      { k: "roe", label: "ROE%", fmt: (v) => v.toFixed(1) },
+      { k: "gm", label: "毛利率%", fmt: (v) => v.toFixed(1) },
+      { k: "om", label: "營益率%", fmt: (v) => v.toFixed(1) },
+      { k: "nm", label: "淨利率%", fmt: (v) => v.toFixed(1) },
+      { k: "eps", label: "EPS(元)", fmt: (v) => v.toFixed(2) },
+      { k: "revYoy", label: "營收YoY%", fmt: (v) => v.toFixed(1) },
+      { k: "beta", label: "Beta", fmt: (v) => v.toFixed(2) },
+      { k: "de", label: "負債/權益", fmt: (v) => v.toFixed(1) },
+    ];
+
+    let index: Record<string, Row> = {};
+    let tickers: string[] = [];
+
+    function parseUrl(): string[] {
+      const p = new URLSearchParams(location.search).get("tickers") || "";
+      return [...new Set(p.split(",").map((s) => s.trim()).filter((s) => /^\d{4}$/.test(s)))].slice(0, MAX);
+    }
+    function syncUrl() {
+      const u = new URL(location.href);
+      if (tickers.length) u.searchParams.set("tickers", tickers.join(","));
+      else u.searchParams.delete("tickers");
+      history.replaceState(null, "", u);
+    }
+
+    function render() {
+      const body = $("cmp-body");
+      const empty = $("cmp-empty");
+      if (empty) (empty as HTMLElement).hidden = tickers.length > 0;
+      if (!body) return;
+      if (!tickers.length) {
+        body.innerHTML = "";
+        return;
+      }
+      const head = `<tr><th class="cmp__corner">指標</th>${tickers
+        .map((t) => {
+          const r = index[t];
+          return `<th><a href="/report/${t}">${t}</a><br><span class="cmp__nm">${r?.n ?? "—"}</span><button class="cmp__rm" data-rm="${t}" title="移除">✕</button></th>`;
+        })
+        .join("")}</tr>`;
+      const sectorRow = `<tr><td class="cmp__rlabel">產業</td>${tickers
+        .map((t) => `<td>${index[t]?.s ?? "—"}</td>`)
+        .join("")}</tr>`;
+      const rows = METRICS.map((m) => {
+        const tds = tickers
+          .map((t) => {
+            const v = num(index[t]?.[m.k]);
+            return `<td class="num">${v == null ? "—" : m.fmt(v)}</td>`;
+          })
+          .join("");
+        return `<tr><td class="cmp__rlabel">${m.label}</td>${tds}</tr>`;
+      }).join("");
+      body.innerHTML = head + sectorRow + rows;
+      body.querySelectorAll("[data-rm]").forEach((b) =>
+        b.addEventListener("click", () => {
+          tickers = tickers.filter((x) => x !== b.getAttribute("data-rm"));
+          syncUrl();
+          render();
+        }),
+      );
+    }
+
+    function addTicker(t: string) {
+      const msg = $("cmp-msg");
+      if (!/^\d{4}$/.test(t)) {
+        if (msg) msg.textContent = "請輸入 4 位代號";
+        return;
+      }
+      if (tickers.includes(t)) return;
+      if (tickers.length >= MAX) {
+        if (msg) msg.textContent = `最多比較 ${MAX} 檔`;
+        return;
+      }
+      if (!index[t]) {
+        if (msg) msg.textContent = `查無 ${t}`;
+        return;
+      }
+      if (msg) msg.textContent = "";
+      tickers.push(t);
+      syncUrl();
+      render();
+    }
+
+    $("cmp-add")?.addEventListener("click", () => {
+      const inp = $("cmp-input") as HTMLInputElement;
+      addTicker(inp.value.trim());
+      inp.value = "";
+    });
+    $("cmp-input")?.addEventListener("keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Enter") {
+        const inp = e.target as HTMLInputElement;
+        addTicker(inp.value.trim());
+        inp.value = "";
+      }
+    });
+
+    tickers = parseUrl();
+    render();
+    fetch("/data/screener-index.json")
+      .then((r) => r.json())
+      .then((j) => {
+        for (const row of j.rows || []) index[row.t] = row;
+        render();
+      })
+      .catch(render);
+  </script>
+
+  <style>
+    .cmp { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .cmp__h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+    .cmp__en { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 1rem; }
+    .cmp__intro { color: var(--muted, #9aa0a6); font-size: 0.85rem; margin: 0 0 1rem; }
+    .cmp__add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .cmp__inp { width: 160px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.14)); background: var(--bg2, rgba(255,255,255,0.04)); color: inherit; font-size: 0.85rem; }
+    .cmp__btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.18)); background: transparent; color: inherit; cursor: pointer; font-size: 0.85rem; text-decoration: none; }
+    .cmp__btn--ghost { color: var(--muted, #9aa0a6); }
+    .cmp__msg { color: var(--muted, #9aa0a6); font-size: 0.8rem; }
+    .cmp__table-wrap { overflow-x: auto; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; }
+    .cmp__table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .cmp__table th, .cmp__table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: right; white-space: nowrap; }
+    .cmp__table th { background: var(--bg2, #14161a); text-align: right; vertical-align: top; }
+    .cmp__corner, .cmp__rlabel { text-align: left !important; color: var(--muted, #c8ccd2); position: sticky; left: 0; background: var(--bg2, #14161a); }
+    .cmp__table td.num { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+    .cmp__table a { color: var(--link-report, #7dd3c0); text-decoration: none; font-family: ui-monospace, monospace; }
+    .cmp__nm { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 0.78rem; }
+    .cmp__rm { display: block; margin: 2px 0 0 auto; background: transparent; border: none; color: var(--muted, #9aa0a6); cursor: pointer; }
+    .cmp__rm:hover { color: #ff7b78; }
+    .cmp__empty { padding: 1.5rem; text-align: center; color: var(--muted, #9aa0a6); }
+    .cmp__empty a { color: var(--link-report, #7dd3c0); }
+  </style>
+</Layout>

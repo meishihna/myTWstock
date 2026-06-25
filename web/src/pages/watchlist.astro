@@ -1,0 +1,110 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="自選股 Watchlist — TWstock" description="你收藏追蹤的台股清單與關鍵財務指標。">
+  <main class="wl">
+    <h1 class="wl__h1">自選股 <span class="wl__en">Watchlist</span></h1>
+    <p class="wl__intro">
+      收藏的標的存在此瀏覽器(localStorage)。在報告頁點 ☆ 加入。
+    </p>
+
+    <div class="wl__actions">
+      <a id="wl-compare" class="wl__btn" href="/compare">比較全部</a>
+      <span id="wl-count" class="wl__count" role="status"></span>
+    </div>
+
+    <div class="wl__table-wrap">
+      <table class="wl__table">
+        <thead>
+          <tr>
+            <th>代號</th><th>名稱</th><th>產業</th>
+            <th class="num">市值(百萬)</th><th class="num">P/E</th><th class="num">ROE%</th>
+            <th class="num">毛利率%</th><th class="num">EPS</th><th class="num">營收YoY%</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="wl-body"></tbody>
+      </table>
+      <p id="wl-empty" class="wl__empty" hidden>尚未收藏任何標的。到報告頁點 ☆ 加入,或用<a href="/screener">選股器</a>找標的。</p>
+    </div>
+  </main>
+
+  <script>
+    import { getWatchlist, removeWatch } from "../lib/watchlist";
+
+    type Row = Record<string, string | number | null>;
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const fmt = (v: unknown, d = 1) => (num(v) == null ? "—" : (v as number).toFixed(d));
+    const fmtInt = (v: unknown) => (num(v) == null ? "—" : Math.round(v as number).toLocaleString("zh-TW"));
+
+    const $ = (id: string) => document.getElementById(id);
+    let index: Record<string, Row> = {};
+
+    function render() {
+      const list = getWatchlist();
+      const body = $("wl-body");
+      const empty = $("wl-empty");
+      const count = $("wl-count");
+      const cmp = $("wl-compare") as HTMLAnchorElement | null;
+      if (count) count.textContent = `${list.length} 檔`;
+      if (cmp) cmp.href = list.length ? `/compare?tickers=${list.join(",")}` : "/compare";
+      if (empty) (empty as HTMLElement).hidden = list.length > 0;
+      if (!body) return;
+      body.innerHTML = list
+        .map((t) => {
+          const r = index[t] || { t, n: "", s: "" };
+          return `<tr data-t="${t}">
+            <td class="mono"><a href="/report/${t}">${t}</a></td>
+            <td><a href="/report/${t}">${r.n ?? ""}</a></td>
+            <td>${r.s ?? ""}</td>
+            <td class="num">${fmtInt(r.mc)}</td>
+            <td class="num">${fmt(r.pe)}</td>
+            <td class="num">${fmt(r.roe)}</td>
+            <td class="num">${fmt(r.gm)}</td>
+            <td class="num">${fmt(r.eps, 2)}</td>
+            <td class="num">${fmt(r.revYoy)}</td>
+            <td><button class="wl__rm" data-rm="${t}" title="移除">✕</button></td>
+          </tr>`;
+        })
+        .join("");
+      body.querySelectorAll("[data-rm]").forEach((b) =>
+        b.addEventListener("click", () => {
+          removeWatch(b.getAttribute("data-rm")!);
+          render();
+        }),
+      );
+    }
+
+    fetch("/data/screener-index.json")
+      .then((r) => r.json())
+      .then((j) => {
+        for (const row of j.rows || []) index[row.t] = row;
+        render();
+      })
+      .catch(render);
+    render();
+  </script>
+
+  <style>
+    .wl { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .wl__h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+    .wl__en { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 1rem; }
+    .wl__intro { color: var(--muted, #9aa0a6); font-size: 0.85rem; margin: 0 0 1rem; }
+    .wl__actions { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .wl__btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.18)); text-decoration: none; color: inherit; font-size: 0.85rem; }
+    .wl__count { color: var(--muted, #9aa0a6); font-size: 0.8rem; }
+    .wl__table-wrap { overflow-x: auto; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; }
+    .wl__table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .wl__table th { background: var(--bg2, #14161a); padding: 8px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border, rgba(255,255,255,0.14)); }
+    .wl__table th.num { text-align: right; }
+    .wl__table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+    .wl__table td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+    .wl__table td.mono a { font-family: ui-monospace, monospace; }
+    .wl__table a { color: var(--link-report, #7dd3c0); text-decoration: none; }
+    .wl__table a:hover { text-decoration: underline; }
+    .wl__rm { background: transparent; border: none; color: var(--muted, #9aa0a6); cursor: pointer; font-size: 0.9rem; }
+    .wl__rm:hover { color: #ff7b78; }
+    .wl__empty { padding: 1.5rem; text-align: center; color: var(--muted, #9aa0a6); }
+    .wl__empty a { color: var(--link-report, #7dd3c0); }
+  </style>
+</Layout>
