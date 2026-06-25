@@ -7,7 +7,7 @@ import Layout from "../layouts/Layout.astro";
     <header class="cmp__head">
       <div>
         <h1 class="cmp__h1">個股比較 <span class="cmp__en">Compare</span></h1>
-        <p class="cmp__intro">並排比較估值、獲利、成長與風險。每列 <span class="cmp__legend">◆ 較優值</span> 以青色標示;網址 <code>?tickers=2330,2317</code> 可分享。</p>
+        <p class="cmp__intro">並排比較估值、獲利、成長與風險。每列 <span class="cmp__legend">◆ 較優值</span> 以金色標示;網址 <code>?tickers=2330,2317</code> 可分享。</p>
       </div>
     </header>
 
@@ -194,7 +194,7 @@ import Layout from "../layouts/Layout.astro";
     .cmp__en { color: var(--muted); font-weight: 400; font-size: 1rem; }
     .cmp__intro { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.6; }
     .cmp__intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 5px; }
-    .cmp__legend { color: #7dd3c0; }
+    .cmp__legend { color: var(--accent); }
 
     .cmp__add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; margin-bottom: 1.1rem; }
     .cmp__inp {
@@ -213,16 +213,15 @@ import Layout from "../layouts/Layout.astro";
     .cmp__msg { color: var(--muted); font-size: 0.8rem; }
 
     .cmp__card {
-      border: 1px solid var(--border); border-radius: var(--radius-lg, 14px); overflow: hidden;
-      background: linear-gradient(168deg, rgba(91,159,212,0.05) 0%, var(--surface) 46%, var(--surface-elevated) 100%);
-      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;
+      background: var(--surface);
     }
     .cmp__table-wrap { overflow-x: auto; }
     .cmp__table { border-collapse: collapse; font-size: 0.85rem; width: 100%; }
 
     .cmp__corner, .cmp__rlabel {
       position: sticky; left: 0; z-index: 2; text-align: left;
-      background: #101216; color: var(--muted); white-space: nowrap;
+      background: var(--surface); color: var(--muted); white-space: nowrap;
       min-width: 148px; padding: 12px 16px; font-weight: 500;
     }
     .cmp__corner {
@@ -235,10 +234,10 @@ import Layout from "../layouts/Layout.astro";
     .cmp__tk {
       position: relative; vertical-align: top; text-align: left;
       min-width: 158px; padding: 15px 16px 13px;
-      background: #121419; border-left: 1px solid rgba(255,255,255,0.05);
+      background: var(--surface-elevated); border-left: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
     }
-    .cmp__bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .cmp__bar { display: none; }
     .cmp__tk-top { display: flex; align-items: center; justify-content: space-between; }
     .cmp__chip {
       font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; text-decoration: none;
@@ -259,21 +258,21 @@ import Layout from "../layouts/Layout.astro";
     .cmp__rm:hover { background: rgba(226,75,74,0.15); color: #ff7b78; }
 
     .cmp__sec td {
-      padding: 9px 16px 7px; background: rgba(91,159,212,0.05);
-      border-top: 1px solid var(--border); border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #8fa6bd;
+      padding: 10px 16px 7px; background: transparent;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
     }
     .cmp__dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: middle; }
 
     .cmp__v {
       padding: 12px 16px; text-align: right; white-space: nowrap;
       font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; font-weight: 600;
-      color: #e6e8eb; border-top: 1px solid rgba(255,255,255,0.045); border-left: 1px solid rgba(255,255,255,0.05);
+      color: var(--text); border-top: 1px solid var(--border); border-left: 1px solid var(--border);
     }
-    .cmp__v.is-best { color: #7dd3c0; background: rgba(125,211,192,0.07); }
+    .cmp__v.is-best { color: var(--accent); background: rgba(194,163,106,0.08); }
     .cmp__mk { font-size: 0.6rem; margin-right: 5px; vertical-align: 1px; }
     .cmp__table tbody tr:hover .cmp__v { background: rgba(255,255,255,0.025); }
-    .cmp__table tbody tr:hover .cmp__v.is-best { background: rgba(125,211,192,0.1); }
+    .cmp__table tbody tr:hover .cmp__v.is-best { background: rgba(194,163,106,0.12); }
 
     .cmp__empty { padding: 3.5rem 1.5rem; text-align: center; }
     .cmp__empty-icon { font-size: 2rem; color: var(--muted); opacity: 0.45; margin-bottom: 0.4rem; }
