@@ -4,28 +4,24 @@ import Layout from "../layouts/Layout.astro";
 
 <Layout title="自選股 Watchlist — TWstock" description="你收藏追蹤的台股清單與關鍵財務指標。">
   <main class="wl">
-    <h1 class="wl__h1">自選股 <span class="wl__en">Watchlist</span></h1>
-    <p class="wl__intro">
-      收藏的標的存在此瀏覽器(localStorage)。在報告頁點 ☆ 加入。
-    </p>
+    <header class="wl__head">
+      <div>
+        <h1 class="wl__h1">自選股 <span class="wl__en">Watchlist</span></h1>
+        <p class="wl__intro">收藏的標的存在此瀏覽器(localStorage)。在報告頁點 ☆ 加入。</p>
+      </div>
+      <div class="wl__actions">
+        <span id="wl-count" class="wl__count" role="status"></span>
+        <a id="wl-compare" class="wl__btn wl__btn--primary" href="/compare">並排比較</a>
+        <a class="wl__btn" href="/screener">選股器</a>
+      </div>
+    </header>
 
-    <div class="wl__actions">
-      <a id="wl-compare" class="wl__btn" href="/compare">比較全部</a>
-      <span id="wl-count" class="wl__count" role="status"></span>
-    </div>
+    <div id="wl-body" class="wl__grid"></div>
 
-    <div class="wl__table-wrap">
-      <table class="wl__table">
-        <thead>
-          <tr>
-            <th>代號</th><th>名稱</th><th>產業</th>
-            <th class="num">市值(百萬)</th><th class="num">P/E</th><th class="num">ROE%</th>
-            <th class="num">毛利率%</th><th class="num">EPS</th><th class="num">營收YoY%</th><th></th>
-          </tr>
-        </thead>
-        <tbody id="wl-body"></tbody>
-      </table>
-      <p id="wl-empty" class="wl__empty" hidden>尚未收藏任何標的。到報告頁點 ☆ 加入,或用<a href="/screener">選股器</a>找標的。</p>
+    <div id="wl-empty" class="wl__empty" hidden>
+      <div class="wl__empty-star">☆</div>
+      <p>尚未收藏任何標的。</p>
+      <p class="wl__empty-sub">到<a href="/sectors">報告頁</a>點 ☆ 加入,或用<a href="/screener">選股器</a>找標的。</p>
     </div>
   </main>
 
@@ -36,6 +32,17 @@ import Layout from "../layouts/Layout.astro";
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
     const fmt = (v: unknown, d = 1) => (num(v) == null ? "—" : (v as number).toFixed(d));
     const fmtInt = (v: unknown) => (num(v) == null ? "—" : Math.round(v as number).toLocaleString("zh-TW"));
+    const BARS = ["#5b9fd4", "#7dd3c0", "#9fd4ff", "#8eb4e6", "#b8a8e0"];
+
+    const metric = (label: string, val: string, cls = "") =>
+      `<div class="wl__m"><dt>${label}</dt><dd class="${cls}">${val}</dd></div>`;
+    const yoyMetric = (v: unknown) => {
+      const n = num(v);
+      if (n == null) return metric("營收 YoY%", "—");
+      const cls = n > 0 ? "is-pos" : n < 0 ? "is-neg" : "";
+      const arrow = n > 0 ? "▲" : n < 0 ? "▼" : "";
+      return metric("營收 YoY%", `${arrow}${Math.abs(n).toFixed(1)}`, "wl__chg " + cls);
+    };
 
     const $ = (id: string) => document.getElementById(id);
     let index: Record<string, Row> = {};
@@ -47,28 +54,36 @@ import Layout from "../layouts/Layout.astro";
       const count = $("wl-count");
       const cmp = $("wl-compare") as HTMLAnchorElement | null;
       if (count) count.textContent = `${list.length} 檔`;
-      if (cmp) cmp.href = list.length ? `/compare?tickers=${list.join(",")}` : "/compare";
+      if (cmp) {
+        cmp.href = list.length ? `/compare?tickers=${list.join(",")}` : "/compare";
+        cmp.classList.toggle("is-disabled", list.length < 2);
+      }
       if (empty) (empty as HTMLElement).hidden = list.length > 0;
       if (!body) return;
       body.innerHTML = list
-        .map((t) => {
+        .map((t, i) => {
           const r = index[t] || { t, n: "", s: "" };
-          return `<tr data-t="${t}">
-            <td class="mono"><a href="/report/${t}">${t}</a></td>
-            <td><a href="/report/${t}">${r.n ?? ""}</a></td>
-            <td>${r.s ?? ""}</td>
-            <td class="num">${fmtInt(r.mc)}</td>
-            <td class="num">${fmt(r.pe)}</td>
-            <td class="num">${fmt(r.roe)}</td>
-            <td class="num">${fmt(r.gm)}</td>
-            <td class="num">${fmt(r.eps, 2)}</td>
-            <td class="num">${fmt(r.revYoy)}</td>
-            <td><button class="wl__rm" data-rm="${t}" title="移除">✕</button></td>
-          </tr>`;
+          return `<article class="wl__item" style="--wl-bar:${BARS[i % BARS.length]}">
+            <button class="wl__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">✕</button>
+            <a class="wl__item-head" href="/report/${t}">
+              <span class="wl__tk">${t}</span>
+              <span class="wl__name">${r.n ?? ""}</span>
+              <span class="wl__sector">${r.s ?? "—"}</span>
+            </a>
+            <dl class="wl__metrics">
+              ${metric("市值(百萬)", fmtInt(r.mc))}
+              ${metric("P/E", fmt(r.pe))}
+              ${metric("ROE%", fmt(r.roe))}
+              ${metric("毛利率%", fmt(r.gm))}
+              ${metric("EPS", fmt(r.eps, 2))}
+              ${yoyMetric(r.revYoy)}
+            </dl>
+          </article>`;
         })
         .join("");
       body.querySelectorAll("[data-rm]").forEach((b) =>
-        b.addEventListener("click", () => {
+        b.addEventListener("click", (e) => {
+          e.preventDefault();
           removeWatch(b.getAttribute("data-rm")!);
           render();
         }),
@@ -86,25 +101,101 @@ import Layout from "../layouts/Layout.astro";
   </script>
 
   <style>
-    .wl { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-    .wl__h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
-    .wl__en { color: var(--muted, #9aa0a6); font-weight: 400; font-size: 1rem; }
-    .wl__intro { color: var(--muted, #9aa0a6); font-size: 0.85rem; margin: 0 0 1rem; }
-    .wl__actions { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-    .wl__btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,0.18)); text-decoration: none; color: inherit; font-size: 0.85rem; }
-    .wl__count { color: var(--muted, #9aa0a6); font-size: 0.8rem; }
-    .wl__table-wrap { overflow-x: auto; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; }
-    .wl__table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .wl__table th { background: var(--bg2, #14161a); padding: 8px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border, rgba(255,255,255,0.14)); }
-    .wl__table th.num { text-align: right; }
-    .wl__table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
-    .wl__table td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
-    .wl__table td.mono a { font-family: ui-monospace, monospace; }
-    .wl__table a { color: var(--link-report, #7dd3c0); text-decoration: none; }
-    .wl__table a:hover { text-decoration: underline; }
-    .wl__rm { background: transparent; border: none; color: var(--muted, #9aa0a6); cursor: pointer; font-size: 0.9rem; }
-    .wl__rm:hover { color: #ff7b78; }
-    .wl__empty { padding: 1.5rem; text-align: center; color: var(--muted, #9aa0a6); }
-    .wl__empty a { color: var(--link-report, #7dd3c0); }
+    .wl { max-width: 1120px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
+    .wl__head {
+      display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+      gap: 0.75rem 1rem; margin-bottom: 1.25rem;
+    }
+    .wl__h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+    .wl__en { color: var(--muted); font-weight: 400; font-size: 1rem; }
+    .wl__intro { color: var(--muted); font-size: 0.85rem; margin: 0; }
+    .wl__actions { display: flex; align-items: center; gap: 0.6rem; }
+    .wl__count { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; padding-right: 0.1rem; }
+    .wl__btn {
+      padding: 7px 15px; border-radius: var(--radius-sm, 8px); font-size: 0.85rem; font-weight: 600;
+      text-decoration: none; color: var(--text);
+      border: 1px solid var(--border); background: var(--surface-elevated);
+      transition: border-color var(--duration) var(--ease-out), filter var(--duration) var(--ease-out), opacity var(--duration) var(--ease-out);
+    }
+    .wl__btn:hover { border-color: var(--accent); }
+    .wl__btn--primary { color: #fff; border-color: transparent; background: var(--accent); }
+    .wl__btn--primary:hover { filter: brightness(1.08); border-color: transparent; }
+    .wl__btn--primary.is-disabled { opacity: 0.4; pointer-events: none; }
+
+    /* 卡片網格 — 沿用報告頁 .meta-card 視覺語言 */
+    .wl__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 1rem;
+    }
+    .wl__item {
+      position: relative; overflow: hidden;
+      background: linear-gradient(165deg, rgba(91, 159, 212, 0.07) 0%, var(--surface) 42%, var(--surface-elevated) 100%);
+      border: 1px solid var(--border); border-radius: var(--radius-lg, 14px);
+      padding: 1.15rem 1.25rem 1.2rem;
+      box-shadow: var(--shadow-sm), var(--shadow-inset);
+      transition:
+        border-color var(--duration) var(--ease-out),
+        box-shadow var(--duration) var(--ease-out),
+        transform var(--duration) var(--ease-out);
+    }
+    .wl__item::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: var(--radius-lg, 14px) var(--radius-lg, 14px) 0 0;
+      background: linear-gradient(90deg, var(--wl-bar, var(--accent)), transparent 85%);
+      opacity: 0.95;
+    }
+    .wl__item:hover {
+      border-color: rgba(91, 159, 212, 0.35);
+      box-shadow: var(--shadow-md), 0 0 0 1px rgba(91, 159, 212, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .wl__item-head { display: flex; flex-direction: column; gap: 0.32rem; text-decoration: none; }
+    .wl__tk {
+      align-self: flex-start;
+      font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700;
+      color: var(--link-report); padding: 2px 8px; border-radius: 6px;
+      background: color-mix(in srgb, var(--link-report) 14%, transparent);
+    }
+    .wl__name {
+      font-family: var(--font-display); font-size: 1.15rem; font-weight: 600;
+      color: var(--text-heading, #fff); letter-spacing: -0.01em; line-height: 1.3;
+    }
+    .wl__sector { font-size: 0.78rem; color: var(--muted); }
+
+    .wl__metrics {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem 0.6rem; margin: 1rem 0 0;
+    }
+    .wl__m dt {
+      font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-secondary); opacity: 0.85; margin-bottom: 3px; white-space: nowrap;
+    }
+    .wl__m dd {
+      margin: 0; font-size: 0.98rem; font-weight: 600;
+      font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace;
+      color: var(--text-heading, #fff);
+    }
+    .wl__chg.is-pos { color: #1d9e75; }
+    .wl__chg.is-neg { color: #e24b4a; }
+
+    .wl__rm {
+      position: absolute; top: 9px; right: 9px; z-index: 2;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--muted); font-size: 0.8rem; line-height: 1;
+      opacity: 0; transition: opacity var(--duration) var(--ease-out), background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+    }
+    .wl__item:hover .wl__rm { opacity: 1; }
+    .wl__rm:hover { background: rgba(226, 75, 74, 0.15); color: #ff7b78; }
+
+    .wl__empty { padding: 3.5rem 1.5rem; text-align: center; }
+    .wl__empty-star { font-size: 2.4rem; color: var(--muted); opacity: 0.5; margin-bottom: 0.4rem; }
+    .wl__empty p { margin: 0.2rem 0; color: var(--text); }
+    .wl__empty-sub { color: var(--muted); font-size: 0.85rem; }
+    .wl__empty a { color: var(--link-report); }
+
+    @media (max-width: 640px) { .wl__head { align-items: flex-start; } }
   </style>
 </Layout>
