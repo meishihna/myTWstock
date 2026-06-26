@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { HOME, SITE } from "../lib/ui";
 import TodayThemes from "../components/TodayThemes.astro";
+import MarketFocus from "../components/MarketFocus.astro";
 
 const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
 let sectors: { name: string; slug: string; count: number }[] = [];
@@ -37,6 +38,8 @@ if (fs.existsSync(idxPath)) {
     >
     </div>
   </div>
+
+  <MarketFocus />
 
   <TodayThemes variant="home" limit={6} />
 

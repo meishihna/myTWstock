@@ -1,0 +1,162 @@
+---
+/**
+ * 首頁市場焦點(批 1):三大法人 + 資券變化(上市,最新交易日)。
+ * server 端讀 public/data/market-focus.json(由 scripts/update_market_focus.py 產出;缺檔→不顯示)。
+ * 紅漲綠跌:買超/融資增=紅,賣超/減=綠。
+ */
+import fs from "node:fs";
+import path from "node:path";
+
+type InstRow = { label: string; buy: number; sell: number; net: number };
+type Bal = { today: number; change: number };
+type MarketFocus = {
+  generatedAt: string;
+  institutional?: { date: string; rows: InstRow[]; totalNet: number } | null;
+  margin?: { date: string; margin: Bal | null; short: Bal | null; marginMoney: Bal | null } | null;
+};
+
+let data: MarketFocus | null = null;
+try {
+  data = JSON.parse(fs.readFileSync(path.join(process.cwd(), "public/data/market-focus.json"), "utf8"));
+} catch {
+  data = null;
+}
+const inst = data?.institutional ?? null;
+const margin = data?.margin ?? null;
+
+const fmt1 = (n: number) =>
+  n.toLocaleString("zh-TW", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const intc = (n: number) => Math.round(n).toLocaleString("zh-TW");
+const sign = (n: number) => (n > 0 ? "up" : n < 0 ? "down" : "flat");
+const plus = (n: number) => (n > 0 ? "+" : "");
+const wan = (z: number) => (z / 1e4).toFixed(1); // 張 → 萬張
+---
+
+{
+  (inst || margin) && (
+    <section class="mf" aria-label="今日市場焦點">
+      <div class="mf-grid">
+        {inst && (
+          <div class="mf-card">
+            <div class="mf-head">
+              <h2 class="mf-title">三大法人</h2>
+              <span class="mf-tag">上市</span>
+              <span class="mf-date">{inst.date}</span>
+            </div>
+            <table class="mf-table">
+              <thead>
+                <tr>
+                  <th>單位</th>
+                  <th>買進</th>
+                  <th>賣出</th>
+                  <th>買賣超</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inst.rows.map((r) => (
+                  <tr>
+                    <td class="mf-lbl">{r.label}</td>
+                    <td class="mf-num">{fmt1(r.buy)}</td>
+                    <td class="mf-num">{fmt1(r.sell)}</td>
+                    <td class={`mf-num mf-net ${sign(r.net)}`}>
+                      {plus(r.net)}
+                      {fmt1(r.net)}
+                    </td>
+                  </tr>
+                ))}
+                <tr class="mf-total">
+                  <td class="mf-lbl">合計</td>
+                  <td />
+                  <td />
+                  <td class={`mf-num mf-net ${sign(inst.totalNet)}`}>
+                    {plus(inst.totalNet)}
+                    {fmt1(inst.totalNet)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="mf-unit">單位:億元</p>
+          </div>
+        )}
+
+        {margin && (
+          <div class="mf-card">
+            <div class="mf-head">
+              <h2 class="mf-title">資券變化</h2>
+              <span class="mf-tag">上市</span>
+              <span class="mf-date">{margin.date}</span>
+            </div>
+            <ul class="mf-bal">
+              {margin.margin && (
+                <li>
+                  <span class="mf-bal-k">融資餘額</span>
+                  <span class="mf-bal-v">{wan(margin.margin.today)} 萬張</span>
+                  <span class={`mf-bal-c ${sign(margin.margin.change)}`}>
+                    {plus(margin.margin.change)}
+                    {wan(margin.margin.change)} 萬張
+                  </span>
+                </li>
+              )}
+              {margin.short && (
+                <li>
+                  <span class="mf-bal-k">融券餘額</span>
+                  <span class="mf-bal-v">{wan(margin.short.today)} 萬張</span>
+                  <span class={`mf-bal-c ${sign(margin.short.change)}`}>
+                    {plus(margin.short.change)}
+                    {intc(margin.short.change)} 張
+                  </span>
+                </li>
+              )}
+              {margin.marginMoney && (
+                <li>
+                  <span class="mf-bal-k">融資金額</span>
+                  <span class="mf-bal-v">{intc(margin.marginMoney.today)} 億</span>
+                  <span class={`mf-bal-c ${sign(margin.marginMoney.change)}`}>
+                    {plus(margin.marginMoney.change)}
+                    {fmt1(margin.marginMoney.change)} 億
+                  </span>
+                </li>
+              )}
+            </ul>
+            <p class="mf-unit">融資/融券餘額單位:張</p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .mf { margin: 0 0 1.6rem; }
+  .mf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .mf-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 0.95rem 1.15rem 0.8rem; }
+  .mf-head { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.55rem; }
+  .mf-title { font-family: var(--font-display); font-size: 1.08rem; margin: 0; color: var(--text-heading); }
+  .mf-tag { font-size: 0.68rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; }
+  .mf-date { font-size: 0.74rem; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  .mf-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  .mf-table th { text-align: right; font-weight: 600; font-size: 0.68rem; color: var(--muted); padding: 0 6px 6px; letter-spacing: 0.03em; }
+  .mf-table th:first-child { text-align: left; }
+  .mf-table td { padding: 4px 6px; border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent); }
+  .mf-lbl { color: var(--text-secondary); white-space: nowrap; }
+  .mf-num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; color: var(--text); }
+  .mf-net { font-weight: 600; }
+  .mf-total td { border-top: 1px solid var(--border); font-weight: 700; }
+
+  .mf-bal { list-style: none; margin: 0; padding: 0; }
+  .mf-bal li { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 0.6rem; padding: 0.6rem 0; border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent); }
+  .mf-bal li:first-child { border-top: none; }
+  .mf-bal-k { color: var(--text-secondary); font-size: 0.9rem; }
+  .mf-bal-v { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; color: var(--text); font-size: 0.95rem; }
+  .mf-bal-c { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.82rem; min-width: 6.8em; }
+
+  .mf-unit { margin: 0.5rem 0 0; font-size: 0.7rem; color: var(--muted); text-align: right; }
+  .mf .up { color: var(--up); }
+  .mf .down { color: var(--down); }
+  .mf .flat { color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .mf-grid { grid-template-columns: 1fr; }
+  }
+</style>
