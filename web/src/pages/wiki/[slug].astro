@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import Bi from "../../components/Bi.astro";
 import fs from "node:fs";
 import path from "node:path";
-import { SITE, WIKI, WIKI_STUB } from "../../lib/ui";
+import { DISCOVER_PAGE, SITE, WIKI, WIKI_STUB } from "../../lib/ui";
 
 const hubPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
 const stubsPath = path.join(process.cwd(), "public/data/wikilink-stubs.json");
@@ -64,7 +64,7 @@ const entry = hubEntries.find((e) => e.slug === slug);
 const stub = stubEntries.find((s) => s.slug === slug);
 
 if (!entry && !stub) {
-  return Astro.redirect("/wiki");
+  return Astro.redirect("/discover");
 }
 
 const isStubOnly = !entry && !!stub;
@@ -77,7 +77,7 @@ const pageDesc = entry ? `${entry.label} — ${WIKI.lead}` : WIKI_STUB.badge;
   <div class="breadcrumb" aria-label="Breadcrumb">
     <a href="/"><Bi zh="首頁" en="Home" /></a>
     <span class="bc-sep"> / </span>
-    <a href="/wiki">{WIKI.nav}</a>
+    <a href="/discover">{DISCOVER_PAGE.nav}</a>
     <span class="bc-sep"> / </span>
     <span>{entry?.label ?? stub?.labels[0] ?? slug}</span>
   </div>
@@ -179,7 +179,7 @@ const pageDesc = entry ? `${entry.label} — ${WIKI.lead}` : WIKI_STUB.badge;
           </tbody>
         </table>
         <p class="wiki-stub-back">
-          <a href="/wiki">{WIKI_STUB.backToWiki}</a>
+          <a href="/discover">{WIKI_STUB.backToWiki}</a>
         </p>
       </>
     )

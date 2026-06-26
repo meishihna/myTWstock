@@ -1,7 +1,17 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Bi from "../components/Bi.astro";
-import { DISCOVER_PAGE, SITE } from "../lib/ui";
+import { DISCOVER_PAGE, SITE, WIKI } from "../lib/ui";
+import fs from "node:fs";
+import path from "node:path";
+
+const hubPath = path.join(process.cwd(), "public/data/wikilink-hub-top500.json");
+let entries: { label: string; slug: string; count: number }[] = [];
+if (fs.existsSync(hubPath)) {
+  entries = (JSON.parse(fs.readFileSync(hubPath, "utf8")).entries) ?? [];
+}
+
+export const prerender = true;
 
 const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
 ---
@@ -14,35 +24,89 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
   <h1 class="page-h1">{DISCOVER_PAGE.title}</h1>
   <p class="page-lead">{DISCOVER_PAGE.lead}</p>
 
-  <form class="discover-form" id="discover-form" action="#" method="get">
-    <label class="discover-label" for="discover-q">
-      <Bi zh="關鍵字" en="Keyword" />
-    </label>
-    <div class="discover-row">
-      <input
-        class="discover-input"
-        type="search"
-        id="discover-q"
-        name="q"
-        autocomplete="off"
-        placeholder={DISCOVER_PAGE.placeholder}
-        maxlength="120"
-      />
-      <button class="discover-btn" type="submit">{DISCOVER_PAGE.searchBtn}</button>
+  <div class="map-tabs" role="tablist" aria-label="探索檢視切換">
+    <button class="map-tab is-active" role="tab" aria-selected="true" data-dtab="keyword">{DISCOVER_PAGE.tabKeyword}</button>
+    <button class="map-tab" role="tab" aria-selected="false" data-dtab="index">{DISCOVER_PAGE.tabIndex}</button>
+  </div>
+
+  <!-- 關鍵字全文搜尋 -->
+  <section id="dpanel-keyword" role="tabpanel">
+    <form class="discover-form" id="discover-form" action="#" method="get">
+      <label class="discover-label" for="discover-q"><Bi zh="關鍵字" en="Keyword" /></label>
+      <div class="discover-row">
+        <input
+          class="discover-input"
+          type="search"
+          id="discover-q"
+          name="q"
+          autocomplete="off"
+          placeholder={DISCOVER_PAGE.placeholder}
+          maxlength="120"
+        />
+        <button class="discover-btn" type="submit">{DISCOVER_PAGE.searchBtn}</button>
+      </div>
+    </form>
+    <p class="discover-status" id="discover-status" aria-live="polite"></p>
+    <ul class="discover-results" id="discover-results" hidden></ul>
+    <section class="discover-cli-hint" aria-label="CLI">
+      <p>{DISCOVER_PAGE.cliHint}</p>
+      <pre class="discover-pre"><code>{DISCOVER_PAGE.cliCode}</code></pre>
+    </section>
+  </section>
+
+  <!-- 高頻實體索引(原 /wiki) -->
+  <section id="dpanel-index" role="tabpanel" hidden>
+    <p class="page-lead">共 {entries.length} 條索引（Top 500 by mentions）</p>
+    <div class="wiki-table-wrap">
+      <table class="company-table wiki-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>{WIKI.nav}</th>
+            <th>{WIKI.count}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            entries.map((e, i) => (
+              <tr>
+                <td>{i + 1}</td>
+                <td>
+                  <a href={`/wiki/${e.slug}`}>{e.label}</a>
+                </td>
+                <td>{e.count}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
     </div>
-  </form>
-
-  <p class="discover-status" id="discover-status" aria-live="polite"></p>
-  <ul class="discover-results" id="discover-results" hidden></ul>
-
-  <section class="discover-cli-hint" aria-label="CLI">
-    <p>{DISCOVER_PAGE.cliHint}</p>
-    <pre class="discover-pre"><code>{DISCOVER_PAGE.cliCode}</code></pre>
   </section>
 </Layout>
 
 <script is:inline define:vars={{ DISCOVER_PAGE }}>
   (function () {
+    // 分頁切換
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".map-tab[data-dtab]"));
+    var panels = {
+      keyword: document.getElementById("dpanel-keyword"),
+      index: document.getElementById("dpanel-index"),
+    };
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var key = tab.getAttribute("data-dtab");
+        tabs.forEach(function (t) {
+          var on = t === tab;
+          t.classList.toggle("is-active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        for (var k in panels) {
+          if (panels[k]) panels[k].hidden = k !== key;
+        }
+      });
+    });
+
+    // 關鍵字全文搜尋
     var form = document.getElementById("discover-form");
     var input = document.getElementById("discover-q");
     var status = document.getElementById("discover-status");
@@ -62,21 +126,14 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
         status.textContent = DISCOVER_PAGE.noResults;
         return;
       }
-      status.textContent = (DISCOVER_PAGE.foundFormat || "").replace(
-        /\{n\}/g,
-        String(data.count)
-      );
+      status.textContent = (DISCOVER_PAGE.foundFormat || "").replace(/\{n\}/g, String(data.count));
       list.hidden = false;
       data.results.forEach(function (r) {
         var li = document.createElement("li");
         li.className = "discover-hit";
         var sec =
           r.sectorSlug && r.sector
-            ? '<a href="/sectors/' +
-              esc(r.sectorSlug) +
-              '">' +
-              esc(r.sector) +
-              "</a>"
+            ? '<a href="/sectors/' + esc(r.sectorSlug) + '">' + esc(r.sector) + "</a>"
             : esc(r.sector || "");
         li.innerHTML =
           '<div class="discover-hit-head"><a href="/report/' +

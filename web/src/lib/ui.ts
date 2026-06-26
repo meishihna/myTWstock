@@ -216,7 +216,7 @@ export const MAP_PAGE = {
     "Visual overview of themes & supply chains — heatmap for today's moves, map to drill into each theme."
   ),
   tabHeatmap: "熱力圖",
-  tabIndustry: "產業地圖",
+  tabIndustry: "主題",
   heatmapHint: "磚塊大小＝題材涵蓋家數，顏色＝成分股當日平均漲跌（紅漲綠跌）。點題材進入供應鏈地圖。",
   galleryHint: "點題材查看上中下游供應鏈與成分股。",
   updatedAt: "更新於",
@@ -231,12 +231,14 @@ export const MAP_PAGE = {
 } as const;
 
 export const DISCOVER_PAGE = {
-  nav: "關鍵字探索",
-  title: bi("反向探索（關鍵字）", "Reverse discovery"),
+  nav: "探索",
+  title: bi("探索", "Explore"),
   lead: bi(
-    "搜尋報告全文，找出提到該關鍵字的上市櫃公司（延遲載入、需 Node 執行 /api）。",
-    "Full-text search across reports (loads via API; requires Node for /api/discover)."
+    "用關鍵字全文搜尋報告，或瀏覽高頻實體索引，找出相關上市櫃公司。",
+    "Full-text keyword search across reports, or browse the entity index, to find related TW listings."
   ),
+  tabKeyword: "關鍵字",
+  tabIndex: "實體索引",
   placeholder: bi("例如：液冷散熱、CPO、CoWoS…", "e.g. liquid cooling, CPO…"),
   searchBtn: bi("搜尋", "Search"),
   searching: bi("搜尋中…", "Searching…"),

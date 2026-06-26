@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import TodayThemes from "../components/TodayThemes.astro";
 import { MAP_PAGE } from "../lib/ui";
 
 export const prerender = true;
@@ -42,8 +43,9 @@ export const prerender = true;
       </div>
     </section>
 
-    <!-- 產業地圖卡牆 -->
+    <!-- 主題:今日熱門 + 全部題材卡牆 -->
     <section id="panel-industry" class="map-panel" role="tabpanel" hidden>
+      <TodayThemes variant="hub" limit={10} />
       <p class="map-hint">{MAP_PAGE.galleryHint}</p>
       <div id="ind-root" class="ind-grid"></div>
     </section>

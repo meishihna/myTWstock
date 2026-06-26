@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import Bi from "../../components/Bi.astro";
-import { SITE, THEMES_PAGE } from "../../lib/ui";
+import { MAP_PAGE, SITE, THEMES_PAGE } from "../../lib/ui";
 import { sectorZh } from "../../lib/sector-i18n";
 import fs from "node:fs";
 import path from "node:path";
@@ -40,7 +40,7 @@ if (!theme) {
     ? JSON.parse(fs.readFileSync(themesPath, "utf8"))
     : { themes: [] };
   const t = (td.themes ?? []).find((x: { slug: string }) => x.slug === slug);
-  if (!t) return Astro.redirect("/themes");
+  if (!t) return Astro.redirect("/map");
   const conv = (arr: any[]): MapCo[] =>
     (arr ?? []).map((c) => ({ t: c.ticker, n: c.name, s: c.sector, ss: c.sectorSlug || "", mc: null }));
   theme = {
@@ -83,7 +83,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
   <div class="breadcrumb" aria-label="Breadcrumb">
     <a href="/"><Bi zh="首頁" en="Home" /></a>
     <span class="bc-sep"> / </span>
-    <a href="/themes">{THEMES_PAGE.nav}</a>
+    <a href="/map">{MAP_PAGE.nav}</a>
     <span class="bc-sep"> / </span>
     <span>{theme.title}</span>
   </div>
