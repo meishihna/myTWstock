@@ -1,0 +1,67 @@
+# 每日盤後刷新首頁市場快照:三大法人/資券(FinMind)、今日強勢股(yahoo)、今日熱門題材(新聞 NLP)。
+# 產出 3 個 JSON → commit → push → Vercel 自動重新部署。
+# 任一來源失敗不影響其他(continue-on-error);快照腳本各自取「最新可得日」,部分未更新也安全。
+name: Refresh market snapshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 台灣時間(UTC+8)約 18:00 盤後 = UTC 10:00,週一至週五
+    - cron: "0 10 * * 1-5"
+
+concurrency:
+  group: refresh-snapshots
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      # 重生索引(map-index 等),供 top-movers / today-themes 讀取
+      - name: Build data indexes
+        working-directory: web
+        run: node scripts/build-data.mjs
+
+      - name: 三大法人 + 資券 (market-focus.json)
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python scripts/update_market_focus.py
+        continue-on-error: true
+
+      - name: 今日強勢股 (top-movers.json)
+        working-directory: web
+        run: node scripts/build-top-movers.mjs
+        continue-on-error: true
+
+      - name: 今日熱門題材 (today-themes.json)
+        working-directory: web
+        run: npx --yes tsx scripts/build-today-themes.ts
+        continue-on-error: true
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/public/data/market-focus.json web/public/data/top-movers.json web/public/data/today-themes.json || true
+          if git diff --staged --quiet; then
+            echo "No snapshot changes."
+          else
+            git commit -m "chore: refresh market snapshots (automated)"
+            git push
+          fi
