@@ -748,9 +748,6 @@ a:focus-visible {
 
 .hero {
   margin-bottom: 2rem;
-  padding-left: 1rem;
-  border-left: 3px solid var(--accent);
-  border-radius: 2px;
 }
 
 .hero h1 {
@@ -949,6 +946,7 @@ a:focus-visible {
 
 .company-table a {
   color: var(--link-report);
+  text-decoration: none;
 }
 
 .graph-frame-wrap {
@@ -972,6 +970,7 @@ a:focus-visible {
 
 .breadcrumb a {
   color: var(--muted);
+  text-decoration: none;
 }
 
 .breadcrumb a:hover {
@@ -1057,10 +1056,8 @@ a:focus-visible {
 /* —— Report page: hero, summary, valuation, layout —— */
 .report-hero {
   margin-bottom: 1.35rem;
-  padding: 0 0 1.1rem 1rem;
+  padding: 0 0 1.1rem;
   border-bottom: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 0 0 2px;
 }
 
 .report-title {
