@@ -72,6 +72,9 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
         <label class="news-src-item"
           ><input type="checkbox" name="src" value="yahoo" checked /> Yahoo</label
         >
+        <label class="news-src-item"
+          ><input type="checkbox" name="src" value="cna" checked /> 中央社</label
+        >
       </fieldset>
     </div>
 
@@ -122,6 +125,7 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
       "ftech",
       "businessweekly",
       "yahoo",
+      "cna",
     ];
 
     function relTime(iso) {
@@ -665,6 +669,7 @@ const pageTitle = `${NEWS_PAGE.title} — ${SITE.name}`;
         "ftech",
         "businessweekly",
         "yahoo",
+        "cna",
       ];
       var parts = [];
       for (var i = 0; i < order.length; i++) {

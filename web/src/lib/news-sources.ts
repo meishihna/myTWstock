@@ -35,7 +35,8 @@ export type NewsSourceId =
   | "technews"
   | "ftech"
   | "businessweekly"
-  | "yahoo";
+  | "yahoo"
+  | "cna";
 
 /** Tab / ?category= 對應 */
 export type NewsCategoryLabel =
@@ -67,6 +68,7 @@ export const SOURCE_LABELS: Record<NewsSourceId, string> = {
   ftech: "財經新報",
   businessweekly: "商業周刊",
   yahoo: "Yahoo股市",
+  cna: "中央社",
 };
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -529,6 +531,31 @@ export async function fetchYahooTw(): Promise<NewsArticle[]> {
   return chunks.flat();
 }
 
+/** 中央社:官網 .aspx RSS 已失效,改用 FeedBurner 財經 feed(含證券/股市);依標題分類。 */
+function cnaCategoryFromTitle(title: string): NewsCategoryLabel {
+  const t = title.replace(/\s+/g, " ");
+  if (/美股|歐股|日股|陸股|國際|那斯達克|道瓊|標普|費城半導體/.test(t)) return "國際";
+  if (/台股|股市|證券|上市|上櫃|盤後|盤中|加權|台積電|外資|融資/.test(t)) return "台股";
+  if (/科技|半導體|晶片|AI|記憶體|面板/.test(t)) return "科技";
+  if (/產業|供應鏈|廠商|製造|出口/.test(t)) return "產業";
+  return "財經";
+}
+
+export async function fetchCna(): Promise<NewsArticle[]> {
+  try {
+    const feed = await rssParser.parseURL("https://feeds.feedburner.com/rsscna/finance");
+    const out: NewsArticle[] = [];
+    for (const item of feed.items || []) {
+      const cat = cnaCategoryFromTitle((item.title || "").trim());
+      const a = articleFromRssItem(item, "cna", cat);
+      if (a) out.push(a);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 function dedupeAndSort(articles: NewsArticle[]): NewsArticle[] {
   const map = new Map<string, NewsArticle>();
   for (const a of articles) {
@@ -549,6 +576,7 @@ const ALL_SOURCE_IDS = [
   "ftech",
   "businessweekly",
   "yahoo",
+  "cna",
 ] as const;
 
 /** ?category= 對應到 NewsCategoryLabel；all 或未知則不篩類別 */
@@ -643,6 +671,7 @@ export async function fetchAllNews(): Promise<NewsArticle[]> {
     fetchFinanceTechnews(),
     fetchBusinessWeekly(),
     fetchYahooTw(),
+    fetchCna(),
   ]);
 
   const all: NewsArticle[] = [];
