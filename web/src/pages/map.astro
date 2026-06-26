@@ -1,0 +1,358 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { MAP_PAGE } from "../lib/ui";
+
+export const prerender = true;
+---
+
+<Layout
+  title="產業地圖 Industry Map — TWstock"
+  description="台股題材熱力圖與供應鏈產業地圖：依題材瀏覽上中下游與成分股，當日漲跌一眼掌握。"
+>
+  <main class="map-page">
+    <header class="map-head">
+      <h1 class="map-h1">{MAP_PAGE.title}</h1>
+      <p class="map-lead">{MAP_PAGE.lead}</p>
+    </header>
+
+    <div class="map-tabs" role="tablist" aria-label="地圖檢視切換">
+      <button class="map-tab is-active" role="tab" aria-selected="true" data-tab="heatmap">{MAP_PAGE.tabHeatmap}</button>
+      <button class="map-tab" role="tab" aria-selected="false" data-tab="industry">{MAP_PAGE.tabIndustry}</button>
+    </div>
+
+    <!-- 熱力圖 -->
+    <section id="panel-heatmap" class="map-panel" role="tabpanel">
+      <div class="map-toolbar">
+        <p class="map-hint">{MAP_PAGE.heatmapHint}</p>
+        <div class="map-toolbar-r">
+          <span id="hm-status" class="map-status" data-prefix={MAP_PAGE.updatedAt} role="status"></span>
+          <button id="hm-refresh" class="map-refresh" type="button">{MAP_PAGE.refresh}</button>
+        </div>
+      </div>
+      <div id="hm-root" class="hm-root" aria-label="題材市場熱力圖" role="img"></div>
+      <div class="map-foot">
+        <div class="hm-legend" aria-hidden="true">
+          <span>{MAP_PAGE.legendDown}</span>
+          <i style="background:#1f6f4f"></i><i style="background:#2c684d"></i><i style="background:#42493a"></i>
+          <i style="background:#3a342b"></i>
+          <i style="background:#56352f"></i><i style="background:#8a3a35"></i><i style="background:#a13b34"></i>
+          <span>{MAP_PAGE.legendUp}</span>
+        </div>
+        <p class="map-note">{MAP_PAGE.delayedNote}</p>
+      </div>
+    </section>
+
+    <!-- 產業地圖卡牆 -->
+    <section id="panel-industry" class="map-panel" role="tabpanel" hidden>
+      <p class="map-hint">{MAP_PAGE.galleryHint}</p>
+      <div id="ind-root" class="ind-grid"></div>
+    </section>
+  </main>
+
+  <div id="hm-tip" class="hm-tip" hidden></div>
+
+  <script>
+    interface Co { t: string; n: string; s: string; ss: string; mc: number | null; }
+    interface Theme {
+      slug: string; title: string; companyCount: number; aggMcap: number;
+      related: { label: string; slug: string | null }[];
+      tiers: { u: Co[]; m: Co[]; d: Co[] };
+    }
+    interface Rect { x: number; y: number; w: number; h: number; }
+
+    const TOP_N = 6;          // 每題材取市值前 N 檔估算平均漲跌（控制報價量）
+    const CHUNK = 110;        // /api/quote-batch 單次上限 120
+    let themes: Theme[] = [];
+    const pctByTicker: Record<string, number> = {};
+
+    const $ = (id: string) => document.getElementById(id);
+    const esc = (s: string) =>
+      s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+
+    // ---- squarified treemap（純手刻，無相依） ----
+    function worstRatio(row: { area: number }[], side: number): number {
+      let sum = 0, max = -Infinity, min = Infinity;
+      for (const it of row) { sum += it.area; if (it.area > max) max = it.area; if (it.area < min) min = it.area; }
+      if (sum <= 0) return Infinity;
+      const s2 = sum * sum, l2 = side * side;
+      return Math.max((l2 * max) / s2, s2 / (l2 * min));
+    }
+    function treemap<T extends { value: number }>(nodes: T[], X: number, Y: number, W: number, H: number): (T & Rect)[] {
+      const total = nodes.reduce((s, n) => s + Math.max(0, n.value), 0) || 1;
+      const scale = (W * H) / total;
+      const items = nodes.map((n) => ({ n, area: Math.max(0, n.value) * scale }));
+      const out: (T & Rect)[] = [];
+      let x = X, y = Y, w = W, h = H, i = 0;
+      while (i < items.length) {
+        const side = Math.min(w, h);
+        let row: typeof items = [];
+        while (i < items.length) {
+          const cand = row.concat(items[i]);
+          if (row.length === 0 || worstRatio(cand, side) <= worstRatio(row, side)) { row = cand; i++; }
+          else break;
+        }
+        const rowArea = row.reduce((s, it) => s + it.area, 0);
+        if (w >= h) {
+          const colW = rowArea / h || 0;
+          let cy = y;
+          for (const it of row) { const ih = colW > 0 ? it.area / colW : 0; out.push({ ...(it.n as T), x, y: cy, w: colW, h: ih }); cy += ih; }
+          x += colW; w -= colW;
+        } else {
+          const rowH = rowArea / w || 0;
+          let cx = x;
+          for (const it of row) { const iw = rowH > 0 ? it.area / rowH : 0; out.push({ ...(it.n as T), x: cx, y, w: iw, h: rowH }); cx += iw; }
+          y += rowH; h -= rowH;
+        }
+      }
+      return out;
+    }
+
+    // ---- 漲跌配色：紅漲綠跌（暖調低彩，襯深底） ----
+    function tileColor(pct: number | null): string {
+      if (pct == null) return "#221d18";          // 等待報價
+      const a = Math.abs(pct);
+      if (a < 0.2) return "#3a342b";               // 平：暖中性
+      if (pct > 0) return a >= 3 ? "#a13b34" : a >= 1.5 ? "#8a3a35" : a >= 0.6 ? "#6f3a36" : "#56352f"; // 漲=紅
+      return a >= 3 ? "#1f6f4f" : a >= 1.5 ? "#2c684d" : a >= 0.6 ? "#395f4a" : "#42493a";              // 跌=綠
+    }
+
+    function dedupTop(t: Theme): Co[] {
+      const seen = new Set<string>(); const all: Co[] = [];
+      for (const c of [...t.tiers.u, ...t.tiers.m, ...t.tiers.d]) {
+        if (seen.has(c.t)) continue; seen.add(c.t); all.push(c);
+      }
+      all.sort((a, b) => (b.mc ?? -1) - (a.mc ?? -1));
+      return all.slice(0, TOP_N);
+    }
+    function themeAvgPct(t: Theme): number | null {
+      let wsum = 0, psum = 0, n = 0, simple = 0;
+      for (const c of dedupTop(t)) {
+        const p = pctByTicker[c.t];
+        if (p == null || !isFinite(p)) continue;
+        n++; simple += p;
+        const w = c.mc != null && c.mc > 0 ? c.mc : 0;
+        if (w > 0) { wsum += w; psum += w * p; }
+      }
+      if (n === 0) return null;
+      return wsum > 0 ? psum / wsum : simple / n;
+    }
+
+    function renderHeatmap() {
+      const root = $("hm-root"); if (!root) return;
+      const W = root.clientWidth, H = root.clientHeight;
+      if (W < 10 || H < 10 || themes.length === 0) return;
+      const nodes = themes.map((t) => ({ ...t, value: t.companyCount || 1 }));
+      const laid = treemap(nodes, 0, 0, W, H);
+      const G = 1; // 內縮 gap
+      root.innerHTML = laid.map((t) => {
+        const pct = themeAvgPct(t);
+        const big = t.w > 74 && t.h > 30;
+        const showPct = pct != null && t.w > 52 && t.h > 42;
+        const pctStr = pct == null ? "" : (pct > 0 ? "+" : "") + pct.toFixed(2) + "%";
+        return `<a class="hm-tile" href="/themes/${encodeURIComponent(t.slug)}" data-slug="${esc(t.slug)}" `
+          + `style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(pct)}">`
+          + (big ? `<span class="hm-tile-t">${esc(t.title)}</span>` : "")
+          + (showPct ? `<span class="hm-tile-p">${pctStr}</span>` : "")
+          + `</a>`;
+      }).join("");
+    }
+
+    function renderGallery() {
+      const root = $("ind-root"); if (!root) return;
+      const sorted = themes.slice().sort((a, b) => b.companyCount - a.companyCount);
+      root.innerHTML = sorted.map((t) =>
+        `<a class="ind-card" href="/themes/${encodeURIComponent(t.slug)}">`
+        + `<span class="ind-card-t">${esc(t.title)}</span>`
+        + `<span class="ind-card-meta"><b>${t.companyCount}</b> 家 · 上${t.tiers.u.length}·中${t.tiers.m.length}·下${t.tiers.d.length}</span>`
+        + `</a>`
+      ).join("");
+    }
+
+    async function loadQuotes(): Promise<{ any: boolean; fetchedAt: string }> {
+      const set = new Set<string>();
+      for (const t of themes) for (const c of dedupTop(t)) if (/^\d{4}$/.test(c.t)) set.add(c.t);
+      const all = [...set];
+      const chunks: string[][] = [];
+      for (let i = 0; i < all.length; i += CHUNK) chunks.push(all.slice(i, i + CHUNK));
+      const results = await Promise.all(
+        chunks.map((ch) =>
+          fetch(`/api/quote-batch?symbols=${encodeURIComponent(ch.join(","))}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)
+        )
+      );
+      let any = false, fetchedAt = "";
+      for (const res of results) {
+        if (!res || !res.quotes) continue;
+        fetchedAt = res.fetchedAt || fetchedAt;
+        for (const k of Object.keys(res.quotes)) {
+          const v = res.quotes[k];
+          if (v && typeof v.changePct === "number" && isFinite(v.changePct)) { pctByTicker[k] = v.changePct; any = true; }
+        }
+      }
+      return { any, fetchedAt };
+    }
+
+    function setStatus(fetchedAt: string) {
+      const el = $("hm-status"); if (!el) return;
+      const prefix = el.getAttribute("data-prefix") || "";
+      if (!fetchedAt) { el.textContent = ""; return; }
+      const d = new Date(fetchedAt);
+      const hhmm = isNaN(d.getTime())
+        ? ""
+        : new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(d);
+      el.textContent = hhmm ? `${prefix} ${hhmm}` : "";
+    }
+
+    let refreshing = false;
+    async function refreshQuotes() {
+      if (refreshing) return;
+      refreshing = true;
+      const btn = $("hm-refresh") as HTMLButtonElement | null;
+      if (btn) btn.disabled = true;
+      try {
+        const { any, fetchedAt } = await loadQuotes();
+        renderHeatmap();
+        if (any) setStatus(fetchedAt || new Date().toISOString());
+      } finally {
+        refreshing = false;
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // ---- tooltip ----
+    function initTooltip() {
+      const root = $("hm-root"), tip = $("hm-tip"); if (!root || !tip) return;
+      const bySlug = (s: string) => themes.find((t) => t.slug === s);
+      root.addEventListener("mousemove", (e) => {
+        const tgt = (e.target as HTMLElement).closest(".hm-tile") as HTMLElement | null;
+        if (!tgt) { tip.hidden = true; return; }
+        const t = bySlug(tgt.getAttribute("data-slug") || "");
+        if (!t) { tip.hidden = true; return; }
+        const pct = themeAvgPct(t);
+        const pctStr = pct == null ? "—" : `<b class="${pct > 0 ? "up" : pct < 0 ? "down" : "flat"}">${pct > 0 ? "+" : ""}${pct.toFixed(2)}%</b>`;
+        const mc = t.aggMcap >= 1e6 ? `${(t.aggMcap / 1e6).toFixed(2)} 兆` : `${Math.round(t.aggMcap / 100)} 億`;
+        tip.innerHTML = `<span class="hm-tip-t">${esc(t.title)}</span>`
+          + `<span class="hm-tip-r">涵蓋 ${t.companyCount} 家 · 市值合計 ${mc}</span>`
+          + `<span class="hm-tip-r">當日平均 ${pctStr}</span>`;
+        tip.hidden = false;
+        const pad = 14, tw = tip.offsetWidth, th = tip.offsetHeight;
+        let lx = e.clientX + pad, ly = e.clientY + pad;
+        if (lx + tw > window.innerWidth - 8) lx = e.clientX - tw - pad;
+        if (ly + th > window.innerHeight - 8) ly = e.clientY - th - pad;
+        tip.style.left = `${lx}px`; tip.style.top = `${ly}px`;
+      });
+      root.addEventListener("mouseleave", () => { tip.hidden = true; });
+    }
+
+    // ---- tabs ----
+    function initTabs() {
+      const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".map-tab"));
+      const panels: Record<string, HTMLElement | null> = {
+        heatmap: $("panel-heatmap"),
+        industry: $("panel-industry"),
+      };
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const key = tab.getAttribute("data-tab") || "heatmap";
+          tabs.forEach((t) => {
+            const on = t === tab;
+            t.classList.toggle("is-active", on);
+            t.setAttribute("aria-selected", on ? "true" : "false");
+          });
+          for (const k of Object.keys(panels)) {
+            const p = panels[k]; if (p) p.hidden = k !== key;
+          }
+          const tip = $("hm-tip");
+          if (tip) tip.hidden = true; // 切分頁時清掉殘留的熱力圖 tooltip
+          if (key === "heatmap") renderHeatmap();
+        });
+      });
+    }
+
+    // ---- debounced resize ----
+    let rT: number | undefined;
+    function onResize() { window.clearTimeout(rT); rT = window.setTimeout(renderHeatmap, 150); }
+
+    // ---- init ----
+    initTabs();
+    initTooltip();
+    $("hm-refresh")?.addEventListener("click", refreshQuotes);
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(onResize);
+      const root = $("hm-root"); if (root) ro.observe(root);
+    } else {
+      window.addEventListener("resize", onResize);
+    }
+
+    fetch("/data/map-index.json")
+      .then((r) => r.json())
+      .then((j) => {
+        themes = j.themes || [];
+        renderHeatmap();
+        renderGallery();
+        refreshQuotes();
+      })
+      .catch(() => {
+        const root = $("hm-root");
+        if (root) root.innerHTML = `<p class="map-fail">資料載入失敗，請重新整理頁面。</p>`;
+      });
+  </script>
+
+  <style is:global>
+    .map-page { max-width: var(--layout-max, 1200px); margin: 0 auto; padding: 1.75rem 1rem 3rem; }
+    .map-head { margin-bottom: 1.1rem; }
+    .map-h1 { font-family: var(--font-display); font-size: 1.7rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
+    .map-lead { color: var(--muted); font-size: 0.88rem; margin: 0; line-height: 1.6; max-width: 64ch; }
+
+    .map-tabs { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); margin-bottom: 1.1rem; }
+    .map-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 600; padding: 7px 18px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .map-tab:hover { color: var(--text); }
+    .map-tab.is-active { color: #1a1613; background: var(--accent); }
+
+    .map-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-bottom: 0.7rem; }
+    .map-hint { color: var(--muted); font-size: 0.8rem; margin: 0; line-height: 1.5; flex: 1 1 300px; }
+    .map-toolbar-r { display: inline-flex; align-items: center; gap: 0.7rem; margin-left: auto; }
+    .map-status { color: var(--muted); font-size: 0.76rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .map-refresh { appearance: none; height: 32px; padding: 0 13px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: border-color var(--duration) var(--ease-out); }
+    .map-refresh:hover { border-color: var(--accent); }
+    .map-refresh:disabled { opacity: 0.5; cursor: default; }
+
+    .hm-root { position: relative; width: 100%; height: clamp(440px, 66vh, 780px); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
+    .hm-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 3px 7px; text-decoration: none; color: #f4efe6; border-radius: 2px; transition: outline-color 0.1s var(--ease-out); outline: 2px solid transparent; outline-offset: -2px; }
+    .hm-tile:hover, .hm-tile:focus-visible { outline-color: var(--accent); z-index: 3; }
+    .hm-tile-t { font-size: 0.74rem; font-weight: 600; line-height: 1.12; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .hm-tile-p { font-size: 0.7rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
+    .map-fail { color: var(--muted); text-align: center; padding: 3rem 1rem; }
+
+    .map-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; margin-top: 0.7rem; }
+    .hm-legend { display: inline-flex; align-items: center; gap: 3px; font-size: 0.74rem; color: var(--muted); }
+    .hm-legend i { width: 16px; height: 11px; border-radius: 2px; display: inline-block; }
+    .hm-legend span:first-child { margin-right: 3px; }
+    .hm-legend span:last-child { margin-left: 3px; }
+    .map-note { color: var(--muted); font-size: 0.72rem; margin: 0; opacity: 0.85; }
+
+    .hm-tip { position: fixed; z-index: 50; pointer-events: none; max-width: 260px; padding: 8px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-elevated); box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 2px; }
+    .hm-tip[hidden] { display: none; }
+    .hm-tip-t { font-family: var(--font-display); font-size: 0.92rem; color: var(--text-heading); }
+    .hm-tip-r { font-size: 0.76rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .hm-tip .up { color: var(--up); }
+    .hm-tip .down { color: var(--down); }
+    .hm-tip .flat { color: var(--muted); }
+
+    .ind-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.7rem; margin-top: 0.9rem; }
+    .ind-card { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .ind-card:hover { border-color: var(--accent); background: var(--surface-elevated); }
+    .ind-card-t { font-family: var(--font-display); font-size: 1.02rem; color: var(--text-heading); line-height: 1.2; }
+    .ind-card-meta { font-size: 0.76rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .ind-card-meta b { color: var(--accent); font-weight: 700; }
+
+    @media (max-width: 560px) {
+      .hm-root { height: clamp(380px, 80vh, 620px); }
+      .map-toolbar-r { margin-left: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hm-tile, .map-tab, .map-refresh, .ind-card { transition: none; }
+    }
+  </style>
+</Layout>

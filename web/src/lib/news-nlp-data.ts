@@ -9,6 +9,7 @@ import type {
   NewsDigest,
   NewsNlpDeps,
   SentimentLexicon,
+  TodayThemes,
   WikiHubEntry,
 } from "./news-nlp";
 
@@ -78,4 +79,27 @@ export function loadNewsDigest(): NewsDigest | null {
     digestCache = null;
   }
   return digestCache;
+}
+
+// ---- 今日熱門題材(缺檔/壞檔 → null,區塊不顯示) ----
+let todayCache: TodayThemes | null = null;
+let todayMtime = -1;
+let todayCheckedAt = 0;
+
+export function loadTodayThemes(): TodayThemes | null {
+  const now = Date.now();
+  if (now - todayCheckedAt < 30_000) return todayCache;
+  todayCheckedAt = now;
+  const p = join(DATA_DIR, "today-themes.json");
+  try {
+    const mtime = statSync(p).mtimeMs;
+    if (mtime !== todayMtime) {
+      todayMtime = mtime;
+      todayCache = JSON.parse(readFileSync(p, "utf8")) as TodayThemes;
+    }
+  } catch {
+    todayMtime = -1;
+    todayCache = null;
+  }
+  return todayCache;
 }

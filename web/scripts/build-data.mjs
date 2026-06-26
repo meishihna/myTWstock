@@ -38,4 +38,6 @@ const sector = run("build-sector-stats.mjs");
 const screener = run("build-screener-index.mjs");
 await hub; // stubs reads wikilink-hub output, so wait for hub specifically
 await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener]);
+// map-index needs themes-index + screener-index (both just resolved) -> run last
+await run("build-map-index.mjs");
 console.error(`[build-data] all indexes built in ${((Date.now() - t0) / 1000).toFixed(1)}s`);

@@ -747,8 +747,8 @@ let monthlyKpis: MonthlyKpi[] = [];
 
 if (monthly) {
   const mLabels = monthly.periods.map((p) => p.slice(2).replace("-", "/"));
-  mRevBars = barChartMillion(mLabels, monthly.revenue, "月營收（Monthly revenue）", "#1D9E75", {
-    stroke: "#1D9E75",
+  mRevBars = barChartMillion(mLabels, monthly.revenue, "月營收（Monthly revenue）", "#E24B4A", {
+    stroke: "#E24B4A",
     fillOpacity: 0.5,
     tooltipLabel: "月營收（百萬）",
   });
@@ -756,7 +756,7 @@ if (monthly) {
     if (!b) return b;
     const yv = monthly.yoy[i];
     const neg = yv != null && Number.isFinite(yv) && yv < 0;
-    return { ...b, fill: neg ? NEG_BAR : "#1D9E75", stroke: neg ? NEG_BAR : "#1D9E75" };
+    return { ...b, fill: neg ? "#1D9E75" : "#E24B4A", stroke: neg ? "#1D9E75" : "#E24B4A" };
   });
   if (monthly.yoy.some((v) => v != null && Number.isFinite(v))) {
     mYoyLine = lineChartSvg(
@@ -1591,8 +1591,8 @@ const mRevYTickMarks =
           <figure class="fin-dash__chart">
             <p class="fin-dash__sl">{mRevBars.title}（百萬元）</p>
             <ul class="fin-dash__legend">
-              <li><span class="fin-dash__leg-dot" style="background:#1D9E75" />營收成長(YoY≥0)</li>
-              <li><span class="fin-dash__leg-dot" style={`background:${NEG_BAR}`} />營收衰退</li>
+              <li><span class="fin-dash__leg-dot" style="background:#E24B4A" />營收成長(YoY≥0)</li>
+              <li><span class="fin-dash__leg-dot" style="background:#1D9E75" />營收衰退</li>
             </ul>
             <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--tall">
               <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">

@@ -207,6 +207,29 @@ export const THEMES_PAGE = {
   ),
 } as const;
 
+/** 視覺化地圖（/map）：題材熱力圖 + 產業地圖卡牆 */
+export const MAP_PAGE = {
+  nav: "地圖",
+  title: bi("產業地圖", "Industry map"),
+  lead: bi(
+    "視覺綜覽題材與供應鏈：熱力圖看當日題材漲跌，產業地圖點進各題材的上中下游與成分股。",
+    "Visual overview of themes & supply chains — heatmap for today's moves, map to drill into each theme."
+  ),
+  tabHeatmap: "熱力圖",
+  tabIndustry: "產業地圖",
+  heatmapHint: "磚塊大小＝題材涵蓋家數，顏色＝成分股當日平均漲跌（紅漲綠跌）。點題材進入供應鏈地圖。",
+  galleryHint: "點題材查看上中下游供應鏈與成分股。",
+  updatedAt: "更新於",
+  refresh: "重新整理",
+  loading: "載入中…",
+  loadFail: "資料載入失敗，請重新整理頁面。",
+  delayedNote: "漲跌為延遲行情、相對前一交易日收盤，僅供參考。",
+  companiesUnit: "家",
+  legendDown: "跌",
+  legendFlat: "平",
+  legendUp: "漲",
+} as const;
+
 export const DISCOVER_PAGE = {
   nav: "關鍵字探索",
   title: bi("反向探索（關鍵字）", "Reverse discovery"),

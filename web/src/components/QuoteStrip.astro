@@ -242,11 +242,11 @@ const defaultMonths = 6;
     });
 
     const candle = chart.addCandlestickSeries({
-      upColor: "#1D9E75",
-      downColor: "#E24B4A",
+      upColor: "#E24B4A",
+      downColor: "#1D9E75",
       borderVisible: false,
-      wickUpColor: "#1D9E75",
-      wickDownColor: "#E24B4A",
+      wickUpColor: "#E24B4A",
+      wickDownColor: "#1D9E75",
     });
     candle.setData(
       bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })),
@@ -258,7 +258,7 @@ const defaultMonths = 6;
       bars.map((b) => ({
         time: b.time,
         value: b.volume,
-        color: b.close >= b.open ? "rgba(29,158,117,0.45)" : "rgba(226,75,74,0.45)",
+        color: b.close >= b.open ? "rgba(226,75,74,0.45)" : "rgba(29,158,117,0.45)",
       })),
     );
 
@@ -288,12 +288,12 @@ const defaultMonths = 6;
       if (!b) return;
       const prev = idx > 0 ? bars[idx - 1]!.close : null;
       const up = b.close >= b.open;
-      const col = up ? "#3fd6a0" : "#ff7b78";
+      const col = up ? "#ff7b78" : "#3fd6a0";
       let chg = "";
       if (prev != null && prev !== 0) {
         const d = Math.round((b.close - prev) * 100) / 100;
         const p = (d / prev) * 100;
-        const c2 = d >= 0 ? "#5ee9b5" : "#ff9a9a";
+        const c2 = d >= 0 ? "#ff9a9a" : "#5ee9b5";
         chg = ` <b style="color:${c2}">${d >= 0 ? "+" : ""}${p.toFixed(2)}%</b>`;
       }
       legend.innerHTML =

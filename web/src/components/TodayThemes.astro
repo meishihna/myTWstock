@@ -1,0 +1,191 @@
+---
+/**
+ * 今日熱門題材:server 讀離線快照(loadTodayThemes,缺檔→不顯示),
+ * client 疊加即時報價算出 heat=0.45*price+0.35*sent+0.20*vol 後重排,顯示 top N。
+ * variant: home(首頁,精簡)/ hub(/themes,較多列)。
+ */
+import { loadTodayThemes } from "../lib/news-nlp-data";
+
+interface Props {
+  variant?: "home" | "hub";
+  limit?: number;
+}
+const { variant = "home", limit = 6 } = Astro.props;
+
+const data = loadTodayThemes();
+// 多帶幾筆讓 client 依即時 heat 重排後仍有 top N 可選
+const pool = data ? data.themes.slice(0, Math.max(limit + 6, 12)) : [];
+const generatedAt = data?.generatedAt ?? "";
+---
+
+{
+  pool.length > 0 && (
+    <section class={`today-themes tt--${variant}`} data-generated={generatedAt} aria-label="今日熱門題材">
+      <div class="tt-head">
+        <h2 class="tt-title">今日熱門題材</h2>
+        <a class="tt-more" href="/map">熱力圖 →</a>
+        <span class="tt-ts" data-prefix="更新於" />
+      </div>
+      <ol class="tt-list" id="tt-list" />
+      <script type="application/json" id="tt-data" set:html={JSON.stringify({ limit, rows: pool })} />
+    </section>
+  )
+}
+
+<script>
+  interface Con { t: string; n: string; mc: number | null; }
+  interface Row {
+    slug: string; title: string; companyCount: number; mentions: number;
+    sentScore: number; volScore: number; heatBase: number; tone: string; cons: Con[];
+  }
+
+  const dataEl = document.getElementById("tt-data");
+  if (dataEl) {
+    const cfg = JSON.parse(dataEl.textContent || "{}") as { limit: number; rows: Row[] };
+    const rows: Row[] = cfg.rows || [];
+    const limit = cfg.limit || 6;
+    const pct: Record<string, number> = {};
+
+    const esc = (s: string) =>
+      s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+
+    function priceScore(r: Row): number | null {
+      let wsum = 0, psum = 0, n = 0, simple = 0;
+      for (const c of r.cons) {
+        const p = pct[c.t];
+        if (p == null || !isFinite(p)) continue;
+        n++; simple += p;
+        const w = c.mc != null && c.mc > 0 ? c.mc : 0;
+        if (w > 0) { wsum += w; psum += w * p; }
+      }
+      if (n === 0) return null;
+      const avg = wsum > 0 ? psum / wsum : simple / n;
+      return Math.max(-100, Math.min(100, avg * 10));
+    }
+    function heat(r: Row): number {
+      const ps = priceScore(r);
+      return ps == null ? r.heatBase : Math.round(0.45 * ps + 0.35 * r.sentScore + 0.2 * r.volScore);
+    }
+    function avgPct(r: Row): number | null {
+      const ps = priceScore(r);
+      return ps == null ? null : ps / 10;
+    }
+    function movers(r: Row, k = 2) {
+      return r.cons
+        .map((c) => ({ c, p: pct[c.t] }))
+        .filter((x) => x.p != null && isFinite(x.p))
+        .sort((a, b) => Math.abs(b.p) - Math.abs(a.p))
+        .slice(0, k);
+    }
+
+    function render() {
+      const list = document.getElementById("tt-list");
+      if (!list) return;
+      const ranked = rows.slice().sort((a, b) => heat(b) - heat(a)).slice(0, limit);
+      const maxHeat = Math.max(1, ...ranked.map((r) => Math.abs(heat(r))));
+      list.innerHTML = ranked
+        .map((r, i) => {
+          const ap = avgPct(r);
+          const toneCls = r.tone === "利多" ? "is-pos" : r.tone === "利空" ? "is-neg" : "is-neu";
+          const apStr = ap == null ? "" : `<span class="${ap > 0 ? "up" : ap < 0 ? "down" : "flat"}">${ap > 0 ? "+" : ""}${ap.toFixed(2)}%</span>`;
+          const mv = movers(r)
+            .map(({ c, p }) => `<a class="tt-mover" href="/report/${c.t}"><span class="tt-mv-n">${esc(c.n)}</span> <span class="${p > 0 ? "up" : p < 0 ? "down" : "flat"}">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span></a>`)
+            .join("");
+          const barW = Math.round((Math.abs(heat(r)) / maxHeat) * 100);
+          return `<li class="tt-row">`
+            + `<a class="tt-main" href="/themes/${encodeURIComponent(r.slug)}">`
+            + `<span class="tt-rank">${i + 1}</span>`
+            + `<span class="tt-name">${esc(r.title)}</span>`
+            + `<span class="tt-chip ${toneCls}">${r.tone}</span>`
+            + `<span class="tt-bar"><i style="width:${barW}%"></i></span>`
+            + `<span class="tt-avg">${apStr}</span>`
+            + `</a>`
+            + `<p class="tt-meta">${r.mentions} 則新聞${mv ? " · " + mv : ""}</p>`
+            + `</li>`;
+        })
+        .join("");
+    }
+
+    function setTs(fetchedAt: string) {
+      const el = document.querySelector(".tt-ts") as HTMLElement | null;
+      if (!el) return;
+      const pre = el.getAttribute("data-prefix") || "";
+      const gen = (el.closest(".today-themes") as HTMLElement | null)?.getAttribute("data-generated") || "";
+      const src = fetchedAt || gen;
+      if (!src) return;
+      const d = new Date(src);
+      const hhmm = isNaN(d.getTime())
+        ? ""
+        : new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(d);
+      if (hhmm) el.textContent = `${pre} ${hhmm}`;
+    }
+
+    async function load() {
+      const set = new Set<string>();
+      for (const r of rows) for (const c of r.cons) if (/^\d{4}$/.test(c.t)) set.add(c.t);
+      const all = [...set];
+      const CHUNK = 110;
+      const chunks: string[][] = [];
+      for (let i = 0; i < all.length; i += CHUNK) chunks.push(all.slice(i, i + CHUNK));
+      const res = await Promise.all(
+        chunks.map((ch) =>
+          fetch(`/api/quote-batch?symbols=${encodeURIComponent(ch.join(","))}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ),
+      );
+      let fetchedAt = "";
+      for (const r of res) {
+        if (!r || !r.quotes) continue;
+        fetchedAt = r.fetchedAt || fetchedAt;
+        for (const k of Object.keys(r.quotes)) {
+          const v = r.quotes[k];
+          if (v && typeof v.changePct === "number" && isFinite(v.changePct)) pct[k] = v.changePct;
+        }
+      }
+      return fetchedAt;
+    }
+
+    render();
+    load().then((fetchedAt) => { render(); setTs(fetchedAt); });
+  }
+</script>
+
+<style is:global>
+  .today-themes { margin: 0 0 1.6rem; padding: 0.95rem 1.15rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+  .tt-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.45rem; }
+  .tt-title { font-family: var(--font-display); font-size: 1.12rem; margin: 0; color: var(--text-heading); }
+  .tt-more { font-size: 0.78rem; color: var(--accent); text-decoration: none; }
+  .tt-more:hover { color: var(--accent-hover); }
+  .tt-ts { font-size: 0.73rem; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+
+  .tt-list { list-style: none; margin: 0; padding: 0; }
+  .tt-row { padding: 0.45rem 0; border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent); }
+  .tt-row:first-child { border-top: none; }
+  .tt-main { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--text); }
+  .tt-rank { font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--muted); width: 1.4em; text-align: right; flex: 0 0 auto; }
+  .tt-name { font-weight: 600; font-size: 0.95rem; color: var(--text); flex: 0 0 auto; }
+  .tt-main:hover .tt-name { color: var(--accent); }
+  .tt-chip { font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; border: 1px solid transparent; flex: 0 0 auto; }
+  .tt-chip.is-pos { color: var(--up); background: color-mix(in srgb, var(--up) 14%, transparent); border-color: color-mix(in srgb, var(--up) 30%, transparent); }
+  .tt-chip.is-neg { color: var(--down); background: color-mix(in srgb, var(--down) 14%, transparent); border-color: color-mix(in srgb, var(--down) 30%, transparent); }
+  .tt-chip.is-neu { color: var(--muted); background: color-mix(in srgb, var(--muted) 12%, transparent); }
+  .tt-bar { flex: 1 1 auto; height: 5px; min-width: 36px; border-radius: 999px; background: color-mix(in srgb, var(--border) 80%, transparent); overflow: hidden; }
+  .tt-bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+  .tt-avg { flex: 0 0 auto; font-size: 0.82rem; font-variant-numeric: tabular-nums; min-width: 4.3em; text-align: right; }
+  .tt-avg .up, .tt-mover .up { color: var(--up); }
+  .tt-avg .down, .tt-mover .down { color: var(--down); }
+  .tt-avg .flat, .tt-mover .flat { color: var(--muted); }
+  .tt-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.55rem; margin: 0.25rem 0 0 calc(1.4em + 0.6rem); font-size: 0.74rem; color: var(--muted); }
+  .tt-mover { display: inline-flex; gap: 0.3rem; text-decoration: none; color: var(--text-secondary); }
+  .tt-mover:hover { color: var(--accent); }
+  .tt-mv-n { color: var(--muted); }
+
+  @media (max-width: 560px) {
+    .tt-name { font-size: 0.9rem; }
+    .tt-bar { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tt-more, .tt-mover, .tt-main:hover .tt-name { transition: none; }
+  }
+</style>

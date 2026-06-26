@@ -57,6 +57,23 @@ export interface NewsNlpResult {
   tickerSentiment: Record<string, TickerSentiment>;
 }
 
+/** 今日熱門題材(離線數值產出;runtime 疊加即時報價)。見 scripts/build-today-themes.ts。 */
+export interface TodayThemeRow {
+  slug: string;
+  title: string;
+  companyCount: number;
+  mentions: number; // 成分股新聞提及總數
+  sentScore: number; // -100..100,聲量衰減後的情緒分
+  volScore: number; // 0..100,聲量分
+  heatBase: number; // 0.6*sent + 0.4*vol(無報價亦可排序)
+  tone: SentimentLabel;
+  cons: { t: string; n: string; mc: number | null }[]; // 市值前 N,供報價疊加與漲跌排行
+}
+export interface TodayThemes {
+  generatedAt: string;
+  themes: TodayThemeRow[];
+}
+
 /** Phase B:LLM 每日簡報(離線批次產出,runtime 只讀) */
 export interface NewsDigestCluster {
   clusterId: string;

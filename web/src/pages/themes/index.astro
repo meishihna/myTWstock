@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Bi from "../../components/Bi.astro";
 import { SITE, THEMES_PAGE } from "../../lib/ui";
+import TodayThemes from "../../components/TodayThemes.astro";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -28,6 +29,8 @@ const pageTitle = `${THEMES_PAGE.title} — ${SITE.name}`;
   </div>
   <h1 class="page-h1">{THEMES_PAGE.title}</h1>
   <p class="page-lead">{THEMES_PAGE.lead}</p>
+
+  <TodayThemes variant="hub" limit={10} />
 
   {
     themes.length === 0 ? (

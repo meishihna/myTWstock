@@ -2,46 +2,84 @@
 import Layout from "../../layouts/Layout.astro";
 import Bi from "../../components/Bi.astro";
 import { SITE, THEMES_PAGE } from "../../lib/ui";
+import { sectorZh } from "../../lib/sector-i18n";
 import fs from "node:fs";
 import path from "node:path";
 
-type Co = { ticker: string; name: string; sector: string; sectorSlug: string };
-type ThemeData = {
+type MapCo = { t: string; n: string; s: string; ss: string; mc: number | null };
+type MapTheme = {
   slug: string;
   title: string;
   companyCount: number;
-  relatedRaw: string;
-  tiers: { upstream: Co[]; midstream: Co[]; downstream: Co[] };
+  aggMcap: number;
+  related: { label: string; slug: string | null }[];
+  tiers: { u: MapCo[]; m: MapCo[]; d: MapCo[] };
 };
 
 export function getStaticPaths() {
   const p = path.join(process.cwd(), "public/data/themes-index.json");
   if (!fs.existsSync(p)) return [];
   const data = JSON.parse(fs.readFileSync(p, "utf8"));
-  const list = (data.themes ?? []) as ThemeData[];
-  return list.map((t) => ({ params: { slug: t.slug } }));
+  return ((data.themes ?? []) as { slug: string }[]).map((t) => ({ params: { slug: t.slug } }));
 }
 
 export const prerender = true;
 
 const { slug } = Astro.params;
+
+// 主資料來自 map-index(tiers 含市值 + 已解析 related);缺檔則退回 themes-index。
+const mapPath = path.join(process.cwd(), "public/data/map-index.json");
 const themesPath = path.join(process.cwd(), "public/data/themes-index.json");
-const data = JSON.parse(fs.readFileSync(themesPath, "utf8"));
-const theme = (data.themes as ThemeData[]).find((t) => t.slug === slug);
+const mapData = fs.existsSync(mapPath)
+  ? JSON.parse(fs.readFileSync(mapPath, "utf8"))
+  : { themes: [] };
+let theme = (mapData.themes as MapTheme[]).find((t) => t.slug === slug) || null;
 
 if (!theme) {
-  return Astro.redirect("/themes");
+  const td = fs.existsSync(themesPath)
+    ? JSON.parse(fs.readFileSync(themesPath, "utf8"))
+    : { themes: [] };
+  const t = (td.themes ?? []).find((x: { slug: string }) => x.slug === slug);
+  if (!t) return Astro.redirect("/themes");
+  const conv = (arr: any[]): MapCo[] =>
+    (arr ?? []).map((c) => ({ t: c.ticker, n: c.name, s: c.sector, ss: c.sectorSlug || "", mc: null }));
+  theme = {
+    slug: t.slug,
+    title: t.title,
+    companyCount: t.companyCount,
+    aggMcap: 0,
+    related: [],
+    tiers: { u: conv(t.tiers.upstream), m: conv(t.tiers.midstream), d: conv(t.tiers.downstream) },
+  };
 }
 
-const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
-
-const tierBlocks: { key: keyof ThemeData["tiers"]; label: string }[] = [
-  { key: "upstream", label: THEMES_PAGE.tierUp },
-  { key: "midstream", label: THEMES_PAGE.tierMid },
-  { key: "downstream", label: THEMES_PAGE.tierDown },
+const tierDefs: { key: "u" | "m" | "d"; label: string }[] = [
+  { key: "u", label: THEMES_PAGE.tierUp },
+  { key: "m", label: THEMES_PAGE.tierMid },
+  { key: "d", label: THEMES_PAGE.tierDown },
 ];
+
+// 個股熱力圖用:去重成分股(ticker、名稱、市值)
+const seen = new Set<string>();
+const cons: { t: string; n: string; mc: number | null }[] = [];
+for (const k of ["u", "m", "d"] as const) {
+  for (const c of theme.tiers[k]) {
+    if (seen.has(c.t)) continue;
+    seen.add(c.t);
+    cons.push({ t: c.t, n: c.n, mc: c.mc });
+  }
+}
+
+const aggMcapStr =
+  theme.aggMcap >= 1e6
+    ? `${(theme.aggMcap / 1e6).toFixed(2)} 兆`
+    : theme.aggMcap > 0
+      ? `${Math.round(theme.aggMcap / 100)} 億`
+      : "";
+
+const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
 ---
-<Layout title={pageTitle} description={theme.title}>
+<Layout title={pageTitle} description={`${theme.title} 供應鏈上中下游與成分股、當日漲跌`}>
   <div class="breadcrumb" aria-label="Breadcrumb">
     <a href="/"><Bi zh="首頁" en="Home" /></a>
     <span class="bc-sep"> / </span>
@@ -49,62 +87,196 @@ const tierBlocks: { key: keyof ThemeData["tiers"]; label: string }[] = [
     <span class="bc-sep"> / </span>
     <span>{theme.title}</span>
   </div>
+
   <h1 class="page-h1">{theme.title}</h1>
   <p class="page-lead">
-    {THEMES_PAGE.countLabel}：<strong>{theme.companyCount || "—"}</strong>
+    {THEMES_PAGE.countLabel}：<strong>{theme.companyCount || cons.length || "—"}</strong>
+    {aggMcapStr ? ` · 市值合計 ${aggMcapStr}` : ""}
   </p>
+
   {
-    theme.relatedRaw && (
-      <p class="themes-related-line">
-        <span class="themes-related-label">{THEMES_PAGE.related}：</span>
-        {theme.relatedRaw}
+    theme.related.length > 0 && (
+      <p class="theme-related">
+        <span class="theme-related-label">{THEMES_PAGE.related}：</span>
+        {theme.related.map((r) =>
+          r.slug ? (
+            <a class="theme-rel-chip" href={`/themes/${encodeURIComponent(r.slug)}`}>
+              {r.label}
+            </a>
+          ) : (
+            <span class="theme-rel-chip is-plain">{r.label}</span>
+          ),
+        )}
       </p>
     )
   }
 
   {
-    tierBlocks.map(({ key, label }) => (
-      <section class="theme-tier-block" aria-label={label}>
-        <h2 class="theme-tier-heading">{label}</h2>
-        {theme.tiers[key].length === 0 ? (
-          <p class="page-muted">{THEMES_PAGE.empty}</p>
-        ) : (
-          <table class="theme-tier-table company-table">
-            <thead>
-              <tr>
-                <th>
-                  <Bi zh="代號" en="Ticker" />
-                </th>
-                <th>
-                  <Bi zh="公司" en="Company" />
-                </th>
-                <th>
-                  <Bi zh="產業" en="Sector" />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {theme.tiers[key].map((c) => (
-                <tr>
-                  <td>
-                    <a href={`/report/${c.ticker}`}>{c.ticker}</a>
-                  </td>
-                  <td>
-                    <a href={`/report/${c.ticker}`}>{c.name}</a>
-                  </td>
-                  <td>
-                    {c.sectorSlug ? (
-                      <a href={`/sectors/${c.sectorSlug}`}>{c.sector}</a>
-                    ) : (
-                      c.sector
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+    cons.length > 0 && (
+      <section class="theme-hm-sec" aria-label="題材個股熱力圖">
+        <h2 class="theme-sec-h">個股熱力圖 <span class="theme-sec-sub">磚塊＝市值，顏色＝當日漲跌（紅漲綠跌）</span></h2>
+        <div id="theme-hm" class="theme-hm" role="img" aria-label={`${theme.title} 成分股漲跌熱力圖`} />
       </section>
-    ))
+    )
   }
+
+  <script type="application/json" id="theme-cons" set:html={JSON.stringify(cons)} />
+
+  {
+    tierDefs.map(({ key, label }) =>
+      theme.tiers[key].length === 0 ? null : (
+        <section class="sc-tier" aria-label={label}>
+          <h2 class="theme-sec-h">
+            {label} <span class="sc-tier-n">{theme.tiers[key].length}</span>
+          </h2>
+          <div class="sc-grid">
+            {theme.tiers[key].map((c) => (
+              <a class="sc-card" href={`/report/${c.t}`} data-t={c.t}>
+                <span class="sc-info">
+                  <span class="sc-nm-row">
+                    <span class="sc-nm">{c.n}</span>
+                    <span class="sc-tk">{c.t}</span>
+                  </span>
+                  <span class="sc-sec">{sectorZh(c.s)}</span>
+                </span>
+                <span class="sc-q" data-px><span class="sc-dash">—</span></span>
+              </a>
+            ))}
+          </div>
+        </section>
+      ),
+    )
+  }
+
+  <script>
+    import { treemap, tileColor } from "../../lib/heatmap";
+
+    interface Con { t: string; n: string; mc: number | null; }
+    const dataEl = document.getElementById("theme-cons");
+    const cons: Con[] = dataEl ? JSON.parse(dataEl.textContent || "[]") : [];
+    const pct: Record<string, number> = {};
+    const px: Record<string, number> = {};
+
+    function esc(s: string): string {
+      return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+    }
+    // 台股顯示慣例(依升降單位):<50 兩位小數、50–<500 一位、≥500 整數
+    function fmtTwPrice(p: number): string {
+      return p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.toFixed(0);
+    }
+
+    function renderHm() {
+      const root = document.getElementById("theme-hm");
+      if (!root) return;
+      const W = root.clientWidth, H = root.clientHeight;
+      if (W < 10 || H < 10 || cons.length === 0) return;
+      // 只取有市值者、依市值前 36、面積用 sqrt 壓縮偏態(避免巨型股獨佔 + 長尾碎片)
+      const withMc = cons
+        .filter((c) => c.mc != null && c.mc > 0)
+        .sort((a, b) => (b.mc as number) - (a.mc as number))
+        .slice(0, 36);
+      if (withMc.length === 0) { root.innerHTML = ""; return; }
+      const nodes = withMc.map((c) => ({ ...c, value: Math.sqrt(c.mc as number) }));
+      const laid = treemap(nodes, 0, 0, W, H);
+      const G = 1;
+      root.innerHTML = laid
+        .map((c) => {
+          const p = pct[c.t];
+          const big = c.w > 54 && c.h > 26;
+          const showP = p != null && c.w > 44 && c.h > 38;
+          return `<a class="thm-tile" href="/report/${c.t}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+            + (big ? `<span class="thm-tile-t">${esc(c.n)}</span>` : "")
+            + (showP ? `<span class="thm-tile-p">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span>` : "")
+            + `</a>`;
+        })
+        .join("");
+    }
+
+    function fillCards() {
+      document.querySelectorAll<HTMLElement>(".sc-card").forEach((card) => {
+        const t = card.getAttribute("data-t");
+        const slot = card.querySelector(".sc-q");
+        if (!t || !slot) return;
+        const p = pct[t], pv = px[t];
+        if (p == null && pv == null) { slot.innerHTML = `<span class="sc-dash">—</span>`; return; }
+        const priceStr = pv != null ? `<span class="sc-price">${fmtTwPrice(pv)}</span>` : "";
+        const cls = p == null ? "flat" : p > 0 ? "up" : p < 0 ? "down" : "flat";
+        const chgStr = p == null ? "" : `<span class="sc-chg ${cls}">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span>`;
+        slot.innerHTML = priceStr + chgStr;
+      });
+    }
+
+    async function load() {
+      const tickers = cons.map((c) => c.t).filter((t) => /^\d{4}$/.test(t));
+      const CHUNK = 110;
+      const chunks: string[][] = [];
+      for (let i = 0; i < tickers.length; i += CHUNK) chunks.push(tickers.slice(i, i + CHUNK));
+      const res = await Promise.all(
+        chunks.map((ch) =>
+          fetch(`/api/quote-batch?symbols=${encodeURIComponent(ch.join(","))}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ),
+      );
+      for (const r of res) {
+        if (!r || !r.quotes) continue;
+        for (const k of Object.keys(r.quotes)) {
+          const v = r.quotes[k];
+          if (!v) continue;
+          if (typeof v.changePct === "number" && isFinite(v.changePct)) pct[k] = v.changePct;
+          if (typeof v.price === "number" && isFinite(v.price)) px[k] = v.price;
+        }
+      }
+      renderHm();
+      fillCards();
+    }
+
+    renderHm();
+    load();
+    if (typeof ResizeObserver !== "undefined") {
+      let t: number | undefined;
+      const ro = new ResizeObserver(() => { window.clearTimeout(t); t = window.setTimeout(renderHm, 150); });
+      const root = document.getElementById("theme-hm");
+      if (root) ro.observe(root);
+    }
+  </script>
+
+  <style is:global>
+    .theme-related { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; margin: 0.2rem 0 1.3rem; }
+    .theme-related-label { color: var(--muted); font-size: 0.82rem; }
+    .theme-rel-chip { font-size: 0.78rem; line-height: 1.5; padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); transition: background var(--duration) var(--ease-out); }
+    .theme-rel-chip:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+    .theme-rel-chip.is-plain { color: var(--muted); background: transparent; border-color: var(--border); }
+
+    .theme-sec-h { font-family: var(--font-display); font-size: 1.18rem; margin: 1.6rem 0 0.7rem; display: flex; align-items: baseline; gap: 0.5rem; }
+    .theme-sec-sub { font-family: var(--font-body); font-size: 0.74rem; font-weight: 400; color: var(--muted); }
+    .sc-tier-n { font-family: var(--font-body); font-size: 0.8rem; color: var(--accent); font-weight: 700; }
+
+    .theme-hm-sec { margin-top: 0.4rem; }
+    .theme-hm { position: relative; width: 100%; height: clamp(220px, 38vh, 380px); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
+    .thm-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; text-decoration: none; color: #f4efe6; border-radius: 2px; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.1s var(--ease-out); }
+    .thm-tile:hover, .thm-tile:focus-visible { outline-color: var(--accent); z-index: 3; }
+    .thm-tile-t { font-size: 0.72rem; font-weight: 600; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .thm-tile-p { font-size: 0.68rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
+
+    .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 0.55rem; }
+    .sc-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.62rem 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .sc-card:hover { border-color: var(--accent); background: var(--surface-elevated); }
+    .sc-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .sc-nm-row { display: flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
+    .sc-nm { font-size: 0.95rem; font-weight: 600; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-tk { font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; color: var(--accent); flex: 0 0 auto; }
+    .sc-sec { font-size: 0.73rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-q { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: 0 0 auto; text-align: right; }
+    .sc-price { font-size: 0.9rem; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+    .sc-chg { font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .sc-chg.up { color: var(--up); }
+    .sc-chg.down { color: var(--down); }
+    .sc-chg.flat { color: var(--muted); }
+    .sc-dash { color: var(--muted); font-size: 0.8rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .thm-tile, .sc-card, .theme-rel-chip { transition: none; }
+    }
+  </style>
 </Layout>

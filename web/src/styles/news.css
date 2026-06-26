@@ -512,11 +512,11 @@
 }
 
 .news-related-pct.up {
-  color: #1d9e75;
+  color: var(--up);
 }
 
 .news-related-pct.down {
-  color: #e24b4a;
+  color: var(--down);
 }
 
 .news-related-pct.flat {
@@ -656,14 +656,14 @@
   border: 1px solid transparent;
 }
 .news-card-sentiment.is-pos {
-  color: #1d9e75;
-  background: color-mix(in srgb, #1d9e75 14%, transparent);
-  border-color: color-mix(in srgb, #1d9e75 32%, transparent);
+  color: var(--up);
+  background: color-mix(in srgb, var(--up) 14%, transparent);
+  border-color: color-mix(in srgb, var(--up) 32%, transparent);
 }
 .news-card-sentiment.is-neg {
-  color: #e24b4a;
-  background: color-mix(in srgb, #e24b4a 14%, transparent);
-  border-color: color-mix(in srgb, #e24b4a 32%, transparent);
+  color: var(--down);
+  background: color-mix(in srgb, var(--down) 14%, transparent);
+  border-color: color-mix(in srgb, var(--down) 32%, transparent);
 }
 .news-card-sentiment.is-neu {
   color: var(--news-ink-faint);
@@ -790,14 +790,14 @@
   border: 1px solid transparent;
 }
 .news-digest-chip.is-pos {
-  color: #1d9e75;
-  background: color-mix(in srgb, #1d9e75 12%, transparent);
-  border-color: color-mix(in srgb, #1d9e75 30%, transparent);
+  color: var(--up);
+  background: color-mix(in srgb, var(--up) 12%, transparent);
+  border-color: color-mix(in srgb, var(--up) 30%, transparent);
 }
 .news-digest-chip.is-neg {
-  color: #e24b4a;
-  background: color-mix(in srgb, #e24b4a 12%, transparent);
-  border-color: color-mix(in srgb, #e24b4a 30%, transparent);
+  color: var(--down);
+  background: color-mix(in srgb, var(--down) 12%, transparent);
+  border-color: color-mix(in srgb, var(--down) 30%, transparent);
 }
 .news-digest-ts {
   margin: 0.4rem 0 0;

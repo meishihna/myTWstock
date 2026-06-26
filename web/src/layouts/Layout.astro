@@ -1,6 +1,6 @@
 ---
 import MarketTickerBar from "../components/MarketTickerBar.astro";
-import { DISCOVER_PAGE, FOOTER, NEWS_PAGE, SITE, THEMES_PAGE } from "../lib/ui";
+import { DISCOVER_PAGE, FOOTER, MAP_PAGE, NEWS_PAGE, SITE, THEMES_PAGE } from "../lib/ui";
 
 interface Props {
   title: string;
@@ -77,6 +77,7 @@ const navActive = (href: string) =>
         <a class="brand" href="/">{SITE.name}</a>
         <div class="nav-links">
           <a href="/sectors" aria-current={navActive("/sectors") ? "page" : undefined}>產業</a>
+          <a href="/map" aria-current={navActive("/map") ? "page" : undefined}>{MAP_PAGE.nav}</a>
           <a href="/screener" aria-current={navActive("/screener") ? "page" : undefined}>選股</a>
           <a href="/themes" aria-current={navActive("/themes") ? "page" : undefined}>{THEMES_PAGE.nav}</a>
           <a href="/discover" aria-current={navActive("/discover") ? "page" : undefined}>{DISCOVER_PAGE.nav}</a>

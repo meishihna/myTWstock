@@ -182,7 +182,7 @@ export function buildCandlestickChart(
   for (let i = 0; i < n; i++) {
     const x = xCenter(i);
     const isUp = close[i]! >= open[i]!;
-    const color = isUp ? "#1D9E75" : "#E24B4A";
+    const color = isUp ? "#E24B4A" : "#1D9E75";
 
     let bodyTop = priceToY(Math.max(open[i]!, close[i]!));
     let bodyBottom = priceToY(Math.min(open[i]!, close[i]!));
@@ -194,8 +194,8 @@ export function buildCandlestickChart(
 
     const volHeight = (volume[i]! / maxVol) * volumeAreaHeight;
     const volColor = isUp
-      ? "rgba(29,158,117,0.4)"
-      : "rgba(226,75,74,0.4)";
+      ? "rgba(226,75,74,0.4)"
+      : "rgba(29,158,117,0.4)";
 
     candles.push({
       x,

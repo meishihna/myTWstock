@@ -53,7 +53,7 @@ const aria = MARKET_TICKER.ariaRegion;
     const h = SPARK_H;
     const pad = SPARK_PAD;
     const color =
-      dir === "up" ? "#1d9e75" : dir === "down" ? "#e24b4a" : "#888780";
+      dir === "up" ? "#e24b4a" : dir === "down" ? "#1d9e75" : "#888780";
     if (!points || points.length < 2) {
       return `<svg class="market-ticker-spark market-ticker-spark--empty" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"></svg>`;
     }

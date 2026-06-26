@@ -4,6 +4,7 @@ import SectorBilingualName from "../components/SectorBilingualName.astro";
 import fs from "node:fs";
 import path from "node:path";
 import { HOME, SITE } from "../lib/ui";
+import TodayThemes from "../components/TodayThemes.astro";
 
 const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
 let sectors: { name: string; slug: string; count: number }[] = [];
@@ -36,6 +37,8 @@ if (fs.existsSync(idxPath)) {
     >
     </div>
   </div>
+
+  <TodayThemes variant="home" limit={6} />
 
   <h2 class="home-sector-heading">{HOME.sectorList}</h2>
   <div class="sector-grid">
