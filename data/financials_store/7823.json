@@ -613,5 +613,53 @@
       ]
     }
   },
-  "listingStatus": "listed"
+  "listingStatus": "listed",
+  "monthlyRevenue": {
+    "periods": [
+      "2025-11",
+      "2025-12",
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05"
+    ],
+    "revenue": [
+      33.073,
+      54.86,
+      33.184,
+      27.062,
+      30.707,
+      29.166,
+      28.144
+    ],
+    "yoy": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "cum": [
+      null,
+      null,
+      33.184,
+      60.246,
+      90.953,
+      120.119,
+      148.263
+    ],
+    "cumYoy": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "updatedAt": "2026-06-26T00:45:26Z"
+  }
 }
