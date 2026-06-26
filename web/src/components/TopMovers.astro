@@ -1,0 +1,119 @@
+---
+/**
+ * 首頁:今日強勢股(漲幅/跌幅 top N)。
+ * server 端讀 public/data/top-movers.json(scripts/build-top-movers.mjs 產出;缺檔→不顯示)。
+ * 紅漲綠跌。兩份清單皆 server 渲染,切換僅 toggle 顯示(scoped 樣式即可)。
+ */
+import fs from "node:fs";
+import path from "node:path";
+
+type Mover = { t: string; n: string; price: number; pct: number };
+type Data = { generatedAt: string; gainers: Mover[]; losers: Mover[] };
+
+let data: Data | null = null;
+try {
+  data = JSON.parse(fs.readFileSync(path.join(process.cwd(), "public/data/top-movers.json"), "utf8"));
+} catch {
+  data = null;
+}
+const gainers = data?.gainers ?? [];
+const losers = data?.losers ?? [];
+const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.toFixed(0));
+---
+
+{
+  gainers.length > 0 && (
+    <section class="tm" aria-label="今日強勢股">
+      <div class="tm-head">
+        <h2 class="tm-title">今日強勢股</h2>
+        <div class="tm-toggle" role="tablist" aria-label="漲跌切換">
+          <button class="tm-tab is-active" type="button" data-tm="gainers" aria-selected="true">
+            漲幅
+          </button>
+          <button class="tm-tab" type="button" data-tm="losers" aria-selected="false">
+            跌幅
+          </button>
+        </div>
+      </div>
+
+      <ol class="tm-list" data-list="gainers">
+        {gainers.map((m, i) => (
+          <li>
+            <a href={`/report/${m.t}`}>
+              <span class="tm-rank">{i + 1}</span>
+              <span class="tm-name">{m.n}</span>
+              <span class="tm-tk">{m.t}</span>
+              <span class="tm-price">{fmtP(m.price)}</span>
+              <span class="tm-pct up">+{m.pct.toFixed(2)}%</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+
+      <ol class="tm-list" data-list="losers" hidden>
+        {losers.map((m, i) => (
+          <li>
+            <a href={`/report/${m.t}`}>
+              <span class="tm-rank">{i + 1}</span>
+              <span class="tm-name">{m.n}</span>
+              <span class="tm-tk">{m.t}</span>
+              <span class="tm-price">{fmtP(m.price)}</span>
+              <span class="tm-pct down">{m.pct.toFixed(2)}%</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+<script>
+  (function () {
+    const tabs = Array.prototype.slice.call(document.querySelectorAll(".tm-tab"));
+    if (!tabs.length) return;
+    const lists: Record<string, HTMLElement | null> = {
+      gainers: document.querySelector('.tm-list[data-list="gainers"]'),
+      losers: document.querySelector('.tm-list[data-list="losers"]'),
+    };
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const k = tab.getAttribute("data-tm") || "gainers";
+        tabs.forEach((t) => {
+          const on = t === tab;
+          t.classList.toggle("is-active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        for (const key of Object.keys(lists)) {
+          const el = lists[key];
+          if (el) el.hidden = key !== k;
+        }
+      });
+    });
+  })();
+</script>
+
+<style>
+  .tm { margin: 0 0 1.6rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 0.95rem 1.15rem 0.85rem; }
+  .tm-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+  .tm-title { font-family: var(--font-display); font-size: 1.12rem; margin: 0; color: var(--text-heading); }
+  .tm-toggle { margin-left: auto; display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); }
+  .tm-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.78rem; font-weight: 600; padding: 4px 14px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+  .tm-tab.is-active { color: #1a1613; background: var(--accent); }
+
+  .tm-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 1.8rem; }
+  .tm-list li { break-inside: avoid; }
+  .tm-list a { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto auto auto; align-items: baseline; gap: 0.5rem; padding: 0.42rem 0; text-decoration: none; border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+  .tm-list li:first-child a { border-top: none; }
+  .tm-rank { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--muted); text-align: right; }
+  .tm-name { color: var(--text); font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tm-tk { font-family: ui-monospace, monospace; font-size: 0.74rem; color: var(--accent); }
+  .tm-price { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; font-size: 0.84rem; color: var(--text-secondary); text-align: right; }
+  .tm-pct { font-variant-numeric: tabular-nums; font-size: 0.84rem; font-weight: 600; text-align: right; min-width: 4.6em; }
+  .tm-pct.up { color: var(--up); }
+  .tm-pct.down { color: var(--down); }
+  .tm-list a:hover .tm-name { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .tm-list { columns: 1; }
+  }
+</style>
