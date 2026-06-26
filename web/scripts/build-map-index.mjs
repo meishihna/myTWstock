@@ -25,9 +25,16 @@ const WEB = path.join(__dirname, "..");
 const DATA = path.join(WEB, "public", "data");
 const THEMES = path.join(DATA, "themes-index.json");
 const SCREENER = path.join(DATA, "screener-index.json");
+const MOMENTUM = path.join(DATA, "momentum.json");
+const WIKIHUB = path.join(DATA, "wikilink-hub-top500.json");
 const OUT = path.join(DATA, "map-index.json");
 
 const TIER_KEYS = { upstream: "u", midstream: "m", downstream: "d" };
+// 關聯度(供應鏈樞紐度)門檻:被多少份報告以 [[名稱]] 引用
+const LINK_HIGH = 100;
+const LINK_MID = 30;
+
+const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 function main() {
   if (!existsSync(THEMES)) {
@@ -36,15 +43,31 @@ function main() {
   }
   const themes = (JSON.parse(readFileSync(THEMES, "utf8")).themes) || [];
 
-  // 市值查找表:ticker -> marketCap(百萬台幣),來自 screener-index
-  const mcByTicker = {};
+  // 個股查找表:ticker -> { mc, revYoy, roe, nm },來自 screener-index(全 1737 檔)
+  const fin = {};
   if (existsSync(SCREENER)) {
     for (const r of (JSON.parse(readFileSync(SCREENER, "utf8")).rows) || []) {
-      if (r.mc != null && Number.isFinite(r.mc)) mcByTicker[r.t] = r.mc;
+      fin[r.t] = { mc: num(r.mc), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
     }
   } else {
     console.warn("[map] screener-index.json missing — tiles will lack market caps");
   }
+
+  // 連三月營收年增:ticker -> true(build-momentum.mjs)
+  const mom3 = existsSync(MOMENTUM) ? (JSON.parse(readFileSync(MOMENTUM, "utf8")).mom3 || {}) : {};
+
+  // 關聯度:公司名 -> 被引用次數(wikilink-hub-top500),→ high/mid/""
+  const linkByName = {};
+  if (existsSync(WIKIHUB)) {
+    for (const e of (JSON.parse(readFileSync(WIKIHUB, "utf8")).entries) || []) {
+      if (e && e.label && Number.isFinite(e.count)) linkByName[e.label] = e.count;
+    }
+  }
+  const linkLevel = (name) => {
+    const c = linkByName[name];
+    if (c == null) return "";
+    return c >= LINK_HIGH ? "high" : c >= LINK_MID ? "mid" : "";
+  };
 
   // 主題標題/slug -> slug,供 relatedRaw 解析為相關主題連結
   const titleToSlug = {};
@@ -58,15 +81,37 @@ function main() {
     const tiers = { u: [], m: [], d: [] };
     const seen = new Set();
     let aggMcap = 0;
+    let leadT = null, leadMc = -1;
     for (const longKey of ["upstream", "midstream", "downstream"]) {
       const sk = TIER_KEYS[longKey];
       for (const c of t.tiers?.[longKey] || []) {
-        const mc = mcByTicker[c.ticker] ?? null;
-        tiers[sk].push({ t: c.ticker, n: c.name, s: c.sector, ss: c.sectorSlug || "", mc });
+        const f = fin[c.ticker] || {};
+        const mc = f.mc ?? null;
+        // 成長挑戰:ROE<0 或 淨利率<0(真實虧損訊號)
+        const challenge = (f.roe != null && f.roe < 0) || (f.nm != null && f.nm < 0);
+        tiers[sk].push({
+          t: c.ticker,
+          n: c.name,
+          s: c.sector,
+          ss: c.sectorSlug || "",
+          mc,
+          subcat: c.subcat || "",
+          revYoy: f.revYoy ?? null,
+          mom3: !!mom3[c.ticker],
+          link: linkLevel(c.name),
+          status: challenge ? "challenge" : "",
+        });
         if (!seen.has(c.ticker)) {
           seen.add(c.ticker);
           if (mc != null) aggMcap += mc;
         }
+        if (mc != null && mc > leadMc) { leadMc = mc; leadT = c.ticker; }
+      }
+    }
+    // 產業龍頭:題材內市值最大者(覆蓋 challenge)
+    if (leadT) {
+      for (const sk of ["u", "m", "d"]) {
+        for (const co of tiers[sk]) if (co.t === leadT) co.status = "lead";
       }
     }
 
@@ -86,6 +131,11 @@ function main() {
       slug: t.slug,
       title: t.title,
       companyCount: t.companyCount,
+      desc: t.desc || "",
+      category: t.category || "",
+      cagr: t.cagr || "",
+      marketSize: t.marketSize || "",
+      indicators: t.indicators || [],
       aggMcap: Math.round(aggMcap),
       related,
       tiers,

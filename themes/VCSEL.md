@@ -4,28 +4,30 @@
 
 **涵蓋公司數:** 13
 
-**相關主題:** [[矽光子]] (21) | [[光收發模組]] (11) | [[砷化鎵]] (7)
+**分類:** 光通訊
+
+**相關主題:** [[矽光子]] (28) | [[光收發模組]] (12) | [[砷化鎵]] (7)
 
 ---
 
-## 上游 (5)
+## 上游 (4)
 
-- **6715 嘉基** (Communication Equipment)
-- **3701 大眾控** (Computer Hardware)
-- **6197 佳必琪** (Computer Hardware)
-- **3450 聯鈞** (Semiconductor Equipment & Materials)
-- **6451 訊芯-KY** (Semiconductors)
+- **6715 嘉基** (Communication Equipment) [VCSEL 元件]
+- **3450 聯鈞** (Semiconductor Equipment & Materials) [VCSEL 晶粒]
+- **3701 大眾控** (Computer Hardware) [光電元件]
+- **6197 佳必琪** (Computer Hardware) [光電元件]
 
-## 中游 (4)
+## 中游 (5)
 
-- **2444 兆勁** (Communication Equipment)
-- **2393 億光** (Electronic Components)
-- **3234 光環** (Semiconductors)
-- **3437 榮創** (Semiconductors)
+- **2393 億光** (Electronic Components) [LED 封裝]
+- **3437 榮創** (Semiconductors) [LED 封裝]
+- **2444 兆勁** (Communication Equipment) [VCSEL 晶片]
+- **3234 光環** (Semiconductors) [光元件]
+- **6451 訊芯-KY** (Semiconductors) [光通訊封裝]
 
 ## 下游 (1)
 
-- **3081 聯亞** (Semiconductor Equipment & Materials)
+- **3081 聯亞** (Semiconductor Equipment & Materials) [光收發模組]
 
 ## 相關公司 (3)
 

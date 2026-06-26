@@ -205,6 +205,34 @@ export const THEMES_PAGE = {
     "尚無主題索引（請先執行建置以產生 themes-index.json）。",
     "No theme index yet — run the build to generate themes-index.json."
   ),
+  // 詳細頁分頁(總覽 / 產業地圖)
+  tabOverview: "總覽",
+  tabStructure: "產業地圖",
+  indicatorsTitle: "產業關鍵指標",
+  chainTitle: "產業價值鏈結構",
+  chainHint: "點各鏈段查看成分公司;依市值與供應鏈角色排列。",
+  heatTitle: "個股漲跌熱力圖",
+  heatSub: "磚塊＝市值,顏色＝當日漲跌(紅漲綠跌)",
+  // structure 子檢視
+  viewRole: "角色分群",
+  viewCompare: "差異比較",
+  viewGraph: "關係圖",
+  graphHint: "節點＝供應鏈分段(子分類),由上游 → 下游流動;點節點查看該分段公司。",
+  graphSupply: "供應流向",
+  graphUp: "上游",
+  graphMid: "中游",
+  graphDown: "下游",
+  // 公司卡狀態/標籤
+  statusLead: "產業龍頭",
+  statusChallenge: "成長挑戰",
+  linkHigh: "高關聯度",
+  linkMid: "中關聯度",
+  tagRevYoy: "營收年增",
+  tagMom3: "連三月年增",
+  showMore: "顯示更多",
+  fav: "收藏",
+  cagrLabel: "CAGR",
+  marketSizeLabel: "市場規模",
 } as const;
 
 /** 視覺化地圖（/map）：題材熱力圖 + 產業地圖卡牆 */
@@ -228,6 +256,16 @@ export const MAP_PAGE = {
   legendDown: "跌",
   legendFlat: "平",
   legendUp: "漲",
+  // 題材總覽(主題分頁)
+  catAll: "全部",
+  viewCards: "卡片",
+  viewGraph: "關係圖",
+  favFilter: "♡ 收藏",
+  cardExplore: "探索產業地圖 →",
+  cardVerified: "核實",
+  cardCompanies: "家公司",
+  favEmpty: "尚未收藏任何題材。點題材卡右上 ☆ 即可收藏。",
+  graphHint: "節點＝題材,連線＝相關題材(共現)。點節點進入該題材。",
 } as const;
 
 export const DISCOVER_PAGE = {

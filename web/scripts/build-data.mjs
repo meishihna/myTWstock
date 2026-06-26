@@ -36,8 +36,9 @@ const hub = run("build-wikilink-hub.mjs");
 const themes = run("build-themes-index.mjs");
 const sector = run("build-sector-stats.mjs");
 const screener = run("build-screener-index.mjs");
+const momentum = run("build-momentum.mjs"); // 連三月年增,只依賴 financials_store
 await hub; // stubs reads wikilink-hub output, so wait for hub specifically
-await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener]);
-// map-index needs themes-index + screener-index (both just resolved) -> run last
+await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener, momentum]);
+// map-index needs themes-index + screener-index + momentum + wikilink-hub (all resolved) -> run last
 await run("build-map-index.mjs");
 console.error(`[build-data] all indexes built in ${((Date.now() - t0) / 1000).toFixed(1)}s`);

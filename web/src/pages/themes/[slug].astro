@@ -6,11 +6,21 @@ import { sectorZh } from "../../lib/sector-i18n";
 import fs from "node:fs";
 import path from "node:path";
 
-type MapCo = { t: string; n: string; s: string; ss: string; mc: number | null };
+type MapCo = {
+  t: string; n: string; s: string; ss: string; mc: number | null;
+  subcat?: string; revYoy?: number | null; mom3?: boolean;
+  link?: string; status?: string;
+};
+type Indicator = { label: string; value: string };
 type MapTheme = {
   slug: string;
   title: string;
   companyCount: number;
+  desc?: string;
+  category?: string;
+  cagr?: string;
+  marketSize?: string;
+  indicators?: Indicator[];
   aggMcap: number;
   related: { label: string; slug: string | null }[];
   tiers: { u: MapCo[]; m: MapCo[]; d: MapCo[] };
@@ -27,7 +37,7 @@ export const prerender = true;
 
 const { slug } = Astro.params;
 
-// 主資料來自 map-index(tiers 含市值 + 已解析 related);缺檔則退回 themes-index。
+// 主資料來自 map-index(tiers 含市值/衍生欄位 + 已解析 related);缺檔則退回 themes-index。
 const mapPath = path.join(process.cwd(), "public/data/map-index.json");
 const themesPath = path.join(process.cwd(), "public/data/themes-index.json");
 const mapData = fs.existsSync(mapPath)
@@ -42,13 +52,12 @@ if (!theme) {
   const t = (td.themes ?? []).find((x: { slug: string }) => x.slug === slug);
   if (!t) return Astro.redirect("/map");
   const conv = (arr: any[]): MapCo[] =>
-    (arr ?? []).map((c) => ({ t: c.ticker, n: c.name, s: c.sector, ss: c.sectorSlug || "", mc: null }));
+    (arr ?? []).map((c) => ({ t: c.ticker, n: c.name, s: c.sector, ss: c.sectorSlug || "", mc: null, subcat: c.subcat || "" }));
   theme = {
-    slug: t.slug,
-    title: t.title,
-    companyCount: t.companyCount,
-    aggMcap: 0,
-    related: [],
+    slug: t.slug, title: t.title, companyCount: t.companyCount,
+    desc: t.desc || "", category: t.category || "", cagr: t.cagr || "",
+    marketSize: t.marketSize || "", indicators: t.indicators || [],
+    aggMcap: 0, related: [],
     tiers: { u: conv(t.tiers.upstream), m: conv(t.tiers.midstream), d: conv(t.tiers.downstream) },
   };
 }
@@ -70,6 +79,54 @@ for (const k of ["u", "m", "d"] as const) {
   }
 }
 
+// 角色分群:每段依子分類分組(子分類空者歸「其他」排最後;單一空組則不顯示子標題)
+function groupBySubcat(arr: MapCo[]) {
+  const m = new Map<string, MapCo[]>();
+  for (const c of arr) {
+    const k = c.subcat || "";
+    if (!m.has(k)) m.set(k, []);
+    m.get(k)!.push(c);
+  }
+  const groups = [...m.entries()].map(([subcat, items]) => ({ subcat, items }));
+  groups.sort((a, b) =>
+    a.subcat === "" ? 1 : b.subcat === "" ? -1 : a.subcat.localeCompare(b.subcat, "zh-Hant"),
+  );
+  const flat = groups.length === 1 && groups[0].subcat === "";
+  return { groups, flat };
+}
+function statusInfo(s?: string) {
+  if (s === "lead") return { label: THEMES_PAGE.statusLead, cls: "lead" };
+  if (s === "challenge") return { label: THEMES_PAGE.statusChallenge, cls: "challenge" };
+  return null;
+}
+function linkLabel(l?: string) {
+  return l === "high" ? THEMES_PAGE.linkHigh : l === "mid" ? THEMES_PAGE.linkMid : "";
+}
+function coTags(c: MapCo): string[] {
+  const tags: string[] = [];
+  if (c.revYoy != null && c.revYoy > 0) tags.push(THEMES_PAGE.tagRevYoy);
+  if (c.mom3) tags.push(THEMES_PAGE.tagMom3);
+  return tags;
+}
+
+// 關係圖:每段彙整子分類(分段)為節點 {name, count}
+function tierSubcats(arr: MapCo[]) {
+  const m = new Map<string, number>();
+  for (const c of arr) {
+    const k = (c.subcat || "其他").trim() || "其他";
+    m.set(k, (m.get(k) || 0) + 1);
+  }
+  return [...m.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+}
+const chainStruct = {
+  u: tierSubcats(theme.tiers.u),
+  m: tierSubcats(theme.tiers.m),
+  d: tierSubcats(theme.tiers.d),
+};
+
+const indicators = theme.indicators ?? [];
 const aggMcapStr =
   theme.aggMcap >= 1e6
     ? `${(theme.aggMcap / 1e6).toFixed(2)} 兆`
@@ -90,66 +147,166 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
 
   <h1 class="page-h1">{theme.title}</h1>
   <p class="page-lead">
+    {theme.category ? <span class="thm-cat-pill">{theme.category}</span> : null}
     {THEMES_PAGE.countLabel}：<strong>{theme.companyCount || cons.length || "—"}</strong>
     {aggMcapStr ? ` · 市值合計 ${aggMcapStr}` : ""}
   </p>
 
-  {
-    theme.related.length > 0 && (
+  <div class="theme-tabs" role="tablist" aria-label="題材檢視切換">
+    <button class="theme-tab is-active" role="tab" aria-selected="true" data-ttab="overview">{THEMES_PAGE.tabOverview}</button>
+    <button class="theme-tab" role="tab" aria-selected="false" data-ttab="structure">{THEMES_PAGE.tabStructure}</button>
+  </div>
+
+  <!-- ===== 總覽 ===== -->
+  <section id="tpanel-overview" class="theme-panel" role="tabpanel">
+    <div class="thov-card">
+      {theme.desc ? <p class="thov-desc">{theme.desc}</p> : null}
+      {(theme.cagr || theme.marketSize) && (
+        <div class="thov-nums">
+          {theme.cagr ? (
+            <span class="thov-num"><span class="thov-num-l">{THEMES_PAGE.cagrLabel}</span><span class="thov-num-v">{theme.cagr}</span></span>
+          ) : null}
+          {theme.marketSize ? (
+            <span class="thov-num"><span class="thov-num-l">{THEMES_PAGE.marketSizeLabel}</span><span class="thov-num-v">{theme.marketSize}</span></span>
+          ) : null}
+        </div>
+      )}
+    </div>
+
+    {theme.related.length > 0 && (
       <p class="theme-related">
         <span class="theme-related-label">{THEMES_PAGE.related}：</span>
         {theme.related.map((r) =>
           r.slug ? (
-            <a class="theme-rel-chip" href={`/themes/${encodeURIComponent(r.slug)}`}>
-              {r.label}
-            </a>
+            <a class="theme-rel-chip" href={`/themes/${encodeURIComponent(r.slug)}`}>{r.label}</a>
           ) : (
             <span class="theme-rel-chip is-plain">{r.label}</span>
           ),
         )}
       </p>
-    )
-  }
+    )}
 
-  {
-    cons.length > 0 && (
+    {indicators.length > 0 && (
+      <section class="thov-ind-sec" aria-label={THEMES_PAGE.indicatorsTitle}>
+        <h2 class="theme-sec-h">{THEMES_PAGE.indicatorsTitle}</h2>
+        <div class="thov-ind-grid">
+          {indicators.map((it) => (
+            <div class="thov-ind">
+              <span class="thov-ind-ico" aria-hidden="true">↗</span>
+              <span class="thov-ind-l">{it.label}</span>
+              <span class="thov-ind-v">{it.value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {cons.length > 0 && (
       <section class="theme-hm-sec" aria-label="題材個股熱力圖">
-        <h2 class="theme-sec-h">個股熱力圖 <span class="theme-sec-sub">磚塊＝市值，顏色＝當日漲跌（紅漲綠跌）</span></h2>
+        <h2 class="theme-sec-h">{THEMES_PAGE.heatTitle} <span class="theme-sec-sub">{THEMES_PAGE.heatSub}</span></h2>
         <div id="theme-hm" class="theme-hm" role="img" aria-label={`${theme.title} 成分股漲跌熱力圖`} />
       </section>
-    )
-  }
+    )}
+
+    <section class="thov-chain" aria-label={THEMES_PAGE.chainTitle}>
+      <h2 class="theme-sec-h">{THEMES_PAGE.chainTitle}</h2>
+      <p class="theme-sec-sub thov-chain-hint">{THEMES_PAGE.chainHint}</p>
+      <div class="thov-chain-row">
+        {tierDefs.map(({ key, label }) => (
+          <button class="thov-chain-cell" type="button" data-goto-tier={key} disabled={theme.tiers[key].length === 0}>
+            <span class="thov-chain-l">{label}</span>
+            <span class="thov-chain-n">{theme.tiers[key].length}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  </section>
+
+  <!-- ===== 產業地圖(角色分群 / 差異比較) ===== -->
+  <section id="tpanel-structure" class="theme-panel" role="tabpanel" hidden>
+    <div class="sview-toggle" role="tablist" aria-label="檢視切換">
+      <button class="sview-tab is-active" role="tab" aria-selected="true" data-sview="role">{THEMES_PAGE.viewRole}</button>
+      <button class="sview-tab" role="tab" aria-selected="false" data-sview="graph">{THEMES_PAGE.viewGraph}</button>
+      <button class="sview-tab" role="tab" aria-selected="false" data-sview="compare">{THEMES_PAGE.viewCompare}</button>
+    </div>
+
+    <!-- 角色分群 -->
+    <div id="sview-role">
+      {tierDefs.map(({ key, label }) => {
+        const tier = theme.tiers[key];
+        if (tier.length === 0) return null;
+        const { groups, flat } = groupBySubcat(tier);
+        return (
+          <section class="sc-tier" data-tier={key} aria-label={label}>
+            <button class="sc-tier-head" type="button" aria-expanded="true">
+              <span class="sc-tier-caret" aria-hidden="true">▾</span>
+              <span class="sc-tier-title">{label}</span>
+              <span class="sc-tier-n">{tier.length}</span>
+            </button>
+            <div class="sc-tier-body">
+              {groups.map((g) => (
+                <div class="sc-subgroup">
+                  {!flat && (
+                    <h3 class="sc-subhead">{g.subcat || "其他"} <span class="sc-subn">{g.items.length}</span></h3>
+                  )}
+                  <div class="sc-grid">
+                    {g.items.map((c) => {
+                      const st = statusInfo(c.status);
+                      const ll = linkLabel(c.link);
+                      const tags = coTags(c);
+                      return (
+                        <article class="sc-card2" data-t={c.t}>
+                          <button class="sc-fav" type="button" data-fav-tk={c.t} title={THEMES_PAGE.fav} aria-label={`${THEMES_PAGE.fav} ${c.n}`}>☆</button>
+                          <a class="sc-card2-main" href={`/report/${c.t}`}>
+                            <span class="sc-nm-row"><span class="sc-nm">{c.n}</span><span class="sc-tk">{c.t}</span></span>
+                            <span class="sc-sec">{sectorZh(c.s)}</span>
+                          </a>
+                          {(st || ll) && (
+                            <div class="sc-badges">
+                              {st ? <span class={`sc-status ${st.cls}`}>{st.label}</span> : null}
+                              {ll ? <span class="sc-link">{ll}</span> : null}
+                            </div>
+                          )}
+                          <div class="sc-card2-foot">
+                            <div class="sc-tags">{tags.map((t) => <span class="sc-tag">{t}</span>)}</div>
+                            <span class="sc-q" data-px><span class="sc-dash">—</span></span>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+
+    <!-- 關係圖(供應鏈結構:子分類分段,上游 → 下游) -->
+    <div id="sview-graph" hidden>
+      <p class="map-hint cg-hint">{THEMES_PAGE.graphHint}</p>
+      <div class="cg-legend" aria-hidden="true">
+        <span class="cg-leg-line" /><span>{THEMES_PAGE.graphSupply}</span>
+        <span class="cg-leg-updown">↑{THEMES_PAGE.graphUp} ↓{THEMES_PAGE.graphDown}</span>
+      </div>
+      <div id="chain-graph" class="chain-graph" role="img" aria-label="供應鏈結構關係圖" />
+    </div>
+
+    <!-- 差異比較 -->
+    <div id="sview-compare" hidden>
+      <div class="cmp-wrap">
+        <table class="cmp-table" id="cmp-table"><tbody><tr><td class="cmp-loading">{MAP_PAGE.loading}</td></tr></tbody></table>
+      </div>
+    </div>
+  </section>
 
   <script type="application/json" id="theme-cons" set:html={JSON.stringify(cons)} />
-
-  {
-    tierDefs.map(({ key, label }) =>
-      theme.tiers[key].length === 0 ? null : (
-        <section class="sc-tier" aria-label={label}>
-          <h2 class="theme-sec-h">
-            {label} <span class="sc-tier-n">{theme.tiers[key].length}</span>
-          </h2>
-          <div class="sc-grid">
-            {theme.tiers[key].map((c) => (
-              <a class="sc-card" href={`/report/${c.t}`} data-t={c.t}>
-                <span class="sc-info">
-                  <span class="sc-nm-row">
-                    <span class="sc-nm">{c.n}</span>
-                    <span class="sc-tk">{c.t}</span>
-                  </span>
-                  <span class="sc-sec">{sectorZh(c.s)}</span>
-                </span>
-                <span class="sc-q" data-px><span class="sc-dash">—</span></span>
-              </a>
-            ))}
-          </div>
-        </section>
-      ),
-    )
-  }
+  <script type="application/json" id="chain-struct" set:html={JSON.stringify(chainStruct)} />
 
   <script>
     import { treemap, tileColor } from "../../lib/heatmap";
+    import { getWatchlist, toggleWatch } from "../../lib/watchlist";
 
     interface Con { t: string; n: string; mc: number | null; }
     const dataEl = document.getElementById("theme-cons");
@@ -160,7 +317,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     function esc(s: string): string {
       return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
     }
-    // 台股顯示慣例(依升降單位):<50 兩位小數、50–<500 一位、≥500 整數
     function fmtTwPrice(p: number): string {
       return p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.toFixed(0);
     }
@@ -170,7 +326,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       if (!root) return;
       const W = root.clientWidth, H = root.clientHeight;
       if (W < 10 || H < 10 || cons.length === 0) return;
-      // 只取有市值者、依市值前 36、面積用 sqrt 壓縮偏態(避免巨型股獨佔 + 長尾碎片)
       const withMc = cons
         .filter((c) => c.mc != null && c.mc > 0)
         .sort((a, b) => (b.mc as number) - (a.mc as number))
@@ -193,7 +348,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     }
 
     function fillCards() {
-      document.querySelectorAll<HTMLElement>(".sc-card").forEach((card) => {
+      document.querySelectorAll<HTMLElement>(".sc-card2").forEach((card) => {
         const t = card.getAttribute("data-t");
         const slot = card.querySelector(".sc-q");
         if (!t || !slot) return;
@@ -231,17 +386,229 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       fillCards();
     }
 
+    // ---- 收藏 ☆(個股,沿用 watchlist) ----
+    function initFavs() {
+      const faved = new Set(getWatchlist());
+      document.querySelectorAll<HTMLButtonElement>(".sc-fav").forEach((b) => {
+        const tk = b.getAttribute("data-fav-tk") || "";
+        if (faved.has(tk)) { b.textContent = "★"; b.classList.add("is-on"); }
+        b.addEventListener("click", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const on = toggleWatch(tk);
+          b.textContent = on ? "★" : "☆";
+          b.classList.toggle("is-on", on);
+        });
+      });
+    }
+
+    // ---- 可收合分段 ----
+    function initCollapse() {
+      document.querySelectorAll<HTMLButtonElement>(".sc-tier-head").forEach((h) =>
+        h.addEventListener("click", () => {
+          const tier = h.closest(".sc-tier"); if (!tier) return;
+          const open = h.getAttribute("aria-expanded") !== "false";
+          h.setAttribute("aria-expanded", open ? "false" : "true");
+          tier.classList.toggle("is-collapsed", open);
+        }),
+      );
+    }
+
+    // ---- 差異比較表(client 端 join screener-index) ----
+    let screenerRows: Record<string, any> | null = null;
+    let comparedOnce = false;
+    async function renderCompare() {
+      const table = document.getElementById("cmp-table"); if (!table) return;
+      if (comparedOnce) return; comparedOnce = true;
+      if (!screenerRows) {
+        try {
+          const j = await fetch("/data/screener-index.json").then((r) => r.json());
+          screenerRows = {}; for (const r of j.rows || []) screenerRows[r.t] = r;
+        } catch { screenerRows = {}; }
+      }
+      const f = (v: unknown, d = 1) => (typeof v === "number" && isFinite(v) ? (v as number).toFixed(d) : "—");
+      const fi = (v: unknown) => (typeof v === "number" && isFinite(v) ? Math.round(v as number).toLocaleString("zh-TW") : "—");
+      const rows = cons.slice().sort((a, b) => (b.mc ?? -1) - (a.mc ?? -1)).map((c) => {
+        const r = (screenerRows as any)[c.t] || {};
+        const yoy = r.revYoy;
+        const yc = typeof yoy === "number" ? (yoy > 0 ? "up" : yoy < 0 ? "down" : "") : "";
+        return `<tr><td class="cmp-tk">${c.t}</td><td>${esc(c.n)}</td><td class="num">${fi(r.mc)}</td>`
+          + `<td class="num">${f(r.pe)}</td><td class="num">${f(r.roe)}</td><td class="num">${f(r.gm)}</td>`
+          + `<td class="num ${yc}">${f(yoy)}</td></tr>`;
+      }).join("");
+      table.innerHTML = `<thead><tr><th>代號</th><th>名稱</th><th class="num">市值(百萬)</th><th class="num">P/E</th><th class="num">ROE%</th><th class="num">毛利%</th><th class="num">營收YoY%</th></tr></thead><tbody>${rows}</tbody>`;
+    }
+
+    // ---- 關係圖:供應鏈結構(子分類分段,上游→中游→下游) ----
+    interface SubNode { name: string; count: number; _x?: number; _y?: number; _w?: number; }
+    const csEl = document.getElementById("chain-struct");
+    const chainStruct: { u: SubNode[]; m: SubNode[]; d: SubNode[] } =
+      csEl ? JSON.parse(csEl.textContent || "{}") : { u: [], m: [], d: [] };
+
+    function capNodes(list: SubNode[], cap = 7): SubNode[] {
+      if (!list || list.length <= cap) return (list || []).slice();
+      const head = list.slice(0, cap - 1);
+      const restCount = list.slice(cap - 1).reduce((s, n) => s + n.count, 0);
+      head.push({ name: `其他 +${list.length - (cap - 1)}`, count: restCount });
+      return head;
+    }
+    function clip(s: string, boxW: number): string {
+      const max = Math.max(3, Math.floor(boxW / 13));
+      return s.length > max ? s.slice(0, max - 1) + "…" : s;
+    }
+    function renderChainGraph() {
+      const root = document.getElementById("chain-graph"); if (!root) return;
+      const W = root.clientWidth; if (W < 10) return;
+      const layers = [
+        { label: "↑上游", nodes: capNodes(chainStruct.u) },
+        { label: "中游", nodes: capNodes(chainStruct.m) },
+        { label: "↓下游", nodes: capNodes(chainStruct.d) },
+      ].filter((l) => l.nodes.length > 0);
+      if (layers.length === 0) { root.innerHTML = `<p class="cg-empty">此題材無供應鏈分段資料。</p>`; return; }
+
+      const pad = 12, labelW = 46, boxH = 46, gap = 12, rowH = 130;
+      const H = layers.length * rowH + 12;
+      const areaX = pad + labelW, areaW = Math.max(40, W - areaX - pad);
+      layers.forEach((layer, li) => {
+        const cy = 12 + li * rowH + 30;
+        const n = layer.nodes.length;
+        const boxW = Math.max(68, Math.min(152, (areaW - (n - 1) * gap) / n));
+        const startX = areaX + (areaW - (n * boxW + (n - 1) * gap)) / 2;
+        layer.nodes.forEach((nd, j) => { nd._x = startX + j * (boxW + gap) + boxW / 2; nd._y = cy; nd._w = boxW; });
+      });
+
+      let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" class="cg-svg" role="img" aria-label="供應鏈結構">`;
+      for (let li = 0; li < layers.length - 1; li++) {
+        for (const a of layers[li].nodes) for (const b of layers[li + 1].nodes) {
+          const x1 = a._x!, y1 = a._y! + boxH, x2 = b._x!, y2 = b._y!, my = (y1 + y2) / 2;
+          svg += `<path class="cg-edge" d="M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" />`;
+        }
+      }
+      for (const layer of layers) {
+        const ly = layer.nodes[0]._y! + boxH / 2 + 4;
+        svg += `<text class="cg-layer-label" x="${pad}" y="${ly.toFixed(1)}">${esc(layer.label)}</text>`;
+        for (const nd of layer.nodes) {
+          const x = (nd._x! - nd._w! / 2).toFixed(1);
+          svg += `<g class="cg-node">`
+            + `<rect x="${x}" y="${nd._y}" width="${nd._w!.toFixed(1)}" height="${boxH}" rx="7" />`
+            + `<text class="cg-node-nm" x="${nd._x!.toFixed(1)}" y="${(nd._y! + 19).toFixed(1)}" text-anchor="middle">${esc(clip(nd.name, nd._w!))}</text>`
+            + `<text class="cg-node-n" x="${nd._x!.toFixed(1)}" y="${(nd._y! + 35).toFixed(1)}" text-anchor="middle">${nd.count} 家</text>`
+            + `</g>`;
+        }
+      }
+      svg += `</svg>`;
+      root.innerHTML = svg;
+    }
+
+    function initSviews() {
+      const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".sview-tab"));
+      tabs.forEach((tab) =>
+        tab.addEventListener("click", () => {
+          const k = tab.getAttribute("data-sview") || "role";
+          tabs.forEach((t) => {
+            const on = t === tab;
+            t.classList.toggle("is-active", on);
+            t.setAttribute("aria-selected", on ? "true" : "false");
+          });
+          const panels: Record<string, HTMLElement | null> = {
+            role: document.getElementById("sview-role"),
+            graph: document.getElementById("sview-graph"),
+            compare: document.getElementById("sview-compare"),
+          };
+          for (const id of Object.keys(panels)) {
+            const p = panels[id]; if (p) p.hidden = id !== k;
+          }
+          if (k === "compare") renderCompare();
+          if (k === "graph") renderChainGraph();
+        }),
+      );
+    }
+
+    // ---- 分頁切換(?tab=overview|structure) ----
+    function setTab(key: string, push: boolean) {
+      const panels: Record<string, HTMLElement | null> = {
+        overview: document.getElementById("tpanel-overview"),
+        structure: document.getElementById("tpanel-structure"),
+      };
+      const k = panels[key] ? key : "overview";
+      for (const id of Object.keys(panels)) {
+        const p = panels[id]; if (p) p.hidden = id !== k;
+      }
+      document.querySelectorAll<HTMLButtonElement>(".theme-tab").forEach((b) => {
+        const on = b.getAttribute("data-ttab") === k;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      if (k === "overview") renderHm(); // 切回總覽時重排熱力圖(隱藏時 clientWidth=0)
+      if (push) {
+        const qs = k === "overview" ? location.pathname : `?tab=structure`;
+        history.replaceState(null, "", qs);
+      }
+    }
+    function initTabs() {
+      document.querySelectorAll<HTMLButtonElement>(".theme-tab").forEach((b) =>
+        b.addEventListener("click", () => setTab(b.getAttribute("data-ttab") || "overview", true)),
+      );
+      // 總覽的價值鏈摘要 → 跳到產業地圖
+      document.querySelectorAll<HTMLButtonElement>("[data-goto-tier]").forEach((b) =>
+        b.addEventListener("click", () => {
+          setTab("structure", true);
+          const tier = b.getAttribute("data-goto-tier");
+          const el = document.querySelector(`.sc-tier[data-tier="${tier}"]`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }),
+      );
+    }
+
+    initTabs();
+    initSviews();
+    initCollapse();
+    initFavs();
+    const initial = new URLSearchParams(location.search).get("tab") === "structure" ? "structure" : "overview";
+    setTab(initial, false);
     renderHm();
     load();
     if (typeof ResizeObserver !== "undefined") {
       let t: number | undefined;
-      const ro = new ResizeObserver(() => { window.clearTimeout(t); t = window.setTimeout(renderHm, 150); });
-      const root = document.getElementById("theme-hm");
-      if (root) ro.observe(root);
+      const ro = new ResizeObserver(() => { window.clearTimeout(t); t = window.setTimeout(() => { renderHm(); renderChainGraph(); }, 150); });
+      const hm = document.getElementById("theme-hm"); if (hm) ro.observe(hm);
+      const cg = document.getElementById("chain-graph"); if (cg) ro.observe(cg);
     }
   </script>
 
   <style is:global>
+    .thm-cat-pill { font-size: 0.72rem; color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); padding: 1px 9px; border-radius: 999px; margin-right: 0.5rem; }
+
+    /* 分頁列 */
+    .theme-tabs { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); margin: 0.3rem 0 1.3rem; }
+    .theme-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 600; padding: 7px 20px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .theme-tab:hover { color: var(--text); }
+    .theme-tab.is-active { color: #1a1613; background: var(--accent); }
+    .theme-panel[hidden] { display: none; }
+
+    /* 產業總覽卡 */
+    .thov-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 1.1rem 1.25rem; margin-bottom: 1.2rem; }
+    .thov-desc { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.7; }
+    .thov-nums { display: flex; flex-wrap: wrap; gap: 0.6rem 1.8rem; margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+    .thov-num { display: inline-flex; flex-direction: column; gap: 2px; }
+    .thov-num-l { font-size: 0.72rem; color: var(--muted); }
+    .thov-num-v { font-family: var(--font-display); font-size: 1.2rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+    /* 關鍵指標 */
+    .thov-ind-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.7rem; }
+    .thov-ind { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.85rem 0.95rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); position: relative; }
+    .thov-ind-ico { position: absolute; top: 0.7rem; right: 0.8rem; color: var(--up); font-size: 0.95rem; }
+    .thov-ind-l { font-size: 0.72rem; color: var(--muted); }
+    .thov-ind-v { font-family: var(--font-display); font-size: 1.02rem; color: var(--text-heading); line-height: 1.3; padding-right: 1rem; }
+
+    /* 價值鏈摘要 */
+    .thov-chain-hint { margin: 0 0 0.6rem; }
+    .thov-chain-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
+    .thov-chain-cell { appearance: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 1rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .thov-chain-cell:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-elevated); }
+    .thov-chain-cell:disabled { opacity: 0.4; cursor: default; }
+    .thov-chain-l { font-family: var(--font-display); font-size: 1.02rem; color: var(--text-heading); }
+    .thov-chain-n { font-size: 1.3rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
     .theme-related { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; margin: 0.2rem 0 1.3rem; }
     .theme-related-label { color: var(--muted); font-size: 0.82rem; }
     .theme-rel-chip { font-size: 0.78rem; line-height: 1.5; padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); transition: background var(--duration) var(--ease-out); }
@@ -275,8 +642,68 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-chg.flat { color: var(--muted); }
     .sc-dash { color: var(--muted); font-size: 0.8rem; }
 
+    /* structure 子檢視切換 */
+    .sview-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); margin-bottom: 1rem; }
+    .sview-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.8rem; font-weight: 600; padding: 6px 16px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .sview-tab:hover { color: var(--text); }
+    .sview-tab.is-active { color: #1a1613; background: var(--accent); }
+    #sview-compare[hidden], #sview-role[hidden], #sview-graph[hidden] { display: none; }
+
+    /* 可收合分段 */
+    .sc-tier { margin-bottom: 1.4rem; }
+    .sc-tier-head { display: flex; align-items: baseline; gap: 0.5rem; width: 100%; appearance: none; background: transparent; border: none; border-bottom: 1px solid var(--border); padding: 0 0 0.5rem; margin: 0 0 0.8rem; cursor: pointer; text-align: left; }
+    .sc-tier-caret { color: var(--muted); font-size: 0.8rem; transition: transform var(--duration) var(--ease-out); }
+    .sc-tier.is-collapsed .sc-tier-caret { transform: rotate(-90deg); }
+    .sc-tier.is-collapsed .sc-tier-body { display: none; }
+    .sc-tier-title { font-family: var(--font-display); font-size: 1.18rem; color: var(--text-heading); }
+    .sc-subgroup { margin-bottom: 1rem; }
+    .sc-subhead { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0 0 0.5rem; display: flex; align-items: baseline; gap: 0.4rem; }
+    .sc-subn { font-size: 0.74rem; color: var(--accent); font-weight: 700; }
+
+    /* 公司卡(豐富版) */
+    .sc-card2 { position: relative; display: flex; flex-direction: column; gap: 0.45rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .sc-card2:hover { border-color: var(--accent); background: var(--surface-elevated); }
+    .sc-fav { position: absolute; top: 0.45rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--muted); font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out); }
+    .sc-fav:hover { color: var(--accent); transform: scale(1.12); }
+    .sc-fav.is-on { color: var(--accent); }
+    .sc-card2-main { display: flex; flex-direction: column; gap: 2px; text-decoration: none; padding-right: 1.2rem; }
+    .sc-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .sc-status { font-size: 0.68rem; padding: 1px 7px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
+    .sc-status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .sc-status.lead { color: var(--accent); background: var(--accent-soft); }
+    .sc-status.challenge { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+    .sc-link { font-size: 0.68rem; padding: 1px 7px; border-radius: 999px; color: var(--text-secondary); border: 1px solid var(--border); }
+    .sc-card2-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem; }
+    .sc-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .sc-tag { font-size: 0.66rem; color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); padding: 1px 6px; border-radius: 4px; }
+
+    /* 差異比較表 */
+    .cmp-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .cmp-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .cmp-table th, .cmp-table td { padding: 0.5rem 0.7rem; text-align: left; white-space: nowrap; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+    .cmp-table thead th { position: sticky; top: 0; background: var(--surface-elevated); color: var(--text-secondary); font-weight: 600; font-size: 0.74rem; }
+    .cmp-table tbody tr:hover { background: var(--surface-elevated); }
+    .cmp-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+    .cmp-table .cmp-tk { font-family: ui-monospace, monospace; color: var(--accent); font-weight: 700; }
+    .cmp-table .num.up { color: var(--up); } .cmp-table .num.down { color: var(--down); }
+    .cmp-loading { color: var(--muted); text-align: center; padding: 2rem; }
+
+    /* 關係圖(供應鏈結構) */
+    .cg-hint { margin: 0 0 0.5rem; }
+    .cg-legend { display: flex; align-items: center; gap: 0.4rem; font-size: 0.74rem; color: var(--muted); margin-bottom: 0.6rem; }
+    .cg-leg-line { width: 22px; border-top: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); display: inline-block; }
+    .cg-leg-updown { margin-left: 0.6rem; }
+    .chain-graph { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; padding: 4px 0; }
+    .cg-svg { display: block; }
+    .cg-edge { fill: none; stroke: color-mix(in srgb, var(--accent) 32%, transparent); stroke-width: 1; opacity: 0.5; }
+    .cg-layer-label { fill: var(--muted); font-size: 12px; font-family: var(--font-body); font-weight: 600; }
+    .cg-node rect { fill: var(--surface-elevated); stroke: color-mix(in srgb, var(--accent) 45%, transparent); stroke-width: 1; }
+    .cg-node-nm { fill: var(--text-heading); font-size: 12px; font-family: var(--font-body); font-weight: 600; }
+    .cg-node-n { fill: var(--muted); font-size: 10px; font-family: var(--font-body); }
+    .cg-empty { color: var(--muted); text-align: center; padding: 2.5rem 1rem; }
+
     @media (prefers-reduced-motion: reduce) {
-      .thm-tile, .sc-card, .theme-rel-chip { transition: none; }
+      .thm-tile, .sc-card, .theme-rel-chip, .theme-tab, .thov-chain-cell { transition: none; }
     }
   </style>
 </Layout>

@@ -2,134 +2,127 @@
 
 > 電子產品訊號互連基礎，涵蓋硬板、軟板、HDI 與載板
 
-**涵蓋公司數:** 114
+**涵蓋公司數:** 101
 
-**相關主題:** [[ABF 載板]] (17) | [[銅箔]] (47) | [[連接器]] (36) | [[AI 伺服器]] (221)
+**分類:** 基板材料
+
+**CAGR:** 8%+
+
+**關鍵指標:** 技術核心=HDI / 載板 / 軟板 | 升級驅動=AI 載板+車用 | 主流材料=銅箔 / 玻纖布 | 產業地位=電子互連基礎
+
+**相關主題:** [[ABF 載板]] (18) | [[銅箔]] (33) | [[連接器]] (21) | [[AI 伺服器]] (265)
 
 ---
 
 ## 上游 (48)
 
-- **2482 連宇** (Business Equipment & Supplies)
-- **4916 事欣科** (Computer Hardware)
-- **6737 秀育** (Computer Hardware)
-- **3024 憶聲** (Consumer Electronics)
-- **3296 勝德** (Consumer Electronics)
-- **4609 唐鋒** (Consumer Electronics)
-- **3002 歐格** (Electrical Equipment & Parts)
-- **3617 碩天** (Electrical Equipment & Parts)
-- **4588 玖鼎電力** (Electrical Equipment & Parts)
+- **2482 連宇** (Business Equipment & Supplies) [PCB]
+- **5258 虹堡** (Business Equipment & Supplies) [PCB]
+- **2425 承啟** (Computer Hardware) [PCB]
+- **4974 亞泰** (Electronic Components) [PCB]
+- **5248 景傳** (Electronic Components) [PCB]
+- **5474 聰泰** (Electronic Components) [PCB]
+- **6167 久正** (Electronic Components) [PCB]
+- **6203 海韻電** (Electronic Components) [PCB]
+- **2423 固緯** (Scientific & Technical Instruments) [PCB]
+- **8183 精星** (Electronic Components) [PCB 供應]
+- **3628 盈正** (Electrical Equipment & Parts) [PCB 板]
+- **4588 玖鼎電力** (Electrical Equipment & Parts) [PCB 板]
+- **4916 事欣科** (Computer Hardware) [PCB/PCBA]
+- **6923 中台** (Waste Management) [PCB產業]
+- **8390 金益鼎** (Waste Management) [PCB產業]
+- **6150 撼訊** (Electronics & Computer Distribution) [印刷電路板]
+- **2439 美律** (Consumer Electronics) [基板]
+- **3684 榮昌** (Electronic Components) [射頻電路板]
+- **3306 鼎天** (Scientific & Technical Instruments) [攝像感測器]
+- **5490 同亨** (Business Equipment & Supplies) [機構件]
+- **3229 晟鈦** (Electronic Components) [銅箔基板 (CCL)]
+- **3024 憶聲** (Consumer Electronics) [電子元件]
+- **3296 勝德** (Consumer Electronics) [電子元件]
+- **3465 進泰電子** (Consumer Electronics) [電子元件]
+- **5225 東科-KY** (Consumer Electronics) [電子元件]
+- **6275 元山** (Consumer Electronics) [電子元件]
+- **3002 歐格** (Electrical Equipment & Parts) [電子元件]
+- **5356 協益** (Electronic Components) [電子元件]
+- **1593 祺驊** (Leisure) [電子元件]
+- **1736 喬山** (Leisure) [電子元件]
+- **4609 唐鋒** (Consumer Electronics) [電子控制板]
+- **1456 怡華** (Real Estate Services) [電子材料]
+- **9955 佳龍** (Pollution & Treatment Controls) [電子製造]
+- **2354 鴻準** (Electronics & Computer Distribution) [電子零件]
+- **4549 桓達** (Scientific & Technical Instruments) [電子零組件]
+- **6161 捷波** (Computer Hardware) [電路板]
+- **6599 普達系統** (Computer Hardware) [電路板]
+- **6737 秀育** (Computer Hardware) [電路板]
+- **2424 隴華** (Consumer Electronics) [電路板]
+- **2488 漢平** (Consumer Electronics) [電路板]
+- **3541 西柏** (Consumer Electronics) [電路板]
+- **3669 圓展** (Consumer Electronics) [電路板]
+- **4915 致伸** (Consumer Electronics) [電路板]
+- **5489 彩富** (Consumer Electronics) [電路板]
+- **6225 天瀚** (Consumer Electronics) [電路板]
+- **6743 安普新** (Consumer Electronics) [電路板]
+- **6784 天凱科技** (Consumer Electronics) [電路板]
+- **3617 碩天** (Electrical Equipment & Parts) [電路板]
+
+## 中游 (16)
+
+- **6156 松上** (Electronic Components) [PCB]
+- **5381 合正** (Electronic Components) [PCB 鑽孔墊板]
+- **5498 凱崴** (Tools & Accessories) [凱崴電子]
+- **6108 競國** (Electronic Components) [利基型PCB]
+- **5439 高技** (Electronic Components) [厚銅板]
+- **5464 霖宏** (Electronic Components) [多層 PCB]
+- **8213 志超** (Electronic Components) [多層板製造]
+- **8021 尖點** (Tools & Accessories) [尖點科技]
+- **1595 川寶** (Specialty Industrial Machinery) [川寶]
+- **1528 恩德** (Specialty Industrial Machinery) [恩德]
+- **8074 鉅橡** (Electronic Components) [鑽孔墊板]
+- **3115 富榮綱** (Electronic Components) [電子零組件貿易]
+- **6538 倉和** (Electronic Components) [非太陽能網版]
+- **6234 高僑** (Tools & Accessories) [高僑自動化]
+- **8155 博智** (Electronic Components) [高層多層板]
+- **4526 東台** (Specialty Industrial Machinery)
+
+## 下游 (10)
+
+- **1802 台玻** (Building Materials) [AI 伺服器 / 5G]
+- **6894 衛司特** (Pollution & Treatment Controls) [PCB]
+- **4989 榮科** (Copper) [PCB 廠]
+- **6559 研晶** (Electrical Equipment & Parts) [UV固化與曝光]
+- **8291 尚茂** (Electronic Components) [多層板 PCB]
+- **4720 德淵** (Specialty Chemicals) [電子]
+- **1324 地球** (Business Equipment & Supplies) [電子製程]
+- **6944 兆聯實業** (Pollution & Treatment Controls) [面板/PCB]
+- **3631 晟楠** (Metal Fabrication)
+- **4561 健椿** (Metal Fabrication)
+
+## 相關公司 (27)
+
+- **1815 富喬** (Electronic Components)
+- **2316 楠梓電** (Electronic Components)
+- **2328 廣宇** (Electronic Components)
 - **3044 健鼎** (Electronic Components)
 - **3093 港建** (Electronic Components)
-- **3229 晟鈦** (Electronic Components)
-- **3276 宇環** (Electronic Components)
-- **3585 聯致** (Electronic Components)
-- **3684 榮昌** (Electronic Components)
-- **4974 亞泰** (Electronic Components)
-- **5248 景傳** (Electronic Components)
-- **5355 佳總** (Electronic Components)
-- **5356 協益** (Electronic Components)
-- **5464 霖宏** (Electronic Components)
+- **3715 定穎投控** (Electronic Components)
+- **4958 臻鼎-KY** (Electronic Components)
+- **5469 瀚宇博** (Electronic Components)
+- **6191 精成科** (Electronic Components)
 - **6194 育富** (Electronic Components)
-- **6407 相互** (Electronic Components)
-- **8155 博智** (Electronic Components)
-- **8183 精星** (Electronic Components)
-- **8213 志超** (Electronic Components)
-- **9912 偉聯** (Electronic Components)
-- **2354 鴻準** (Electronics & Computer Distribution)
-- **6150 撼訊** (Electronics & Computer Distribution)
-- **1593 祺驊** (Leisure)
-- **1736 喬山** (Leisure)
-- **3631 晟楠** (Metal Fabrication)
-- **9955 佳龍** (Pollution & Treatment Controls)
-- **1456 怡華** (Real Estate Services)
-- **2423 固緯** (Scientific & Technical Instruments)
-- **3306 鼎天** (Scientific & Technical Instruments)
-- **4549 桓達** (Scientific & Technical Instruments)
+- **6210 慶生** (Electronic Components)
+- **6274 台燿** (Electronic Components)
+- **6691 洋基工程** (Engineering & Construction)
+- **2493 揚博** (Semiconductor Equipment & Materials)
+- **3563 牧德** (Semiconductor Equipment & Materials)
 - **6223 旺矽** (Semiconductor Equipment & Materials)
 - **6510 精測** (Semiconductor Equipment & Materials)
+- **6877 鏵友益** (Semiconductor Equipment & Materials)
+- **3581 博磊** (Semiconductors)
 - **6278 台表科** (Semiconductors)
 - **6515 穎崴** (Semiconductors)
 - **7815 新特** (Semiconductors)
-- **1595 川寶** (Specialty Industrial Machinery)
-- **4526 東台** (Specialty Industrial Machinery)
+- **4577 達航科技** (Specialty Industrial Machinery)
 - **6438 迅得** (Specialty Industrial Machinery)
 - **5340 建榮** (Textile Manufacturing)
-- **5498 凱崴** (Tools & Accessories)
-- **6923 中台** (Waste Management)
-- **8390 金益鼎** (Waste Management)
-
-## 中游 (13)
-
-- **2316 楠梓電** (Electronic Components)
-- **3037 欣興** (Electronic Components)
-- **3115 富榮綱** (Electronic Components)
-- **3321 同泰** (Electronic Components)
-- **5291 邑昇** (Electronic Components)
-- **5381 合正** (Electronic Components)
-- **5469 瀚宇博** (Electronic Components)
-- **2493 揚博** (Semiconductor Equipment & Materials)
-- **3563 牧德** (Semiconductor Equipment & Materials)
-- **6877 鏵友益** (Semiconductor Equipment & Materials)
-- **1528 恩德** (Specialty Industrial Machinery)
-- **6234 高僑** (Tools & Accessories)
-- **8021 尖點** (Tools & Accessories)
-
-## 下游 (16)
-
-- **1324 地球** (Business Equipment & Supplies)
-- **4989 榮科** (Copper)
-- **6559 研晶** (Electrical Equipment & Parts)
-- **6213 聯茂** (Electronic Components)
-- **6274 台燿** (Electronic Components)
-- **8074 鉅橡** (Electronic Components)
-- **8291 尚茂** (Electronic Components)
-- **8358 金居** (Electronic Components)
-- **3010 華立** (Electronics & Computer Distribution)
-- **6691 洋基工程** (Engineering & Construction)
-- **4561 健椿** (Metal Fabrication)
-- **6894 衛司特** (Pollution & Treatment Controls)
-- **6944 兆聯實業** (Pollution & Treatment Controls)
-- **4720 德淵** (Specialty Chemicals)
-- **4577 達航科技** (Specialty Industrial Machinery)
 - **5475 德宏** (Textile Manufacturing)
-
-## 相關公司 (37)
-
-- **1802 台玻** (Building Materials)
-- **5258 虹堡** (Business Equipment & Supplies)
-- **5490 同亨** (Business Equipment & Supplies)
-- **2425 承啟** (Computer Hardware)
-- **6161 捷波** (Computer Hardware)
-- **6599 普達系統** (Computer Hardware)
-- **2424 隴華** (Consumer Electronics)
-- **2439 美律** (Consumer Electronics)
-- **2488 漢平** (Consumer Electronics)
-- **3465 進泰電子** (Consumer Electronics)
-- **3541 西柏** (Consumer Electronics)
-- **3669 圓展** (Consumer Electronics)
-- **4915 致伸** (Consumer Electronics)
-- **5225 東科-KY** (Consumer Electronics)
-- **5489 彩富** (Consumer Electronics)
-- **6225 天瀚** (Consumer Electronics)
-- **6275 元山** (Consumer Electronics)
-- **6743 安普新** (Consumer Electronics)
-- **6784 天凱科技** (Consumer Electronics)
-- **3628 盈正** (Electrical Equipment & Parts)
-- **1815 富喬** (Electronic Components)
-- **2328 廣宇** (Electronic Components)
-- **3066 李洲** (Electronic Components)
-- **3305 昇貿** (Electronic Components)
-- **3715 定穎投控** (Electronic Components)
-- **4555 氣立** (Electronic Components)
-- **5474 聰泰** (Electronic Components)
-- **6108 競國** (Electronic Components)
-- **6114 久威** (Electronic Components)
-- **6141 柏承** (Electronic Components)
-- **6156 松上** (Electronic Components)
-- **6167 久正** (Electronic Components)
-- **6191 精成科** (Electronic Components)
-- **6210 慶生** (Electronic Components)
-- **6538 倉和** (Electronic Components)
-- **3581 博磊** (Semiconductors)
 - **6771 平和環保-創** (Waste Management)

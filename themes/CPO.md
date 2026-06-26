@@ -2,34 +2,54 @@
 
 > Co-Packaged Optics，將光學元件整合於晶片封裝中以突破頻寬瓶頸
 
-**涵蓋公司數:** 17
+**涵蓋公司數:** 28
 
-**相關主題:** [[矽光子]] (21) | [[光收發模組]] (11) | [[AI 伺服器]] (221) | [[資料中心]] (83)
+**分類:** 光通訊
+
+**CAGR:** 40%+
+
+**關鍵指標:** 技術核心=光學共封裝 | 主要應用=交換器/AI 互連 | 商轉節點=1.6T / 3.2T | 產業地位=頻寬功耗解方
+
+**相關主題:** [[矽光子]] (28) | [[光收發模組]] (12) | [[AI 伺服器]] (265) | [[資料中心]] (86)
 
 ---
 
-## 上游 (1)
+## 上游 (3)
 
+- **4573 高明鐵** (Electronic Components) [壓電致動器]
+- **3008 大立光** (Electronic Components) [晶圓平台]
+- **3093 港建** (Electronic Components) [矽光子對準設備]
+
+## 中游 (13)
+
+- **6820 連訊** (Communication Equipment) [CPO 元件]
+- **3441 聯一光** (Electronic Components) [CPO 微稜鏡]
+- **6205 詮欣** (Electronic Components) [CPO 散熱模組]
+- **8147 正淩** (Electronic Components) [CPO 散熱籠]
+- **3363 上詮** (Communication Equipment) [FAU 製造]
+- **3163 波若威** (Communication Equipment) [光纖被動元件]
+- **3710 連展投控** (Electronic Components) [光纖連接器]
+- **3701 大眾控** (Computer Hardware) [光通訊模組]
+- **4908 前鼎** (Communication Equipment) [矽光子布局]
+- **3450 聯鈞** (Semiconductor Equipment & Materials) [矽光子布局]
+- **6153 嘉聯益** (Electronic Components) [矽光子模組]
+- **6530 創威** (Communication Equipment) [矽光子研發]
 - **6706 惠特** (Specialty Industrial Machinery)
 
-## 中游 (7)
+## 下游 (4)
 
-- **3163 波若威** (Communication Equipment)
-- **3363 上詮** (Communication Equipment)
-- **3701 大眾控** (Computer Hardware)
+- **3591 艾笛森** (Electronic Components) [AI伺服器]
+- **3678 聯享** (Chemicals) [光學通訊]
+- **8111 立碁** (Electronic Components) [矽光子 資料中心]
+- **3081 聯亞** (Semiconductor Equipment & Materials) [資料中心]
+
+## 相關公司 (8)
+
 - **4977 眾達-KY** (Computer Hardware)
-- **4573 高明鐵** (Electronic Components)
-- **6205 詮欣** (Electronic Components)
-- **3450 聯鈞** (Semiconductor Equipment & Materials)
-
-## 相關公司 (9)
-
-- **3678 聯享** (Chemicals)
-- **4908 前鼎** (Communication Equipment)
-- **6530 創威** (Communication Equipment)
-- **6820 連訊** (Communication Equipment)
 - **3504 揚明光** (Electrical Equipment & Parts)
-- **6153 嘉聯益** (Electronic Components)
-- **6269 台郡** (Electronic Components)
-- **3081 聯亞** (Semiconductor Equipment & Materials)
+- **3455 由田** (Electronic Components)
+- **3689 湧德** (Electronic Components)
+- **6442 光聖** (Electronic Components)
+- **6597 立誠** (Electronic Components)
+- **6854 錼創科技-KY創** (Electronic Components)
 - **6515 穎崴** (Semiconductors)
