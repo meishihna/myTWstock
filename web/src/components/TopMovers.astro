@@ -25,7 +25,7 @@ const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.
   gainers.length > 0 && (
     <section class="tm" aria-label="今日強勢股">
       <div class="tm-head">
-        <h2 class="tm-title">今日強勢股</h2>
+        <h2 class="tm-title" id="tm-title">今日強勢股</h2>
         <div class="tm-toggle" role="tablist" aria-label="漲跌切換">
           <button class="tm-tab is-active" type="button" data-tm="gainers" aria-selected="true">
             漲幅
@@ -78,6 +78,8 @@ const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.
     tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         const k = tab.getAttribute("data-tm") || "gainers";
+        const title = document.getElementById("tm-title");
+        if (title) title.textContent = k === "losers" ? "今日弱勢股" : "今日強勢股";
         tabs.forEach((t) => {
           const on = t === tab;
           t.classList.toggle("is-active", on);
