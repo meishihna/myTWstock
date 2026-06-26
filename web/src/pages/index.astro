@@ -7,6 +7,7 @@ import { HOME, SITE } from "../lib/ui";
 import TodayThemes from "../components/TodayThemes.astro";
 import MarketFocus from "../components/MarketFocus.astro";
 import TopMovers from "../components/TopMovers.astro";
+import MarketRefresh from "../components/MarketRefresh.astro";
 
 const idxPath = path.join(process.cwd(), "public/data/reports-index.json");
 let sectors: { name: string; slug: string; count: number }[] = [];
@@ -39,6 +40,8 @@ if (fs.existsSync(idxPath)) {
     >
     </div>
   </div>
+
+  <MarketRefresh />
 
   <MarketFocus />
 

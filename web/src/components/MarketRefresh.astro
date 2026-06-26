@@ -1,0 +1,51 @@
+---
+/**
+ * 首頁「更新市場資料」鈕:POST /api/refresh 觸發 GitHub Actions 重生市場快照
+ * (三大法人/資券/強勢股/今日題材)→ CI commit+push → Vercel 部署(約 10 分鐘)。
+ * 不含 AI 每日簡報。內建端點 30 分鐘冷卻;此處僅顯示回應訊息。
+ */
+---
+<div class="mkr">
+  <button id="mkr-btn" class="mkr-btn" type="button">↻ 更新市場資料</button>
+  <span id="mkr-msg" class="mkr-msg" role="status" aria-live="polite"></span>
+</div>
+
+<script>
+  const btn = document.getElementById("mkr-btn") as HTMLButtonElement | null;
+  const msg = document.getElementById("mkr-msg");
+  btn?.addEventListener("click", async () => {
+    if (!btn || !msg) return;
+    btn.disabled = true;
+    msg.textContent = "觸發中…";
+    msg.className = "mkr-msg";
+    try {
+      const r = await fetch("/api/refresh", { method: "POST" });
+      const d = await r.json().catch(() => ({}));
+      msg.textContent = d.message || (d.ok ? "已觸發更新。" : "更新失敗,請稍後再試。");
+      msg.className = "mkr-msg " + (d.ok ? "ok" : "warn");
+    } catch {
+      msg.textContent = "網路錯誤,請稍後再試。";
+      msg.className = "mkr-msg warn";
+    } finally {
+      window.setTimeout(() => {
+        if (btn) btn.disabled = false;
+      }, 8000);
+    }
+  });
+</script>
+
+<style>
+  .mkr { display: flex; align-items: center; gap: 0.7rem; margin: 0 0 1rem; flex-wrap: wrap; }
+  .mkr-btn {
+    appearance: none; border: 1px solid var(--border); background: var(--surface-elevated);
+    color: var(--text); font: inherit; font-size: 0.82rem; font-weight: 600;
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer;
+    transition: border-color var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+  }
+  .mkr-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .mkr-btn:disabled { opacity: 0.5; cursor: default; }
+  .mkr-msg { font-size: 0.78rem; color: var(--text-secondary); }
+  .mkr-msg.ok { color: var(--accent); }
+  .mkr-msg.warn { color: var(--text-secondary); }
+  @media (prefers-reduced-motion: reduce) { .mkr-btn { transition: none; } }
+</style>
