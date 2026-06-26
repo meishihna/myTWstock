@@ -2,15 +2,17 @@
 
 > High Bandwidth Memory，AI 加速器必備的高速堆疊記憶體
 
-**涵蓋公司數:** 21
+**涵蓋公司數:** 23
 
 **分類:** 記憶體
 
 **CAGR:** 45%+
 
+**市場規模:** 全球約 US$25B(2024)
+
 **關鍵指標:** 技術核心=堆疊 DRAM + TSV | 主流規格=HBM3E → HBM4 | 核心客戶=NVIDIA / AMD | 產業地位=AI 記憶體瓶頸
 
-**相關主題:** [[CoWoS]] (46) | [[AI 伺服器]] (265) | [[DRAM]] (27)
+**相關主題:** [[CoWoS]] (51) | [[AI 伺服器]] (272) | [[DRAM]] (27)
 
 ---
 
@@ -36,12 +38,14 @@
 - **3532 台勝科** (Semiconductor Equipment & Materials) [記憶體]
 - **6770 力積電** (Semiconductors) [記憶體]
 
-## 相關公司 (8)
+## 相關公司 (10)
 
 - **2376 技嘉** (Computer Hardware)
 - **1597 直得** (Electrical Equipment & Parts)
 - **5013 強新** (Electrical Equipment & Parts)
 - **6265 方土昶** (Electronics & Computer Distribution)
+- **2404 漢唐** (Engineering & Construction)
+- **6139 亞翔** (Engineering & Construction)
 - **3289 宜特** (Semiconductors)
 - **3581 博磊** (Semiconductors)
 - **6239 力成** (Semiconductors)

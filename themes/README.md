@@ -7,8 +7,8 @@
 
 ## 先進封裝
 
-- [CoWoS](CoWoS.md) — 46 家公司
-- [HBM](HBM.md) — 21 家公司
+- [CoWoS](CoWoS.md) — 51 家公司
+- [HBM](HBM.md) — 23 家公司
 - [CPO](CPO.md) — 28 家公司
 
 ## 光電與化合物半導體
@@ -21,13 +21,13 @@
 
 ## AI / 資料中心
 
-- [AI 伺服器](AI_伺服器.md) — 265 家公司
-- [資料中心](資料中心.md) — 86 家公司
-- [NVIDIA](NVIDIA.md) — 168 家公司
+- [AI 伺服器](AI_伺服器.md) — 272 家公司
+- [資料中心](資料中心.md) — 87 家公司
+- [NVIDIA](NVIDIA.md) — 169 家公司
 
 ## 電動車 / 車用
 
-- [電動車](電動車.md) — 214 家公司
+- [電動車](電動車.md) — 213 家公司
 - [Tesla](Tesla.md) — 48 家公司
 
 ## 通訊
@@ -48,5 +48,5 @@
 ## 品牌供應鏈
 
 - [Apple](Apple.md) — 92 家公司
-- [NVIDIA](NVIDIA.md) — 168 家公司
+- [NVIDIA](NVIDIA.md) — 169 家公司
 - [Tesla](Tesla.md) — 48 家公司

@@ -2,13 +2,13 @@
 
 > NVIDIA GPU 及 AI 平台台灣供應鏈
 
-**涵蓋公司數:** 168
+**涵蓋公司數:** 169
 
 **分類:** AI 伺服器
 
 **關鍵指標:** 核心平台=GB200 / Blackwell | 台廠角色=代工+封裝+散熱 | 關鍵供應=CoWoS / HBM | 產業地位=AI 算力領導
 
-**相關主題:** [[CoWoS]] (46) | [[HBM]] (21) | [[AI 伺服器]] (265) | [[台積電]] (202)
+**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[AI 伺服器]] (272) | [[台積電]] (209)
 
 ---
 
@@ -35,11 +35,11 @@
 - **4550 長佳** (Engineering & Construction) [AI 運算]
 - **6560 欣普羅** (Electronic Components) [AI 運算平台]
 - **6188 廣明** (Computer Hardware) [AI 運算模組]
+- **6776 展碁國際** (Electronics & Computer Distribution) [AI 運算設備]
 - **3088 艾訊** (Computer Hardware) [AI 邊緣 SoC]
 - **8234 新漢** (Computer Hardware) [AI 邊緣 SoC]
 - **6579 研揚** (Computer Hardware) [AI 邊緣處理器]
 - **5474 聰泰** (Electronic Components) [AI 邊緣運算晶片]
-- **6776 展碁國際** (Electronics & Computer Distribution) [AI/繪圖]
 - **5484 慧友** (Security & Protection Services) [AI晶片]
 - **6189 豐藝** (Electronics & Computer Distribution) [AI網路互聯]
 - **6227 茂綸** (Electronics & Computer Distribution) [AI運算/網路]
@@ -83,7 +83,7 @@
 - **6591 動力-KY** (Computer Hardware) [VGA 散熱風扇]
 - **6805 富世達** (Computer Hardware) [浮動固定件]
 
-## 下游 (57)
+## 下游 (58)
 
 - **6272 驊陞** (Electronic Components) [AI GPU 顯卡]
 - **7749 意騰-KY** (Software - Infrastructure) [AI PC]
@@ -139,6 +139,7 @@
 - **3189 景碩** (Semiconductor Equipment & Materials) [IC 設計]
 - **2368 金像電** (Electronic Components) [NVIDIA GPU 伺服器]
 - **6124 業強** (Electronic Components) [散熱模組]
+- **4113 聯上** (Engineering & Construction) [科技區購屋]
 - **8039 台虹** (Electronic Components) [終端品牌（間接）]
 - **1303 南亞** (Specialty Chemicals) [載板]
 - **2449 京元電子** (Semiconductors) [邏輯 IC]

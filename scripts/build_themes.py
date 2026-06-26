@@ -36,6 +36,7 @@ THEME_DEFINITIONS = {
         "related": ["HBM", "2.5D 封裝", "3D 封裝", "ABF 載板", "矽中介層"],
         "category": "先進封測",
         "cagr": "35%+",
+        "market_size": "先進封裝 全球約 US$30B+",
         "indicators": [
             {"label": "技術核心", "value": "2.5D / 3D 封裝"},
             {"label": "主流規格", "value": "CoWoS-S / -R / -L"},
@@ -49,6 +50,7 @@ THEME_DEFINITIONS = {
         "related": ["CoWoS", "AI 伺服器", "DRAM"],
         "category": "記憶體",
         "cagr": "45%+",
+        "market_size": "全球約 US$25B(2024)",
         "indicators": [
             {"label": "技術核心", "value": "堆疊 DRAM + TSV"},
             {"label": "主流規格", "value": "HBM3E → HBM4"},
@@ -88,6 +90,13 @@ THEME_DEFINITIONS = {
         "desc": "3D 感測、光通訊及 LiDAR 核心光源元件",
         "related": ["矽光子", "光收發模組", "砷化鎵"],
         "category": "光通訊",
+        "cagr": "12–15%",
+        "indicators": [
+            {"label": "技術核心", "value": "面射型雷射"},
+            {"label": "主要應用", "value": "3D 感測 / 光通訊 / LiDAR"},
+            {"label": "核心客戶", "value": "Apple / 消費光學"},
+            {"label": "材料基礎", "value": "砷化鎵磊晶"},
+        ],
     },
     # === Compound Semiconductors ===
     "碳化矽": {
@@ -95,18 +104,40 @@ THEME_DEFINITIONS = {
         "desc": "第三代半導體材料，耐高壓高溫，電動車逆變器及充電樁關鍵材料",
         "related": ["電動車", "MOSFET", "IGBT", "氮化鎵"],
         "category": "能源車用",
+        "cagr": "25%+",
+        "market_size": "全球約 US$3B(2024)",
+        "indicators": [
+            {"label": "材料世代", "value": "第三代半導體"},
+            {"label": "主要應用", "value": "電動車逆變器 / 充電"},
+            {"label": "關鍵製程", "value": "長晶 / 磊晶"},
+            {"label": "產業門檻", "value": "高(良率·缺陷)"},
+        ],
     },
     "氮化鎵": {
         "name": "氮化鎵 GaN",
         "desc": "第三代半導體材料，高頻高效，5G 基站、快充及衛星通訊核心",
         "related": ["5G", "碳化矽", "磷化銦"],
         "category": "能源車用",
+        "cagr": "25%+",
+        "indicators": [
+            {"label": "材料世代", "value": "第三代半導體"},
+            {"label": "主要應用", "value": "快充 / 5G / 電源"},
+            {"label": "技術優勢", "value": "高頻高效"},
+            {"label": "產業趨勢", "value": "矽基 GaN 興起"},
+        ],
     },
     "磷化銦": {
         "name": "磷化銦 InP",
         "desc": "III-V 族化合物半導體，光通訊雷射及高速光電元件基板材料",
         "related": ["矽光子", "EML", "光收發模組", "砷化鎵"],
         "category": "光通訊",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "材料類別", "value": "III-V 化合物"},
+            {"label": "主要應用", "value": "光通訊雷射(EML)"},
+            {"label": "商轉節點", "value": "800G / 1.6T"},
+            {"label": "產業地位", "value": "高速光電基板"},
+        ],
     },
     # === AI / Data Center ===
     "AI 伺服器": {
@@ -155,12 +186,26 @@ THEME_DEFINITIONS = {
         "desc": "5G 基礎建設與終端應用，涵蓋基站、天線、射頻前端、濾波器",
         "related": ["氮化鎵", "RF", "低軌衛星"],
         "category": "網路設備",
+        "cagr": "高個位數",
+        "indicators": [
+            {"label": "建設環節", "value": "基站 / 小基站"},
+            {"label": "關鍵元件", "value": "射頻前端 / 濾波器"},
+            {"label": "台廠角色", "value": "PA / 天線 / 網通"},
+            {"label": "技術演進", "value": "5G-A → 6G"},
+        ],
     },
     "低軌衛星": {
         "name": "低軌衛星 LEO Satellite",
         "desc": "低軌道衛星通訊供應鏈，天線、地面站、射頻模組",
         "related": ["5G", "氮化鎵", "RF"],
         "category": "衛星通訊",
+        "cagr": "15–20%",
+        "indicators": [
+            {"label": "系統環節", "value": "衛星 / 地面站 / 終端"},
+            {"label": "領導業者", "value": "Starlink / OneWeb"},
+            {"label": "台廠角色", "value": "地面設備 / 射頻"},
+            {"label": "產業地位", "value": "新興衛星通訊"},
+        ],
     },
     # === Process / Equipment ===
     "EUV": {
@@ -168,6 +213,13 @@ THEME_DEFINITIONS = {
         "desc": "先進製程關鍵微影技術，7nm 以下節點必備",
         "related": ["光阻液", "ASML"],
         "category": "半導體製造",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "設備獨家", "value": "ASML"},
+            {"label": "製程節點", "value": "7nm 以下"},
+            {"label": "關鍵耗材", "value": "光阻 / 光罩"},
+            {"label": "台廠角色", "value": "零組件 / 廠務"},
+        ],
     },
     # === Materials ===
     "光阻液": {
@@ -175,18 +227,40 @@ THEME_DEFINITIONS = {
         "desc": "半導體微影製程關鍵化學材料",
         "related": ["EUV", "微影"],
         "category": "半導體製造",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "材料類別", "value": "微影化學品"},
+            {"label": "主要原廠", "value": "JSR / 東京應化 / 信越"},
+            {"label": "關鍵規格", "value": "EUV 光阻"},
+            {"label": "台廠角色", "value": "在地特化供應"},
+        ],
     },
     "ABF 載板": {
         "name": "ABF 載板",
         "desc": "Ajinomoto Build-up Film 載板，高階 IC 封裝基板",
         "related": ["CoWoS", "AI 伺服器", "PCB"],
         "category": "基板材料",
+        "cagr": "10–15%",
+        "indicators": [
+            {"label": "關鍵材料", "value": "味之素 ABF 膜"},
+            {"label": "主要應用", "value": "HPC / AI 晶片載板"},
+            {"label": "供需狀況", "value": "高階吃緊"},
+            {"label": "台廠角色", "value": "欣興 / 南電 / 景碩"},
+        ],
     },
     "矽晶圓": {
         "name": "矽晶圓",
         "desc": "半導體製造最基礎的原材料",
         "related": ["碳化矽", "磊晶"],
         "category": "基板材料",
+        "cagr": "5–8%",
+        "market_size": "全球約 US$12B",
+        "indicators": [
+            {"label": "主力產品", "value": "12 吋拋光 / 磊晶"},
+            {"label": "全球寡占", "value": "信越 / 勝高 / 環球晶"},
+            {"label": "需求動能", "value": "先進製程 / 記憶體"},
+            {"label": "台廠角色", "value": "環球晶 / 合晶"},
+        ],
     },
     # === Key customers (cross-industry) ===
     "Apple": {
@@ -194,6 +268,12 @@ THEME_DEFINITIONS = {
         "desc": "蘋果公司台灣供應鏈成員",
         "related": ["台積電", "鴻海"],
         "category": "消費終端",
+        "indicators": [
+            {"label": "核心產品", "value": "iPhone / Mac / 穿戴"},
+            {"label": "台廠角色", "value": "代工 / 零組件"},
+            {"label": "關鍵夥伴", "value": "台積電 / 鴻海"},
+            {"label": "產業趨勢", "value": "自研晶片 / AI"},
+        ],
     },
     "NVIDIA": {
         "name": "NVIDIA 輝達供應鏈",
@@ -212,6 +292,12 @@ THEME_DEFINITIONS = {
         "desc": "特斯拉電動車台灣供應鏈成員",
         "related": ["電動車", "碳化矽"],
         "category": "能源車用",
+        "indicators": [
+            {"label": "核心產品", "value": "電動車 / 儲能"},
+            {"label": "台廠角色", "value": "零組件 / 充電"},
+            {"label": "關鍵技術", "value": "自駕 / 電池"},
+            {"label": "產業趨勢", "value": "FSD / 機器人"},
+        ],
     },
     # === PCB / 零組件 ===
     "PCB": {
@@ -220,6 +306,7 @@ THEME_DEFINITIONS = {
         "related": ["ABF 載板", "銅箔", "連接器", "AI 伺服器"],
         "category": "基板材料",
         "cagr": "8%+",
+        "market_size": "全球約 US$80B",
         "indicators": [
             {"label": "技術核心", "value": "HDI / 載板 / 軟板"},
             {"label": "升級驅動", "value": "AI 載板+車用"},
@@ -232,18 +319,39 @@ THEME_DEFINITIONS = {
         "desc": "電源轉換與馬達驅動核心元件，電動車、工控、充電樁需求",
         "related": ["IGBT", "碳化矽", "氮化鎵", "電動車"],
         "category": "能源車用",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "核心元件", "value": "MOSFET / IGBT"},
+            {"label": "主要應用", "value": "電動車 / 工控 / 電源"},
+            {"label": "材料升級", "value": "SiC / GaN"},
+            {"label": "台廠角色", "value": "設計 / 封測"},
+        ],
     },
     "銅箔": {
         "name": "銅箔",
         "desc": "PCB 與鋰電池負極關鍵材料，AI 載板與電動車雙引擎",
         "related": ["PCB", "ABF 載板", "電動車", "儲能"],
         "category": "基板材料",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "主力產品", "value": "電解銅箔"},
+            {"label": "雙引擎", "value": "PCB 載板 / 鋰電負極"},
+            {"label": "規格趨勢", "value": "極薄 / 高頻"},
+            {"label": "台廠角色", "value": "南亞 / 長春 / 金居"},
+        ],
     },
     "連接器": {
         "name": "連接器",
         "desc": "高速傳輸與電力連接元件，AI 伺服器與車用需求升溫",
         "related": ["AI 伺服器", "ADAS", "PCB"],
         "category": "電子零組件",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "主要應用", "value": "AI 伺服器 / 車用"},
+            {"label": "規格升級", "value": "224G / 大電流"},
+            {"label": "技術趨勢", "value": "液冷快接"},
+            {"label": "台廠角色", "value": "高速連接器"},
+        ],
     },
     "MLCC": {
         "name": "MLCC 被動元件",
@@ -251,6 +359,7 @@ THEME_DEFINITIONS = {
         "related": ["電動車", "AI 伺服器", "PCB"],
         "category": "被動元件",
         "cagr": "8%+",
+        "market_size": "全球約 US$13B",
         "indicators": [
             {"label": "技術核心", "value": "積層陶瓷電容"},
             {"label": "升級驅動", "value": "車用+AI 伺服器"},
@@ -277,6 +386,13 @@ THEME_DEFINITIONS = {
         "desc": "內建 NPU 的 AI 個人電腦，帶動換機潮與 ODM 出貨",
         "related": ["AI 伺服器", "Microsoft", "ODM"],
         "category": "消費終端",
+        "cagr": "30%+",
+        "indicators": [
+            {"label": "核心規格", "value": "內建 NPU"},
+            {"label": "主要平台", "value": "高通 / Intel / AMD"},
+            {"label": "台廠角色", "value": "ODM / 品牌"},
+            {"label": "產業趨勢", "value": "企業換機潮"},
+        ],
     },
     # === 車用電子 ===
     "ADAS": {
@@ -284,6 +400,13 @@ THEME_DEFINITIONS = {
         "desc": "車用感測、運算與自動駕駛供應鏈",
         "related": ["電動車", "MOSFET", "連接器"],
         "category": "能源車用",
+        "cagr": "12–15%",
+        "indicators": [
+            {"label": "感測元件", "value": "鏡頭 / 雷達 / 光達"},
+            {"label": "運算核心", "value": "車用 SoC"},
+            {"label": "等級演進", "value": "L2 → L3"},
+            {"label": "台廠角色", "value": "感測 / 連接 / PCB"},
+        ],
     },
     # === 顯示 ===
     "OLED": {
@@ -291,12 +414,26 @@ THEME_DEFINITIONS = {
         "desc": "有機發光二極體顯示，手機、穿戴與筆電滲透提升",
         "related": ["Mini LED", "面板"],
         "category": "光學顯示",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "技術核心", "value": "有機自發光"},
+            {"label": "主要應用", "value": "手機 / 穿戴 / 筆電"},
+            {"label": "產業趨勢", "value": "滲透率提升"},
+            {"label": "台廠角色", "value": "材料 / 驅動IC / 設備"},
+        ],
     },
     "Mini LED": {
         "name": "Mini LED 背光",
         "desc": "高動態對比背光技術，應用於高階顯示器、電視與筆電",
         "related": ["OLED", "LED", "面板"],
         "category": "光學顯示",
+        "cagr": "20%+",
+        "indicators": [
+            {"label": "技術核心", "value": "細間距背光"},
+            {"label": "主要應用", "value": "高階顯示 / 車用"},
+            {"label": "關鍵技術", "value": "區域調光"},
+            {"label": "台廠角色", "value": "晶電 / 隆達 / 設備"},
+        ],
     },
     # === 記憶體 ===
     "DRAM": {
@@ -304,6 +441,14 @@ THEME_DEFINITIONS = {
         "desc": "動態隨機存取記憶體，AI、伺服器與消費電子需求循環",
         "related": ["HBM", "DDR5", "記憶體"],
         "category": "記憶體",
+        "cagr": "循環性 ~8%",
+        "market_size": "全球約 US$90B",
+        "indicators": [
+            {"label": "主力產品", "value": "DDR5 / LPDDR"},
+            {"label": "全球寡占", "value": "三星 / SK海力士 / 美光"},
+            {"label": "市場特性", "value": "景氣循環明顯"},
+            {"label": "台廠角色", "value": "利基 / 模組 / 封測"},
+        ],
     },
     # === 綠能 ===
     "儲能": {
@@ -311,18 +456,40 @@ THEME_DEFINITIONS = {
         "desc": "電網與再生能源儲能系統，涵蓋電池芯、模組與 ESS 整合",
         "related": ["太陽能", "電動車", "離岸風電"],
         "category": "綠能環保",
+        "cagr": "20%+",
+        "indicators": [
+            {"label": "系統環節", "value": "電池芯 / 模組 / ESS"},
+            {"label": "主要應用", "value": "電網 / 再生能源"},
+            {"label": "主流技術", "value": "磷酸鋰鐵"},
+            {"label": "台廠角色", "value": "電芯 / 系統整合"},
+        ],
     },
     "太陽能": {
         "name": "太陽能 Solar",
         "desc": "太陽能電池、模組與系統供應鏈",
         "related": ["儲能", "離岸風電"],
         "category": "綠能環保",
+        "cagr": "8–10%",
+        "market_size": "全球新增 US$200B+",
+        "indicators": [
+            {"label": "產業環節", "value": "電池 / 模組 / 系統"},
+            {"label": "技術趨勢", "value": "N 型 TOPCon"},
+            {"label": "台廠角色", "value": "電池 / 模組 / 電廠"},
+            {"label": "政策驅動", "value": "再生能源目標"},
+        ],
     },
     "離岸風電": {
         "name": "離岸風電 Offshore Wind",
         "desc": "離岸風力發電水下基礎、海纜與機電供應鏈",
         "related": ["儲能", "太陽能"],
         "category": "綠能環保",
+        "cagr": "12–15%",
+        "indicators": [
+            {"label": "產業環節", "value": "水下基礎 / 海纜 / 機電"},
+            {"label": "主要區域", "value": "台灣海峽"},
+            {"label": "台廠角色", "value": "水下基礎 / 海纜 / 塔架"},
+            {"label": "政策驅動", "value": "區塊開發"},
+        ],
     },
 }
 

@@ -2,7 +2,7 @@
 
 > AI 訓練與推論伺服器完整供應鏈，從晶片到系統到散熱
 
-**涵蓋公司數:** 265
+**涵蓋公司數:** 272
 
 **分類:** AI 伺服器
 
@@ -10,7 +10,7 @@
 
 **關鍵指標:** 技術核心=GPU 加速運算 | 主流架構=NVIDIA HGX / GB200 | 核心客戶=北美 CSP | 產業地位=AI 算力基礎
 
-**相關主題:** [[CoWoS]] (46) | [[HBM]] (21) | [[NVIDIA]] (168) | [[CPO]] (28) | [[資料中心]] (86)
+**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[NVIDIA]] (169) | [[CPO]] (28) | [[資料中心]] (87)
 
 ---
 
@@ -116,7 +116,7 @@
 - **5426 振發** (Metal Fabrication)
 - **2025 千興** (Steel)
 
-## 相關公司 (172)
+## 相關公司 (179)
 
 - **1809 中釉** (Building Products & Equipment)
 - **1326 台化** (Chemicals)
@@ -263,6 +263,13 @@
 - **3709 鑫聯大投控** (Electronics & Computer Distribution)
 - **6189 豐藝** (Electronics & Computer Distribution)
 - **6265 方土昶** (Electronics & Computer Distribution)
+- **2404 漢唐** (Engineering & Construction)
+- **2530 華建** (Engineering & Construction)
+- **3018 隆銘綠能** (Engineering & Construction)
+- **5511 德昌** (Engineering & Construction)
+- **5515 建國** (Engineering & Construction)
+- **5536 聖暉** (Engineering & Construction)
+- **6139 亞翔** (Engineering & Construction)
 - **4569 六方科-KY** (Metal Fabrication)
 - **2360 致茂** (Scientific & Technical Instruments)
 - **3030 德律** (Scientific & Technical Instruments)
