@@ -109,23 +109,6 @@ function coTags(c: MapCo): string[] {
   return tags;
 }
 
-// 關係圖:每段彙整子分類(分段)為節點 {name, count}
-function tierSubcats(arr: MapCo[]) {
-  const m = new Map<string, number>();
-  for (const c of arr) {
-    const k = (c.subcat || "其他").trim() || "其他";
-    m.set(k, (m.get(k) || 0) + 1);
-  }
-  return [...m.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
-}
-const chainStruct = {
-  u: tierSubcats(theme.tiers.u),
-  m: tierSubcats(theme.tiers.m),
-  d: tierSubcats(theme.tiers.d),
-};
-
 const indicators = theme.indicators ?? [];
 const aggMcapStr =
   theme.aggMcap >= 1e6
@@ -226,7 +209,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
   <section id="tpanel-structure" class="theme-panel" role="tabpanel" hidden>
     <div class="sview-toggle" role="tablist" aria-label="檢視切換">
       <button class="sview-tab is-active" role="tab" aria-selected="true" data-sview="role">{THEMES_PAGE.viewRole}</button>
-      <button class="sview-tab" role="tab" aria-selected="false" data-sview="graph">{THEMES_PAGE.viewGraph}</button>
       <button class="sview-tab" role="tab" aria-selected="false" data-sview="compare">{THEMES_PAGE.viewCompare}</button>
     </div>
 
@@ -283,15 +265,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       })}
     </div>
 
-    <!-- 關係圖(供應鏈結構:子分類分段,上游 → 下游) -->
-    <div id="sview-graph" hidden>
-      <p class="map-hint cg-hint">{THEMES_PAGE.graphHint}</p>
-      <div class="cg-legend" aria-hidden="true">
-        <span class="cg-leg-line" /><span>{THEMES_PAGE.graphSupply}</span>
-        <span class="cg-leg-updown">↑{THEMES_PAGE.graphUp} ↓{THEMES_PAGE.graphDown}</span>
-      </div>
-      <div id="chain-graph" class="chain-graph" role="img" aria-label="供應鏈結構關係圖" />
-    </div>
 
     <!-- 差異比較 -->
     <div id="sview-compare" hidden>
@@ -302,7 +275,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
   </section>
 
   <script type="application/json" id="theme-cons" set:html={JSON.stringify(cons)} />
-  <script type="application/json" id="chain-struct" set:html={JSON.stringify(chainStruct)} />
 
   <script>
     import { treemap, tileColor } from "../../lib/heatmap";
@@ -438,67 +410,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       table.innerHTML = `<thead><tr><th>代號</th><th>名稱</th><th class="num">市值(百萬)</th><th class="num">P/E</th><th class="num">ROE%</th><th class="num">毛利%</th><th class="num">營收YoY%</th></tr></thead><tbody>${rows}</tbody>`;
     }
 
-    // ---- 關係圖:供應鏈結構(子分類分段,上游→中游→下游) ----
-    interface SubNode { name: string; count: number; _x?: number; _y?: number; _w?: number; }
-    const csEl = document.getElementById("chain-struct");
-    const chainStruct: { u: SubNode[]; m: SubNode[]; d: SubNode[] } =
-      csEl ? JSON.parse(csEl.textContent || "{}") : { u: [], m: [], d: [] };
-
-    function capNodes(list: SubNode[], cap = 7): SubNode[] {
-      if (!list || list.length <= cap) return (list || []).slice();
-      const head = list.slice(0, cap - 1);
-      const restCount = list.slice(cap - 1).reduce((s, n) => s + n.count, 0);
-      head.push({ name: `其他 +${list.length - (cap - 1)}`, count: restCount });
-      return head;
-    }
-    function clip(s: string, boxW: number): string {
-      const max = Math.max(3, Math.floor(boxW / 13));
-      return s.length > max ? s.slice(0, max - 1) + "…" : s;
-    }
-    function renderChainGraph() {
-      const root = document.getElementById("chain-graph"); if (!root) return;
-      const W = root.clientWidth; if (W < 10) return;
-      const layers = [
-        { label: "↑上游", nodes: capNodes(chainStruct.u) },
-        { label: "中游", nodes: capNodes(chainStruct.m) },
-        { label: "↓下游", nodes: capNodes(chainStruct.d) },
-      ].filter((l) => l.nodes.length > 0);
-      if (layers.length === 0) { root.innerHTML = `<p class="cg-empty">此題材無供應鏈分段資料。</p>`; return; }
-
-      const pad = 12, labelW = 46, boxH = 46, gap = 12, rowH = 130;
-      const H = layers.length * rowH + 12;
-      const areaX = pad + labelW, areaW = Math.max(40, W - areaX - pad);
-      layers.forEach((layer, li) => {
-        const cy = 12 + li * rowH + 30;
-        const n = layer.nodes.length;
-        const boxW = Math.max(68, Math.min(152, (areaW - (n - 1) * gap) / n));
-        const startX = areaX + (areaW - (n * boxW + (n - 1) * gap)) / 2;
-        layer.nodes.forEach((nd, j) => { nd._x = startX + j * (boxW + gap) + boxW / 2; nd._y = cy; nd._w = boxW; });
-      });
-
-      let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" class="cg-svg" role="img" aria-label="供應鏈結構">`;
-      for (let li = 0; li < layers.length - 1; li++) {
-        for (const a of layers[li].nodes) for (const b of layers[li + 1].nodes) {
-          const x1 = a._x!, y1 = a._y! + boxH, x2 = b._x!, y2 = b._y!, my = (y1 + y2) / 2;
-          svg += `<path class="cg-edge" d="M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" />`;
-        }
-      }
-      for (const layer of layers) {
-        const ly = layer.nodes[0]._y! + boxH / 2 + 4;
-        svg += `<text class="cg-layer-label" x="${pad}" y="${ly.toFixed(1)}">${esc(layer.label)}</text>`;
-        for (const nd of layer.nodes) {
-          const x = (nd._x! - nd._w! / 2).toFixed(1);
-          svg += `<g class="cg-node">`
-            + `<rect x="${x}" y="${nd._y}" width="${nd._w!.toFixed(1)}" height="${boxH}" rx="7" />`
-            + `<text class="cg-node-nm" x="${nd._x!.toFixed(1)}" y="${(nd._y! + 19).toFixed(1)}" text-anchor="middle">${esc(clip(nd.name, nd._w!))}</text>`
-            + `<text class="cg-node-n" x="${nd._x!.toFixed(1)}" y="${(nd._y! + 35).toFixed(1)}" text-anchor="middle">${nd.count} 家</text>`
-            + `</g>`;
-        }
-      }
-      svg += `</svg>`;
-      root.innerHTML = svg;
-    }
-
     function initSviews() {
       const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".sview-tab"));
       tabs.forEach((tab) =>
@@ -511,14 +422,12 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
           });
           const panels: Record<string, HTMLElement | null> = {
             role: document.getElementById("sview-role"),
-            graph: document.getElementById("sview-graph"),
             compare: document.getElementById("sview-compare"),
           };
           for (const id of Object.keys(panels)) {
             const p = panels[id]; if (p) p.hidden = id !== k;
           }
           if (k === "compare") renderCompare();
-          if (k === "graph") renderChainGraph();
         }),
       );
     }
@@ -569,9 +478,9 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     load();
     if (typeof ResizeObserver !== "undefined") {
       let t: number | undefined;
-      const ro = new ResizeObserver(() => { window.clearTimeout(t); t = window.setTimeout(() => { renderHm(); renderChainGraph(); }, 150); });
-      const hm = document.getElementById("theme-hm"); if (hm) ro.observe(hm);
-      const cg = document.getElementById("chain-graph"); if (cg) ro.observe(cg);
+      const ro = new ResizeObserver(() => { window.clearTimeout(t); t = window.setTimeout(renderHm, 150); });
+      const root = document.getElementById("theme-hm");
+      if (root) ro.observe(root);
     }
   </script>
 
@@ -647,7 +556,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sview-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.8rem; font-weight: 600; padding: 6px 16px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sview-tab:hover { color: var(--text); }
     .sview-tab.is-active { color: #1a1613; background: var(--accent); }
-    #sview-compare[hidden], #sview-role[hidden], #sview-graph[hidden] { display: none; }
+    #sview-compare[hidden], #sview-role[hidden] { display: none; }
 
     /* 可收合分段 */
     .sc-tier { margin-bottom: 1.4rem; }
@@ -688,19 +597,6 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .cmp-table .num.up { color: var(--up); } .cmp-table .num.down { color: var(--down); }
     .cmp-loading { color: var(--muted); text-align: center; padding: 2rem; }
 
-    /* 關係圖(供應鏈結構) */
-    .cg-hint { margin: 0 0 0.5rem; }
-    .cg-legend { display: flex; align-items: center; gap: 0.4rem; font-size: 0.74rem; color: var(--muted); margin-bottom: 0.6rem; }
-    .cg-leg-line { width: 22px; border-top: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); display: inline-block; }
-    .cg-leg-updown { margin-left: 0.6rem; }
-    .chain-graph { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; padding: 4px 0; }
-    .cg-svg { display: block; }
-    .cg-edge { fill: none; stroke: color-mix(in srgb, var(--accent) 32%, transparent); stroke-width: 1; opacity: 0.5; }
-    .cg-layer-label { fill: var(--muted); font-size: 12px; font-family: var(--font-body); font-weight: 600; }
-    .cg-node rect { fill: var(--surface-elevated); stroke: color-mix(in srgb, var(--accent) 45%, transparent); stroke-width: 1; }
-    .cg-node-nm { fill: var(--text-heading); font-size: 12px; font-family: var(--font-body); font-weight: 600; }
-    .cg-node-n { fill: var(--muted); font-size: 10px; font-family: var(--font-body); }
-    .cg-empty { color: var(--muted); text-align: center; padding: 2.5rem 1rem; }
 
     @media (prefers-reduced-motion: reduce) {
       .thm-tile, .sc-card, .theme-rel-chip, .theme-tab, .thov-chain-cell { transition: none; }

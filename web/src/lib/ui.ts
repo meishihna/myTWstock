@@ -216,12 +216,6 @@ export const THEMES_PAGE = {
   // structure 子檢視
   viewRole: "角色分群",
   viewCompare: "差異比較",
-  viewGraph: "關係圖",
-  graphHint: "節點＝供應鏈分段(子分類),由上游 → 下游流動;點節點查看該分段公司。",
-  graphSupply: "供應流向",
-  graphUp: "上游",
-  graphMid: "中游",
-  graphDown: "下游",
   // 公司卡狀態/標籤
   statusLead: "產業龍頭",
   statusChallenge: "成長挑戰",
