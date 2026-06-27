@@ -124,17 +124,13 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
                 return (
                   <a class="sc-card2" href={`/report/${c.t}`}>
                     <div class="sc-card2-top">
-                      <span class="sc-name">{c.n}</span>
+                      <span class="sc-name">{c.n}{c.status === "lead" && <span class="sc-lead" title="產業龍頭">●</span>}</span>
                       <span class="sc-tk">{c.t}</span>
                     </div>
-                    <div class="sc-sector">{c.s}</div>
-                    <div class="sc-tags">
-                      {c.status === "lead" && <span class="sc-tag lead">產業龍頭</span>}
-                      {c.status === "challenge" && <span class="sc-tag down">成長挑戰</span>}
-                      {mt && <span class={`sc-tag ${mt.cls}`}>{mt.label}</span>}
-                    </div>
+                    <div class="sc-sector">{c.s}{c.status === "challenge" ? " · 成長挑戰" : ""}</div>
+                    <div class="sc-meta">市值 {fmtMc(c.mc)}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</div>
                     <div class="sc-card2-foot">
-                      <span class="sc-mc">市值 {fmtMc(c.mc)}</span>
+                      <span class="sc-mom">{mt ? mt.label : ""}</span>
                       {c.revYoy != null && (
                         <span class={`sc-yoy ${c.revYoy >= 0 ? "up" : "down"}`}>營收 {c.revYoy >= 0 ? "+" : ""}{c.revYoy}%</span>
                       )}
@@ -193,14 +189,11 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .sc-name { font-weight: 700; font-size: 0.92rem; }
   .sc-tk { font-size: 0.72rem; color: var(--text-secondary); }
   .sc-sector { font-size: 0.7rem; color: var(--text-secondary); }
-  .sc-tags { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.1rem; }
-  .sc-tag { font-size: 0.68rem; font-weight: 600; }
-  .sc-tag.up { color: var(--up); }
-  .sc-tag.down { color: var(--down); }
-  .sc-tag.lead { color: var(--accent); }
+  .sc-lead { color: var(--accent); font-size: 0.5rem; vertical-align: middle; margin-left: 4px; }
+  .sc-meta { font-size: 0.72rem; color: var(--text-secondary); }
+  .sc-mom { font-size: 0.72rem; color: var(--text-secondary); }
   .sc-card2-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline; gap: 0.3rem; padding-top: 0.2rem; }
-  .sc-mc { font-size: 0.75rem; color: var(--text-secondary); }
-  .sc-yoy { font-size: 0.75rem; font-weight: 600; }
+  .sc-yoy { font-size: 0.78rem; font-weight: 600; }
   .sc-yoy.up { color: var(--up); }
   .sc-yoy.down { color: var(--down); }
 </style>

@@ -81,7 +81,7 @@ function main() {
   const fin = {};
   if (existsSync(SCREENER)) {
     for (const r of (JSON.parse(readFileSync(SCREENER, "utf8")).rows) || []) {
-      fin[r.t] = { mc: num(r.mc), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
+      fin[r.t] = { mc: num(r.mc), pe: num(r.pe), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
     }
   }
   const momByTicker = existsSync(MOMENTUM) ? (JSON.parse(readFileSync(MOMENTUM, "utf8")).mom || {}) : {};
@@ -103,6 +103,7 @@ function main() {
           t: c.ticker, n: c.name, s: c.sector,
           ss: byTicker[c.ticker]?.sectorSlug || "",
           mc, subcat: c.subcat || "",
+          pe: f.pe ?? null,
           revYoy: f.revYoy ?? null,
           mom: momByTicker[c.ticker] || 0,
           status: challenge ? "challenge" : "",
