@@ -754,6 +754,146 @@ THEME_DEFINITIONS = {
         ],
         "members": {"midstream": ["8210", "3693", "2059", "3533"]},
     },
+
+    # --- 光通訊 ---
+    "opt-transceiver": {
+        "name": "光通訊｜光收發模組",
+        "desc": "AI 資料中心高速光收發模組(Transceiver),速率由 800G 邁向 1.6T,需求隨算力擴張。",
+        "category": "光通訊",
+        "cagr": "25%+",
+        "indicators": [
+            {"label": "主要產品", "value": "光收發模組"},
+            {"label": "速率升級", "value": "800G → 1.6T"},
+            {"label": "需求動能", "value": "AI 資料中心"},
+            {"label": "代表廠商", "value": "眾達-KY / 華星光"},
+        ],
+        "members": {"midstream": ["4908", "4977", "4979", "3701", "3710", "6442"]},
+    },
+    "opt-laser": {
+        "name": "光通訊｜雷射與光晶片",
+        "desc": "光通訊用雷射二極體與化合物半導體光晶片,涵蓋砷化鎵/磷化銦磊晶與封裝。",
+        "category": "光通訊",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要產品", "value": "雷射二極體 / 光晶片"},
+            {"label": "材料基礎", "value": "砷化鎵 / 磷化銦"},
+            {"label": "主要應用", "value": "光通訊 / 感測"},
+            {"label": "代表廠商", "value": "全新 / 聯亞"},
+        ],
+        "members": {"midstream": ["2455", "2426", "3081", "3339", "3450", "6597"]},
+    },
+
+    # --- 被動元件 ---
+    "pas-mlcc": {
+        "name": "被動元件｜MLCC 積層陶瓷電容",
+        "desc": "積層陶瓷電容,電子產品被動元件基礎;車用與 AI 帶動高容高壓規格升級。",
+        "category": "被動元件",
+        "cagr": "8%+",
+        "indicators": [
+            {"label": "主要產品", "value": "積層陶瓷電容"},
+            {"label": "升級驅動", "value": "車用 / AI"},
+            {"label": "台廠龍頭", "value": "國巨"},
+            {"label": "規格趨勢", "value": "高容 / 高壓"},
+        ],
+        "members": {"midstream": ["2327", "2492", "3026", "6173", "1471"]},
+    },
+    "pas-resistor": {
+        "name": "被動元件｜晶片電阻",
+        "desc": "晶片電阻與電阻陣列,應用於消費、車用與工控;車規與高精度為升級方向。",
+        "category": "被動元件",
+        "cagr": "5–8%",
+        "indicators": [
+            {"label": "主要產品", "value": "晶片電阻"},
+            {"label": "主要應用", "value": "車用 / 消費 / 工控"},
+            {"label": "代表廠商", "value": "國巨 / 大毅"},
+            {"label": "規格趨勢", "value": "車規 / 高精度"},
+        ],
+        "members": {"midstream": ["2327", "2478", "2375", "6834"]},
+    },
+    "pas-inductor": {
+        "name": "被動元件｜電感",
+        "desc": "電感與磁性元件,AI 電源與車用電子帶動高頻、大電流規格需求。",
+        "category": "被動元件",
+        "cagr": "8%+",
+        "indicators": [
+            {"label": "主要產品", "value": "電感 / 磁性元件"},
+            {"label": "需求動能", "value": "AI 電源 / 車用"},
+            {"label": "代表廠商", "value": "千如 / 臺慶科"},
+            {"label": "規格趨勢", "value": "高頻 / 大電流"},
+        ],
+        "members": {"midstream": ["3236", "3357", "3117", "3207", "3058"]},
+    },
+
+    # --- 散熱冷卻 ---
+    "cool-module": {
+        "name": "散熱冷卻｜散熱模組(氣冷)",
+        "desc": "散熱風扇、均熱片與散熱模組,伺服器與 PC 高功耗推升氣冷需求。",
+        "category": "散熱冷卻",
+        "cagr": "20%+",
+        "indicators": [
+            {"label": "主要產品", "value": "散熱模組 / 風扇"},
+            {"label": "主要應用", "value": "伺服器 / PC"},
+            {"label": "台廠龍頭", "value": "奇鋐 / 雙鴻"},
+            {"label": "需求動能", "value": "AI 高功耗"},
+        ],
+        "members": {"midstream": ["3017", "3324", "2421", "6230", "2354"]},
+    },
+    "cool-liquid": {
+        "name": "散熱冷卻｜液冷",
+        "desc": "AI 機櫃高功耗推升液冷滲透,涵蓋水冷板、CDU、快接與分歧管。",
+        "category": "散熱冷卻",
+        "cagr": "30%+",
+        "indicators": [
+            {"label": "核心技術", "value": "液冷 / 水冷板"},
+            {"label": "關鍵元件", "value": "CDU / 快接"},
+            {"label": "需求動能", "value": "AI 機櫃"},
+            {"label": "代表廠商", "value": "雙鴻 / 高力"},
+        ],
+        "members": {"midstream": ["3324", "3017", "8996", "6125", "2241"]},
+    },
+
+    # --- 光學顯示 ---
+    "disp-panel": {
+        "name": "光學顯示｜面板",
+        "desc": "大尺寸與中小尺寸面板,雙虎轉型利基與車載應用,搭配 OLED/Mini LED 升級。",
+        "category": "光學顯示",
+        "cagr": "低個位數",
+        "indicators": [
+            {"label": "主要產品", "value": "LCD / OLED 面板"},
+            {"label": "雙虎", "value": "友達 / 群創"},
+            {"label": "轉型方向", "value": "車載 / 利基"},
+            {"label": "市場特性", "value": "景氣循環"},
+        ],
+        "members": {"midstream": ["2409", "3481", "6116", "8105"]},
+    },
+    "disp-lens": {
+        "name": "光學顯示｜光學鏡頭",
+        "desc": "手機與車用光學鏡頭模組,車用滲透與多鏡頭趨勢帶動規格升級。",
+        "category": "光學顯示",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "主要產品", "value": "光學鏡頭"},
+            {"label": "主要應用", "value": "手機 / 車用"},
+            {"label": "全球龍頭", "value": "大立光"},
+            {"label": "成長動能", "value": "車用滲透"},
+        ],
+        "members": {"midstream": ["3008", "3406", "3019", "3362", "4976"]},
+    },
+
+    # --- 電子零組件 ---
+    "comp-chassis": {
+        "name": "電子零組件｜機殼與結構件",
+        "desc": "伺服器與 PC 機殼、機構件與散熱結構,AI 伺服器整機櫃帶動需求。",
+        "category": "電子零組件",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要產品", "value": "機殼 / 結構件"},
+            {"label": "主要應用", "value": "伺服器 / PC"},
+            {"label": "需求動能", "value": "AI 伺服器"},
+            {"label": "代表廠商", "value": "勤誠 / 營邦"},
+        ],
+        "members": {"midstream": ["8210", "3693", "3013", "6235", "5392"]},
+    },
 }
 
 

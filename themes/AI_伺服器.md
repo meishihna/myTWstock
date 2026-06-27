@@ -2,7 +2,7 @@
 
 > AI 訓練與推論伺服器完整供應鏈，從晶片到系統到散熱
 
-**涵蓋公司數:** 272
+**涵蓋公司數:** 275
 
 **分類:** AI 伺服器
 
@@ -10,13 +10,15 @@
 
 **關鍵指標:** 技術核心=GPU 加速運算 | 主流架構=NVIDIA HGX / GB200 | 核心客戶=北美 CSP | 產業地位=AI 算力基礎
 
-**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[NVIDIA]] (169) | [[CPO]] (28) | [[資料中心]] (87)
+**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[NVIDIA]] (169) | [[CPO]] (28) | [[資料中心]] (88)
 
 ---
 
-## 上游 (1)
+## 上游 (3)
 
 - **2347 聯強** (Electronics & Computer Distribution) [GPU/AI]
+- **6750 泰創工程** (Engineering & Construction) [液冷設備]
+- **6903 巨漢** (Engineering & Construction) [液冷設備]
 
 ## 中游 (20)
 
@@ -41,7 +43,7 @@
 - **8996 高力** (Specialty Industrial Machinery) [高力]
 - **6982 大井泵浦** (Specialty Industrial Machinery)
 
-## 下游 (72)
+## 下游 (71)
 
 - **3058 立德** (Electrical Equipment & Parts) [5G/AI]
 - **4551 智伸科** (Auto Parts) [AI 伺服器]
@@ -93,7 +95,6 @@
 - **2618 長榮航** (Airlines) [AI/電商空運需求]
 - **6761 穩得** (Electronics & Computer Distribution) [AI伺服器]
 - **3563 牧德** (Semiconductor Equipment & Materials) [IC 載板]
-- **6903 巨漢** (Engineering & Construction) [代工組裝]
 - **3597 映興** (Electronic Components) [伺服器]
 - **6584 南俊國際** (Furnishings, Fixtures & Appliances) [伺服器 ODM]
 - **5498 凱崴** (Tools & Accessories) [伺服器板廠]
@@ -116,7 +117,7 @@
 - **5426 振發** (Metal Fabrication)
 - **2025 千興** (Steel)
 
-## 相關公司 (179)
+## 相關公司 (181)
 
 - **1809 中釉** (Building Products & Equipment)
 - **1326 台化** (Chemicals)
@@ -270,6 +271,8 @@
 - **5515 建國** (Engineering & Construction)
 - **5536 聖暉** (Engineering & Construction)
 - **6139 亞翔** (Engineering & Construction)
+- **6691 洋基工程** (Engineering & Construction)
+- **9933 中鼎** (Engineering & Construction)
 - **4569 六方科-KY** (Metal Fabrication)
 - **2360 致茂** (Scientific & Technical Instruments)
 - **3030 德律** (Scientific & Technical Instruments)

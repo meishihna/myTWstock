@@ -30,13 +30,16 @@
 - **6770 力積電** (Semiconductors) [力積電 (PSMC)]
 - **2444 兆勁** (Communication Equipment) [記憶體模組]
 
-## 相關公司 (19)
+## 下游 (1)
+
+- **9933 中鼎** (Engineering & Construction) [半導體]
+
+## 相關公司 (18)
 
 - **4967 十銓** (Computer Hardware)
 - **4973 廣穎** (Computer Hardware)
 - **5289 宜鼎** (Computer Hardware)
 - **6108 競國** (Electronic Components)
-- **9933 中鼎** (Engineering & Construction)
 - **5351 鈺創** (Semiconductor Equipment & Materials)
 - **2342 茂矽** (Semiconductors)
 - **2344 華邦電** (Semiconductors)
