@@ -30,10 +30,16 @@ function groupNodes(arr: any[]) {
 const grouped: Record<string, { node: string; items: any[] }[]> = {
   u: groupNodes(ind.tiers.u), m: groupNodes(ind.tiers.m), d: groupNodes(ind.tiers.d),
 };
-// 只有當某一層節點過多(會拉得很長)時,才改成多欄並排 + 依節點數分配寬度;
-// 一般協調的產業維持原本「等寬欄、單欄節點」。
-const maxTierNodes = Math.max(0, ...tiersPresent.map((tk) => grouped[tk].length));
-const needsWrap = maxTierNodes >= 12;
+// 只有「單一層節點過多」(>=12)才改多欄並排,且欄數讓它高度對齊最長的單欄層;
+// 其餘層(及一般協調的產業)維持原本「等寬欄、單欄節點」,不動。
+const WRAP_MIN = 12;
+const refRows = Math.max(
+  8,
+  ...tiersPresent.filter((tk) => grouped[tk].length < WRAP_MIN).map((tk) => grouped[tk].length),
+);
+const hasWrap = tiersPresent.some((tk) => grouped[tk].length >= WRAP_MIN);
+const tierCols = (tk: string) =>
+  grouped[tk].length >= WRAP_MIN ? Math.min(6, Math.ceil(grouped[tk].length / refRows)) : 1;
 
 function momTag(n: number) {
   if (!n) return null;
@@ -73,7 +79,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
 
   {/* 上下游框圖 */}
   <h2 class="ind-sec-h">產業鏈結構</h2>
-  <div class={`chain-diagram ${ind.flat ? "flat" : ""} ${needsWrap ? "wrap" : ""}`}>
+  <div class={`chain-diagram ${ind.flat ? "flat" : ""}`}>
     {ind.flat ? (
       <div class="chain-tier full">
         <div class="chain-nodes">
@@ -83,19 +89,22 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
         </div>
       </div>
     ) : (
-      tiersPresent.map((tk, i) => (
-        <>
-          <div class="chain-tier" style={needsWrap ? `flex-grow:${grouped[tk].length}` : undefined}>
-            <div class="chain-tier-label">{TIER[tk]}</div>
-            <div class="chain-nodes">
-              {grouped[tk].map((g) => (
-                <a class="chain-node" href={`#${anchor(tk, g.node)}`}>{g.node}<span class="cn-n">{g.items.length}</span></a>
-              ))}
+      tiersPresent.map((tk, i) => {
+        const cols = tierCols(tk);
+        return (
+          <>
+            <div class={`chain-tier ${cols > 1 ? "multi" : ""}`} style={hasWrap ? `flex-grow:${cols}` : undefined}>
+              <div class="chain-tier-label">{TIER[tk]}</div>
+              <div class="chain-nodes" style={cols > 1 ? `grid-template-columns: repeat(${cols}, 1fr)` : undefined}>
+                {grouped[tk].map((g) => (
+                  <a class="chain-node" href={`#${anchor(tk, g.node)}`}>{g.node}<span class="cn-n">{g.items.length}</span></a>
+                ))}
+              </div>
             </div>
-          </div>
-          {i < tiersPresent.length - 1 && <div class="chain-arrow">▸</div>}
-        </>
-      ))
+            {i < tiersPresent.length - 1 && <div class="chain-arrow">▸</div>}
+          </>
+        );
+      })
     )}
   </div>
 
@@ -157,7 +166,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .chain-tier-label { text-align: center; font-weight: 700; color: var(--accent); font-size: 0.85rem; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
   .chain-nodes { display: flex; flex-direction: column; gap: 0.4rem; }
   .chain-diagram.flat .chain-nodes { flex-direction: row; flex-wrap: wrap; }
-  .chain-diagram.wrap .chain-nodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); align-content: start; }
+  .chain-tier.multi .chain-nodes { display: grid; align-content: start; }
   .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; padding: 0.45rem 0.6rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-size: 0.82rem; font-weight: 600; line-height: 1.2; color: var(--text-primary); text-decoration: none; transition: border-color 0.15s, background 0.15s; }
   .chain-node:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated)); }
   .cn-n { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
