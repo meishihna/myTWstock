@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 10
 
-**分類:** 光通訊
+**分類:** 通信網路
 
 **CAGR:** 12–15%
 
@@ -17,15 +17,15 @@
 ## 上游 (4)
 
 - **6715 嘉基** (Communication Equipment) [VCSEL 元件]
-- **3450 聯鈞** (Semiconductor Equipment & Materials) [VCSEL 晶粒]
 - **3701 大眾控** (Computer Hardware) [光電元件]
 - **6197 佳必琪** (Computer Hardware) [光電元件]
+- **3450 聯鈞** (Semiconductor Equipment & Materials) [VCSEL 晶粒]
 
 ## 中游 (5)
 
+- **2444 兆勁** (Communication Equipment) [VCSEL 晶片]
 - **2393 億光** (Electronic Components) [LED 封裝]
 - **3437 榮創** (Semiconductors) [LED 封裝]
-- **2444 兆勁** (Communication Equipment) [VCSEL 晶片]
 - **3234 光環** (Semiconductors) [光元件]
 - **6451 訊芯-KY** (Semiconductors) [光通訊封裝]
 

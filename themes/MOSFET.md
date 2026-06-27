@@ -4,26 +4,18 @@
 
 **涵蓋公司數:** 36
 
-**分類:** 能源車用
+**分類:** 汽車
 
 **CAGR:** 8–10%
 
 **關鍵指標:** 核心元件=MOSFET / IGBT | 主要應用=電動車 / 工控 / 電源 | 材料升級=SiC / GaN | 台廠角色=設計 / 封測
 
-**相關主題:** [[IGBT]] (29) | [[碳化矽]] (27) | [[氮化鎵]] (23) | [[電動車]] (218)
+**相關主題:** [[IGBT]] (29) | [[碳化矽]] (27) | [[氮化鎵]] (23) | [[電動車]] (219)
 
 ---
 
 ## 上游 (30)
 
-- **6781 AES-KY** (Electrical Equipment & Parts) [BMS元件]
-- **2301 光寶科** (Computer Hardware) [功率元件]
-- **2385 群光** (Computer Hardware) [功率元件]
-- **2420 新巨** (Electrical Equipment & Parts) [功率元件]
-- **3043 科風** (Electrical Equipment & Parts) [功率元件]
-- **3308 聯德** (Electrical Equipment & Parts) [功率元件]
-- **3617 碩天** (Electrical Equipment & Parts) [功率元件]
-- **7750 新代** (Electrical Equipment & Parts) [功率元件]
 - **1471 首利** (Computer Hardware) [功率半導體]
 - **2457 飛宏** (Electrical Equipment & Parts) [功率半導體]
 - **3015 全漢** (Electrical Equipment & Parts) [功率半導體]
@@ -37,21 +29,29 @@
 - **6203 海韻電** (Electronic Components) [功率半導體]
 - **3033 威健** (Electronics & Computer Distribution) [功率半導體]
 - **3702 大聯大** (Electronics & Computer Distribution) [功率半導體]
-- **6259 百徽** (Electronics & Computer Distribution) [功率半導體代理]
-- **3058 立德** (Electrical Equipment & Parts) [功率器件]
-- **6651 全宇昕** (Electronic Components) [晶圓代工]
-- **3317 尼克森** (Semiconductors) [晶圓製造]
-- **8163 達方** (Electronic Components) [逆變器零件]
-- **3484 崧騰** (Electrical Equipment & Parts) [電子元件]
-- **2413 環科** (Electronic Components) [電子元件]
+- **2301 光寶科** (Computer Hardware) [功率元件]
+- **2385 群光** (Computer Hardware) [功率元件]
+- **2420 新巨** (Electrical Equipment & Parts) [功率元件]
+- **3043 科風** (Electrical Equipment & Parts) [功率元件]
+- **3308 聯德** (Electrical Equipment & Parts) [功率元件]
+- **3617 碩天** (Electrical Equipment & Parts) [功率元件]
+- **7750 新代** (Electrical Equipment & Parts) [功率元件]
 - **2312 金寶** (Computer Hardware) [電源元件]
 - **3032 偉訓** (Computer Hardware) [電源元件]
+- **3058 立德** (Electrical Equipment & Parts) [功率器件]
+- **3484 崧騰** (Electrical Equipment & Parts) [電子元件]
+- **2413 環科** (Electronic Components) [電子元件]
+- **6781 AES-KY** (Electrical Equipment & Parts) [BMS元件]
+- **6651 全宇昕** (Electronic Components) [晶圓代工]
+- **8163 達方** (Electronic Components) [逆變器零件]
+- **6259 百徽** (Electronics & Computer Distribution) [功率半導體代理]
+- **3317 尼克森** (Semiconductors) [晶圓製造]
 
 ## 中游 (6)
 
-- **8261 富鼎** (Semiconductors) [MOSFET/IGBT]
+- **2342 茂矽** (Semiconductors) [功率半導體代工]
+- **6138 茂達** (Semiconductors) [電源 IC]
 - **6693 廣閎科** (Semiconductors) [MOSFET/馬達驅動]
 - **6719 力智** (Semiconductors) [PMIC/MOSFET]
 - **8162 微矽電子-創** (Semiconductors) [功率元件測試]
-- **2342 茂矽** (Semiconductors) [功率半導體代工]
-- **6138 茂達** (Semiconductors) [電源 IC]
+- **8261 富鼎** (Semiconductors) [MOSFET/IGBT]

@@ -12,15 +12,12 @@
 
 **關鍵指標:** 技術核心=積層陶瓷電容 | 升級驅動=車用+AI 伺服器 | 規格趨勢=小型化高容 | 產業地位=被動元件基礎
 
-**相關主題:** [[電動車]] (218) | [[AI 伺服器]] (278) | [[PCB]] (101)
+**相關主題:** [[電動車]] (219) | [[AI 伺服器]] (279) | [[PCB]] (101)
 
 ---
 
 ## 上游 (18)
 
-- **8163 達方** (Electronic Components) [MLCC 材料]
-- **8043 蜜望實** (Electronic Components) [MLCC 與電感]
-- **4931 新盛力** (Electrical Equipment & Parts) [保護電路板/被動元件]
 - **1471 首利** (Computer Hardware) [被動元件]
 - **2301 光寶科** (Computer Hardware) [被動元件]
 - **2312 金寶** (Computer Hardware) [被動元件]
@@ -34,14 +31,17 @@
 - **2431 聯昌** (Electronic Components) [被動元件]
 - **3390 旭軟** (Electronic Components) [被動元件]
 - **6924 榮惠-KY創** (Electronic Components) [被動元件]
-- **3026 禾伸堂** (Electronic Components) [鈦酸鋇 (BaTiO₃)]
 - **2352 佳世達** (Computer Hardware) [電子元件]
+- **4931 新盛力** (Electrical Equipment & Parts) [保護電路板/被動元件]
+- **3026 禾伸堂** (Electronic Components) [鈦酸鋇 (BaTiO₃)]
+- **8043 蜜望實** (Electronic Components) [MLCC 與電感]
+- **8163 達方** (Electronic Components) [MLCC 材料]
 
 ## 中游 (3)
 
+- **2327 國巨** (Electronic Components) [被動元件製造]
 - **2492 華新科** (Electronic Components) [MLCC 製造]
 - **4765 磐采** (Specialty Chemicals) [磐采]
-- **2327 國巨** (Electronic Components) [被動元件製造]
 
 ## 下游 (2)
 

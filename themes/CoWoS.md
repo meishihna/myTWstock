@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 31
 
-**分類:** 先進封測
+**分類:** 半導體
 
 **CAGR:** 35%+
 
@@ -22,14 +22,14 @@
 
 ## 中游 (12)
 
-- **3455 由田** (Electronic Components) [AOI 設備製造]
-- **5493 三聯** (Electronic Components) [CMP 研磨液]
-- **3037 欣興** (Electronic Components) [CoWoS 載板]
-- **3653 健策** (Electronic Components) [MCL]
-- **2330 台積電** (Semiconductors) [先進封裝]
 - **3535 晶彩科** (Computer Hardware) [半導體 AOI]
-- **6742 澤米** (Electronic Components) [半導體鍍膜]
+- **3037 欣興** (Electronic Components) [CoWoS 載板]
+- **3455 由田** (Electronic Components) [AOI 設備製造]
+- **3653 健策** (Electronic Components) [MCL]
+- **5493 三聯** (Electronic Components) [CMP 研磨液]
 - **6207 雷科** (Electronic Components) [半導體雷射設備]
+- **6742 澤米** (Electronic Components) [半導體鍍膜]
+- **2330 台積電** (Semiconductors) [先進封裝]
 - **1717 長興** (Specialty Chemicals) [長興]
 - **4510 高鋒** (Specialty Industrial Machinery)
 - **6664 群翊** (Specialty Industrial Machinery)
@@ -43,11 +43,6 @@
 - **3167 大量** (Specialty Industrial Machinery) [先進封裝]
 - **3580 友威科** (Specialty Industrial Machinery) [先進封裝]
 - **6788 華景電** (Electrical Equipment & Parts) [先進封裝廠]
-- **2535 達欣工** (Engineering & Construction) [半導體]
-- **8374 羅昇** (Industrial Distribution) [半導體/光電]
-- **3645 達邁** (Electronic Components) [半導體封裝]
-- **4573 高明鐵** (Electronic Components) [半導體封裝設備]
-- **8046 南電** (Electronic Components) [封裝整合]
 - **3595 山太士** (Electronic Components) [晶圓代工]
 - **5536 聖暉** (Engineering & Construction) [晶圓代工]
 - **6139 亞翔** (Engineering & Construction) [晶圓代工]
@@ -55,3 +50,8 @@
 - **6903 巨漢** (Engineering & Construction) [晶圓代工]
 - **3131 弘塑** (Semiconductor Equipment & Materials) [晶圓代工]
 - **4755 三福化** (Specialty Chemicals) [晶圓代工]
+- **3645 達邁** (Electronic Components) [半導體封裝]
+- **4573 高明鐵** (Electronic Components) [半導體封裝設備]
+- **8046 南電** (Electronic Components) [封裝整合]
+- **2535 達欣工** (Engineering & Construction) [半導體]
+- **8374 羅昇** (Industrial Distribution) [半導體/光電]
