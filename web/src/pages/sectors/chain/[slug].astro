@@ -41,6 +41,18 @@ const hasWrap = tiersPresent.some((tk) => grouped[tk].length >= WRAP_MIN);
 const tierCols = (tk: string) =>
   grouped[tk].length >= WRAP_MIN ? Math.min(6, Math.ceil(grouped[tk].length / refRows)) : 1;
 
+// 熱力圖資料:個股(去重)+ 節點(分類)分群,供前端 treemap
+const _seenCon = new Set<string>();
+const hmCons: { t: string; n: string }[] = [];
+for (const tk of ["u", "m", "d"] as const) {
+  for (const c of ind.tiers[tk]) {
+    if (!_seenCon.has(c.t)) { _seenCon.add(c.t); hmCons.push({ t: c.t, n: c.n }); }
+  }
+}
+const hmNodes = tiersPresent.flatMap((tk) =>
+  grouped[tk].map((g) => ({ node: g.node, tickers: g.items.map((i: any) => i.t) })),
+);
+
 function momTag(n: number) {
   if (!n) return null;
   const dir = n > 0 ? "年增" : "年減";
@@ -107,6 +119,23 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
       })
     )}
   </div>
+
+  {/* 成交額熱力圖:節點(分類)層級 + 個股層級 */}
+  <h2 class="ind-sec-h">成交額熱力圖</h2>
+  <div class="ind-hm-head">
+    <span class="ind-hm-note">磚塊＝成交額,顏色＝漲跌(紅漲綠跌)</span>
+    <div class="hmp-toggle" role="tablist" aria-label="期間切換">
+      <button class="hmp-tab is-active" type="button" role="tab" aria-selected="true" data-hmp="d">日</button>
+      <button class="hmp-tab" type="button" role="tab" aria-selected="false" data-hmp="w">週</button>
+      <button class="hmp-tab" type="button" role="tab" aria-selected="false" data-hmp="m">月</button>
+    </div>
+  </div>
+  <h3 class="ind-hm-h3">分類(節點)</h3>
+  <div id="ind-hm-node" class="ind-hm" role="img" aria-label="產業鏈節點成交額熱力圖" />
+  <h3 class="ind-hm-h3">個股</h3>
+  <div id="ind-hm-stock" class="ind-hm" role="img" aria-label="個股成交額熱力圖" />
+  <script type="application/json" id="ind-hm-cons" set:html={JSON.stringify(hmCons)} />
+  <script type="application/json" id="ind-hm-nodes" set:html={JSON.stringify(hmNodes)} />
 
   {/* 角色分群 */}
   <h2 class="ind-sec-h">成分股(依節點分群)</h2>
@@ -196,6 +225,18 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .sc-yoy { font-size: 0.78rem; font-weight: 600; }
   .sc-yoy.up { color: var(--up); }
   .sc-yoy.down { color: var(--down); }
+
+  .ind-hm-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin: 0.2rem 0 0.6rem; }
+  .ind-hm-note { font-size: 0.78rem; color: var(--text-secondary); }
+  .ind-hm-h3 { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0.8rem 0 0.4rem; }
+  .ind-hm { position: relative; width: 100%; height: 260px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .ind-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; border-radius: 3px; text-decoration: none; }
+  .ind-tile-t { font-size: 0.72rem; font-weight: 600; color: #f1ede5; line-height: 1.15; }
+  .ind-tile-p { font-size: 0.68rem; color: #e6e1d8; }
+  .ind-hm-empty { color: var(--text-secondary); font-size: 0.82rem; padding: 1rem; text-align: center; }
+  .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
+  .hmp-tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; }
+  .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
 </style>
 
 <script>
@@ -220,4 +261,80 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     });
   }
   refresh();
+</script>
+
+<script>
+  import { treemap, tileColor } from "../../../lib/heatmap";
+  type Stat = { d: number[]; w: number[]; m: number[] };
+  const stats: Record<string, Stat> = {};
+  let period: "d" | "w" | "m" = "d";
+  const hmCons: { t: string; n: string }[] = JSON.parse(document.getElementById("ind-hm-cons")?.textContent || "[]");
+  const hmNodes: { node: string; tickers: string[] }[] = JSON.parse(document.getElementById("ind-hm-nodes")?.textContent || "[]");
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+
+  function renderStock() {
+    const root = document.getElementById("ind-hm-stock"); if (!root) return;
+    const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
+    const rows = hmCons
+      .map((c) => { const s = stats[c.t]; return s && s[period] ? { ...c, chg: s[period][0], tov: s[period][1] } : null; })
+      .filter((c): c is { t: string; n: string; chg: number; tov: number } => !!c && c.tov > 0)
+      .sort((a, b) => b.tov - a.tov).slice(0, 40);
+    if (rows.length === 0) { root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
+    const laid = treemap(rows.map((c) => ({ ...c, value: Math.sqrt(c.tov) })), 0, 0, W, H);
+    const G = 1;
+    root.innerHTML = laid.map((c) => {
+      const p = c.chg, big = c.w > 52 && c.h > 26, showP = p != null && c.w > 42 && c.h > 38;
+      return `<a class="ind-tile" href="/report/${c.t}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+        + (big ? `<span class="ind-tile-t">${esc(c.n)}</span>` : "")
+        + (showP ? `<span class="ind-tile-p">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span>` : "") + `</a>`;
+    }).join("");
+  }
+
+  function nodeStat(g: { tickers: string[] }) {
+    let tov = 0, wsum = 0, psum = 0; const seen = new Set<string>();
+    for (const t of g.tickers) {
+      if (seen.has(t)) continue; seen.add(t);
+      const s = stats[t]; if (!s || !s[period]) continue;
+      const chg = s[period][0], tv = s[period][1];
+      if (typeof tv === "number" && tv > 0) { tov += tv; if (typeof chg === "number" && isFinite(chg)) { wsum += tv; psum += tv * chg; } }
+    }
+    return { tov, chg: wsum > 0 ? psum / wsum : null };
+  }
+
+  function renderNode() {
+    const root = document.getElementById("ind-hm-node"); if (!root) return;
+    const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
+    const rows = hmNodes.map((g) => ({ g, st: nodeStat(g) })).filter((x) => x.st.tov > 0);
+    if (rows.length === 0) { root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
+    const laid = treemap(rows.map((x) => ({ node: x.g.node, value: Math.sqrt(x.st.tov), _chg: x.st.chg })), 0, 0, W, H);
+    const G = 1;
+    root.innerHTML = laid.map((t) => {
+      const p = (t as typeof t & { _chg: number | null })._chg;
+      const big = t.w > 60 && t.h > 28, showP = p != null && t.w > 48 && t.h > 40;
+      return `<div class="ind-tile node" style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+        + (big ? `<span class="ind-tile-t">${esc(t.node)}</span>` : "")
+        + (showP ? `<span class="ind-tile-p">${p! > 0 ? "+" : ""}${p!.toFixed(2)}%</span>` : "") + `</div>`;
+    }).join("");
+  }
+
+  function renderAll() { renderNode(); renderStock(); }
+
+  (async () => {
+    try { const r = await fetch("/data/heatmap-stats.json"); if (r.ok) Object.assign(stats, (await r.json()).stats || {}); } catch { /* ignore */ }
+    renderAll();
+  })();
+
+  document.querySelectorAll<HTMLButtonElement>(".hmp-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      period = (tab.getAttribute("data-hmp") as "d" | "w" | "m") || "d";
+      document.querySelectorAll<HTMLButtonElement>(".hmp-tab").forEach((t) => {
+        const on = t === tab; t.classList.toggle("is-active", on); t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      renderAll();
+    });
+  });
+
+  let _t: number;
+  const ro = new ResizeObserver(() => { clearTimeout(_t); _t = window.setTimeout(renderAll, 150); });
+  ["ind-hm-node", "ind-hm-stock"].forEach((id) => { const el = document.getElementById(id); if (el) ro.observe(el); });
 </script>

@@ -22,6 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB = path.join(__dirname, "..");
 const DATA = path.join(WEB, "public", "data");
 const MAP = path.join(DATA, "map-index.json");
+const IND = path.join(DATA, "industries-index.json");
 const OUT = path.join(DATA, "heatmap-stats.json");
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
@@ -31,17 +32,19 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const r1 = (n) => Math.round(n * 10) / 10;
 
 function universe() {
-  if (!existsSync(MAP)) {
-    console.warn("[heatmap-stats] map-index.json missing, skip");
-    return [];
-  }
-  const d = JSON.parse(readFileSync(MAP, "utf8"));
   const s = new Set();
-  for (const t of d.themes || []) {
-    for (const k of ["u", "m", "d"]) for (const c of t.tiers?.[k] || []) {
-      if (/^\d{4}$/.test(c.t)) s.add(c.t);
+  const add = (file, listKey) => {
+    if (!existsSync(file)) return;
+    const d = JSON.parse(readFileSync(file, "utf8"));
+    for (const t of d[listKey] || []) {
+      for (const k of ["u", "m", "d"]) for (const c of t.tiers?.[k] || []) {
+        if (/^\d{4}$/.test(c.t)) s.add(c.t);
+      }
     }
-  }
+  };
+  add(MAP, "themes"); // /map 投資題材成分股
+  add(IND, "industries"); // 產業 section TPEx 產業鏈成分股
+  if (s.size === 0) console.warn("[heatmap-stats] map/industries index missing, skip");
   return [...s];
 }
 
