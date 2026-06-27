@@ -30,6 +30,10 @@ function groupNodes(arr: any[]) {
 const grouped: Record<string, { node: string; items: any[] }[]> = {
   u: groupNodes(ind.tiers.u), m: groupNodes(ind.tiers.m), d: groupNodes(ind.tiers.d),
 };
+// 只有當某一層節點過多(會拉得很長)時,才改成多欄並排 + 依節點數分配寬度;
+// 一般協調的產業維持原本「等寬欄、單欄節點」。
+const maxTierNodes = Math.max(0, ...tiersPresent.map((tk) => grouped[tk].length));
+const needsWrap = maxTierNodes >= 12;
 
 function momTag(n: number) {
   if (!n) return null;
@@ -69,7 +73,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
 
   {/* 上下游框圖 */}
   <h2 class="ind-sec-h">產業鏈結構</h2>
-  <div class={`chain-diagram ${ind.flat ? "flat" : ""}`}>
+  <div class={`chain-diagram ${ind.flat ? "flat" : ""} ${needsWrap ? "wrap" : ""}`}>
     {ind.flat ? (
       <div class="chain-tier full">
         <div class="chain-nodes">
@@ -81,7 +85,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     ) : (
       tiersPresent.map((tk, i) => (
         <>
-          <div class="chain-tier">
+          <div class="chain-tier" style={needsWrap ? `flex-grow:${grouped[tk].length}` : undefined}>
             <div class="chain-tier-label">{TIER[tk]}</div>
             <div class="chain-nodes">
               {grouped[tk].map((g) => (
@@ -153,7 +157,8 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .chain-tier-label { text-align: center; font-weight: 700; color: var(--accent); font-size: 0.85rem; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
   .chain-nodes { display: flex; flex-direction: column; gap: 0.4rem; }
   .chain-diagram.flat .chain-nodes { flex-direction: row; flex-wrap: wrap; }
-  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; padding: 0.45rem 0.6rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); text-decoration: none; transition: border-color 0.15s, background 0.15s; }
+  .chain-diagram.wrap .chain-nodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); align-content: start; }
+  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; padding: 0.45rem 0.6rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-size: 0.82rem; font-weight: 600; line-height: 1.2; color: var(--text-primary); text-decoration: none; transition: border-color 0.15s, background 0.15s; }
   .chain-node:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated)); }
   .cn-n { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
   .chain-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 1.1rem; }
