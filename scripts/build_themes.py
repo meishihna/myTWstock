@@ -1221,6 +1221,45 @@ THEME_DEFINITIONS = {
         ],
         "members": {"midstream": ["1609", "1605", "1608", "1612", "1603"]},
     },
+
+    # ============================================================
+    # 傳統產業鏈 —— 結構與成分股參照「櫃買中心 產業價值鏈資訊平台」
+    # (ic.tpex.org.tw),members 採 {tier: {子分類: [代號]}};
+    # 僅保留本庫已涵蓋之台股,跨層去重以維持涵蓋家數一致。
+    # ============================================================
+    "automobile": {
+        "name": "汽車",
+        "desc": "從汽車零配件(車燈、輪胎、鈑金、鋁圈等)、整車組裝到銷售通路的完整產業鏈;結構參照櫃買中心產業價值鏈平台。",
+        "category": "傳統產業",
+        "indicators": [
+            {"label": "上游", "value": "車燈 / 輪胎 / 鈑金 / 鋁圈 / 零配件"},
+            {"label": "中游", "value": "整車組裝、修理及技術服務"},
+            {"label": "下游", "value": "銷售、進出口業務"},
+            {"label": "台廠強項", "value": "售後維修 (AM) 零配件"},
+        ],
+        "related": ["電動車"],
+        "members": {
+            "upstream": {
+                "車燈": ["1521", "1522", "1538", "2241", "2254", "2301",
+                         "2340", "2459", "3437", "2248", "3226", "3685", "5230"],
+                "輪胎": ["2101", "2102", "2106"],
+                "鈑金": ["1319", "1524"],
+                "鋁合金鋼圈": ["1563", "4502"],
+                "保險桿": ["1339", "2239"],
+                "其他": ["1503", "1506", "1512", "1525", "1533", "1536", "1568",
+                         "1587", "2228", "2308", "2497", "3311", "3679", "3706",
+                         "4551", "4590", "4976", "6283", "7788", "1338", "1785",
+                         "2235", "3128", "3162", "3227", "3290", "3310", "3552",
+                         "4554", "5356", "2245", "2249", "2252", "2255", "2256"],
+            },
+            "midstream": {
+                "整車組裝、修理及技術服務": ["2201", "2204", "2206", "2227", "2231"],
+            },
+            "downstream": {
+                "銷售、進出口業務": ["2207", "2247", "3609"],
+            },
+        },
+    },
 }
 
 
@@ -1333,19 +1372,30 @@ def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
     if members:
         meta = ticker_meta or {}
         entries = []
+        seen = set()  # 跨層去重:同一代號只列一次,確保涵蓋家數=上中下游加總
         for tier in ("upstream", "midstream", "downstream"):
-            for tk in members.get(tier, []):
-                m = meta.get(tk)
-                if not m:
-                    print(f"  [warn] {theme_tag}: 代號 {tk} 不在涵蓋範圍,略過")
-                    continue
-                entries.append({
-                    "ticker": tk,
-                    "company": m["company"],
-                    "sector": m["sector"],
-                    "role": tier,
-                    "subcat": "",
-                })
+            group = members.get(tier)
+            if not group:
+                continue
+            # group 可為扁平 [代號](subcat 留空)或 {子分類: [代號]}
+            # (TPEx 產業價值鏈結構,如 上游→車燈/輪胎/…)
+            sub_iter = group.items() if isinstance(group, dict) else [("", group)]
+            for subcat, tickers in sub_iter:
+                for tk in tickers:
+                    if tk in seen:
+                        continue
+                    m = meta.get(tk)
+                    if not m:
+                        print(f"  [warn] {theme_tag}: 代號 {tk} 不在涵蓋範圍,略過")
+                        continue
+                    seen.add(tk)
+                    entries.append({
+                        "ticker": tk,
+                        "company": m["company"],
+                        "sector": m["sector"],
+                        "role": tier,
+                        "subcat": subcat,
+                    })
         if not entries:
             return None
     else:
@@ -1401,11 +1451,26 @@ def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
     other = [e for e in entries if e["role"] == "related"]
 
     def format_entries(entries):
-        # 依 子分類 → 產業 → 代號 排序,讓同子分類成員相鄰(子分類為空者排最後)
-        rows = sorted(
-            entries,
-            key=lambda e: (e.get("subcat") or "￿", e["sector"], e["ticker"]),
-        )
+        # 子分類依「首次出現順序」分組(策展 members 即 TPEx 節點順序),
+        # 「其他」與無子分類者排最後;組內再依 產業 → 代號。
+        order = {}
+        for e in entries:
+            sub = (e.get("subcat") or "").strip()
+            if sub and sub != "其他" and sub not in order:
+                order[sub] = len(order)
+        big = len(order) + 10
+
+        def sort_key(e):
+            sub = (e.get("subcat") or "").strip()
+            if not sub:
+                rank = big + 1
+            elif sub == "其他":
+                rank = big
+            else:
+                rank = order[sub]
+            return (rank, e["sector"], e["ticker"])
+
+        rows = sorted(entries, key=sort_key)
         result = []
         for e in rows:
             sub = (e.get("subcat") or "").strip()
@@ -1510,11 +1575,17 @@ def main():
             filepath = os.path.join(THEMES_DIR, f"{safe_name}.md")
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(page)
-            count = (
-                sum(len(v) for v in defn["members"].values())
-                if defn.get("members")
-                else len(wl_map.get(tag, []))
-            )
+            if defn.get("members"):
+                mt = set()
+                for v in defn["members"].values():
+                    if isinstance(v, dict):
+                        for lst in v.values():
+                            mt.update(lst)
+                    else:
+                        mt.update(v)
+                count = sum(1 for t in mt if t in ticker_meta)  # 只計涵蓋者
+            else:
+                count = len(wl_map.get(tag, []))
             themes_built[tag] = count
             print(f"  {tag}: {count} companies -> {safe_name}.md")
 

@@ -88,9 +88,9 @@ function groupBySubcat(arr: MapCo[]) {
     m.get(k)!.push(c);
   }
   const groups = [...m.entries()].map(([subcat, items]) => ({ subcat, items }));
-  groups.sort((a, b) =>
-    a.subcat === "" ? 1 : b.subcat === "" ? -1 : a.subcat.localeCompare(b.subcat, "zh-Hant"),
-  );
+  // 保留來源順序(策展 members = TPEx 節點順序);「其他」與無子分類者排最後。
+  const last = (s: string) => s === "" || s === "其他";
+  groups.sort((a, b) => (last(a.subcat) === last(b.subcat) ? 0 : last(a.subcat) ? 1 : -1));
   const flat = groups.length === 1 && groups[0].subcat === "";
   return { groups, flat };
 }
