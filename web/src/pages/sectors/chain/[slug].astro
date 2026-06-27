@@ -84,7 +84,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
       <div class="chain-tier full">
         <div class="chain-nodes">
           {grouped.m.map((g) => (
-            <a class="chain-node" href={`#${anchor("m", g.node)}`}>{g.node}<span class="cn-n">{g.items.length}</span></a>
+            <button class="chain-node" type="button" data-target={anchor("m", g.node)}>{g.node}<span class="cn-n">{g.items.length}</span></button>
           ))}
         </div>
       </div>
@@ -97,7 +97,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
               <div class="chain-tier-label">{TIER[tk]}</div>
               <div class="chain-nodes" style={cols > 1 ? `grid-template-columns: repeat(${cols}, 1fr)` : undefined}>
                 {grouped[tk].map((g) => (
-                  <a class="chain-node" href={`#${anchor(tk, g.node)}`}>{g.node}<span class="cn-n">{g.items.length}</span></a>
+                  <button class="chain-node" type="button" data-target={anchor(tk, g.node)}>{g.node}<span class="cn-n">{g.items.length}</span></button>
                 ))}
               </div>
             </div>
@@ -110,6 +110,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
 
   {/* 角色分群 */}
   <h2 class="ind-sec-h">成分股(依節點分群)</h2>
+  <p class="sc-hint">↑ 點選上方產業鏈節點以查看成分股(可複選,再點一次取消)</p>
   <div class="sc-rolegrid">
     {tiersPresent.map((tk) => (
       <section class="sc-tier">
@@ -167,8 +168,9 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .chain-nodes { display: flex; flex-direction: column; gap: 0.4rem; }
   .chain-diagram.flat .chain-nodes { flex-direction: row; flex-wrap: wrap; }
   .chain-tier.multi .chain-nodes { display: grid; align-content: start; }
-  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.3rem; padding: 0.45rem 0.45rem; white-space: nowrap; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-size: 0.72rem; font-weight: 600; line-height: 1.2; color: var(--text-primary); text-decoration: none; transition: border-color 0.15s, background 0.15s; }
+  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.3rem; width: 100%; padding: 0.45rem 0.45rem; white-space: nowrap; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-family: inherit; font-size: 0.72rem; font-weight: 600; line-height: 1.2; color: var(--text-primary); text-align: left; text-decoration: none; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
   .chain-node:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated)); }
+  .chain-node.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface-elevated)); color: var(--accent); }
   .cn-n { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
   .chain-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 1.1rem; }
 
@@ -177,7 +179,10 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .sc-tier-title { font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-bottom: 0.6rem; }
   .sc-tier-title span { color: var(--text-secondary); font-weight: 500; }
   .sc-tier { display: flex; flex-direction: column; gap: 0.9rem; }
-  .sc-subgroup { display: flex; flex-direction: column; gap: 0.45rem; scroll-margin-top: 70px; }
+  .sc-hint { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 0.8rem; }
+  .sc-tier.hide { display: none; }
+  .sc-subgroup { display: none; flex-direction: column; gap: 0.45rem; scroll-margin-top: 70px; }
+  .sc-subgroup.show { display: flex; }
   .sc-subhead { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin: 0; display: flex; align-items: baseline; gap: 0.35rem; padding-left: 0.4rem; border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); }
   .sc-subn { font-size: 0.72rem; color: var(--text-secondary); }
   .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -199,3 +204,27 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .sc-yoy.up { color: var(--up); }
   .sc-yoy.down { color: var(--down); }
 </style>
+
+<script>
+  // 框圖節點 = 切換鍵:點選顯示該節點成分股(可複選,再點取消);預設不顯示。
+  const diagram = document.querySelector(".chain-diagram");
+  const hint = document.querySelector<HTMLElement>(".sc-hint");
+  const tierSecs = [...document.querySelectorAll<HTMLElement>(".sc-tier")];
+  function refresh() {
+    const anyShown = !!document.querySelector(".sc-subgroup.show");
+    if (hint) hint.hidden = anyShown;
+    for (const t of tierSecs) t.classList.toggle("hide", !t.querySelector(".sc-subgroup.show"));
+  }
+  if (diagram) {
+    diagram.querySelectorAll<HTMLButtonElement>(".chain-node").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const grp = document.getElementById(btn.dataset.target || "");
+        if (!grp) return;
+        const shown = grp.classList.toggle("show");
+        btn.classList.toggle("sel", shown);
+        refresh();
+      });
+    });
+  }
+  refresh();
+</script>
