@@ -230,6 +230,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .ind-hm-note { font-size: 0.78rem; color: var(--text-secondary); }
   .ind-hm-h3 { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0.8rem 0 0.4rem; }
   .ind-hm { position: relative; width: 100%; height: 260px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  #ind-hm-node { height: 300px; }
   .ind-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; border-radius: 3px; text-decoration: none; }
   .ind-tile-t { font-size: 0.72rem; font-weight: 600; color: #f1ede5; line-height: 1.15; }
   .ind-tile-p { font-size: 0.68rem; color: #e6e1d8; }
@@ -237,6 +238,10 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
   .hmp-tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; }
   .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
+  .ind-hm-tip { position: fixed; z-index: 60; pointer-events: none; background: #2a2620; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 0.78rem; color: var(--text-primary); box-shadow: 0 4px 16px rgba(0,0,0,0.45); max-width: 250px; line-height: 1.5; }
+  .ind-hm-tip .tip-n { font-weight: 600; }
+  .ind-hm-tip .tip-s { color: var(--text-secondary); font-size: 0.72rem; }
+  .ind-hm-tip .tip-d { color: var(--text-secondary); font-size: 0.72rem; }
 </style>
 
 <script>
@@ -284,7 +289,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     const G = 1;
     root.innerHTML = laid.map((c) => {
       const p = c.chg, big = c.w > 52 && c.h > 26, showP = p != null && c.w > 42 && c.h > 38;
-      return `<a class="ind-tile" href="/report/${c.t}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+      return `<a class="ind-tile" href="/report/${c.t}" data-name="${esc(c.n)}" data-sub="${c.t}" data-chg="${p != null ? p.toFixed(2) : ""}" data-tov="${c.tov}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
         + (big ? `<span class="ind-tile-t">${esc(c.n)}</span>` : "")
         + (showP ? `<span class="ind-tile-p">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span>` : "") + `</a>`;
     }).join("");
@@ -306,12 +311,13 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
     const rows = hmNodes.map((g) => ({ g, st: nodeStat(g) })).filter((x) => x.st.tov > 0);
     if (rows.length === 0) { root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
-    const laid = treemap(rows.map((x) => ({ node: x.g.node, value: Math.sqrt(x.st.tov), _chg: x.st.chg })), 0, 0, W, H);
+    const laid = treemap(rows.map((x) => ({ node: x.g.node, count: x.g.tickers.length, value: Math.sqrt(x.st.tov), _chg: x.st.chg, _tov: x.st.tov })), 0, 0, W, H);
     const G = 1;
     root.innerHTML = laid.map((t) => {
-      const p = (t as typeof t & { _chg: number | null })._chg;
+      const tt = t as typeof t & { _chg: number | null; count: number; _tov: number };
+      const p = tt._chg;
       const big = t.w > 60 && t.h > 28, showP = p != null && t.w > 48 && t.h > 40;
-      return `<div class="ind-tile node" style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+      return `<div class="ind-tile node" data-name="${esc(t.node)}" data-sub="${tt.count} 家" data-chg="${p != null ? p.toFixed(2) : ""}" data-tov="${tt._tov}" style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
         + (big ? `<span class="ind-tile-t">${esc(t.node)}</span>` : "")
         + (showP ? `<span class="ind-tile-p">${p! > 0 ? "+" : ""}${p!.toFixed(2)}%</span>` : "") + `</div>`;
     }).join("");
@@ -337,4 +343,29 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   let _t: number;
   const ro = new ResizeObserver(() => { clearTimeout(_t); _t = window.setTimeout(renderAll, 150); });
   ["ind-hm-node", "ind-hm-stock"].forEach((id) => { const el = document.getElementById(id); if (el) ro.observe(el); });
+
+  // 互動式 tooltip:hover 磚塊顯示 名稱/代號(或家數)+ 漲跌 + 成交額
+  const tip = document.createElement("div");
+  tip.className = "ind-hm-tip";
+  tip.style.display = "none";
+  document.body.appendChild(tip);
+  function fmtTov(n: number): string { return n >= 10000 ? `${(n / 10000).toFixed(2)} 兆` : `${Math.round(n)} 億`; }
+  function onMove(e: MouseEvent) {
+    const tile = (e.target as HTMLElement).closest(".ind-tile") as HTMLElement | null;
+    if (!tile) { tip.style.display = "none"; return; }
+    const name = tile.dataset.name || "", sub = tile.dataset.sub || "", chg = tile.dataset.chg || "", tov = tile.dataset.tov || "";
+    const cn = parseFloat(chg);
+    const col = chg === "" ? "var(--muted)" : cn > 0 ? "#e24b4a" : cn < 0 ? "#1d9e75" : "var(--muted)";
+    const chgStr = chg === "" ? "—" : `${cn > 0 ? "+" : ""}${chg}%`;
+    tip.innerHTML = `<span class="tip-n">${name}</span> <span class="tip-s">${sub}</span><br>`
+      + `<span class="tip-d">漲跌 <span style="color:${col};font-weight:600">${chgStr}</span> · 成交額 ${fmtTov(parseFloat(tov) || 0)}</span>`;
+    tip.style.display = "block";
+    const tw = tip.offsetWidth;
+    tip.style.left = (e.clientX + tw + 20 > window.innerWidth ? e.clientX - tw - 12 : e.clientX + 14) + "px";
+    tip.style.top = Math.min(e.clientY + 16, window.innerHeight - 60) + "px";
+  }
+  ["ind-hm-node", "ind-hm-stock"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) { el.addEventListener("mousemove", onMove); el.addEventListener("mouseleave", () => { tip.style.display = "none"; }); }
+  });
 </script>
