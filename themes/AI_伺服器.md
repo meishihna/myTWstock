@@ -2,7 +2,7 @@
 
 > AI 訓練與推論伺服器完整供應鏈，從晶片到系統到散熱
 
-**涵蓋公司數:** 94
+**涵蓋公司數:** 95
 
 **分類:** AI 伺服器
 
@@ -10,7 +10,7 @@
 
 **關鍵指標:** 技術核心=GPU 加速運算 | 主流架構=NVIDIA HGX / GB200 | 核心客戶=北美 CSP | 產業地位=AI 算力基礎
 
-**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[NVIDIA]] (169) | [[CPO]] (28) | [[資料中心]] (92)
+**相關主題:** [[CoWoS]] (52) | [[HBM]] (24) | [[NVIDIA]] (169) | [[CPO]] (28) | [[資料中心]] (92)
 
 ---
 
@@ -44,7 +44,7 @@
 - **8996 高力** (Specialty Industrial Machinery) [高力]
 - **6982 大井泵浦** (Specialty Industrial Machinery)
 
-## 下游 (70)
+## 下游 (71)
 
 - **3058 立德** (Electrical Equipment & Parts) [5G/AI]
 - **4551 智伸科** (Auto Parts) [AI 伺服器]
@@ -100,6 +100,7 @@
 - **6259 百徽** (Electronics & Computer Distribution) [伺服器電源]
 - **8438 昶昕** (Chemicals) [先進封裝]
 - **2351 順德** (Semiconductor Equipment & Materials) [功率元件]
+- **8374 羅昇** (Industrial Distribution) [半導體/光電]
 - **2059 川湖** (Furnishings, Fixtures & Appliances) [品牌伺服器]
 - **7750 新代** (Electrical Equipment & Parts) [智慧製造]
 - **2504 國產** (Building Materials) [科技廠辦]

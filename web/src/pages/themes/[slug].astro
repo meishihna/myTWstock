@@ -590,7 +590,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .thm-tile-p { font-size: 0.68rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
 
     .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 8rem; }
+    .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 7rem; }
     .sc-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.62rem 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -599,8 +599,8 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-tk { font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; color: var(--accent); flex: 0 0 auto; }
     .sc-sec { font-size: 0.73rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sc-q { display: flex; flex-direction: column; align-items: flex-end; gap: 0; flex: 0 0 auto; text-align: right; }
-    .sc-price { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-    .sc-chg { font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+    .sc-price { font-size: 0.85rem; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+    .sc-chg { font-size: 0.78rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
     .sc-chg.up { color: var(--up); }
     .sc-chg.down { color: var(--down); }
     .sc-chg.flat { color: var(--muted); }
@@ -628,7 +628,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-subn { font-size: 0.72rem; color: var(--accent); font-weight: 700; }
 
     /* 公司卡(豐富版) */
-    .sc-card2 { position: relative; display: flex; flex-direction: column; gap: 0.22rem; padding: 0.45rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .sc-card2 { position: relative; display: flex; flex-direction: column; gap: 0.14rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card2:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-fav { position: absolute; top: 0.45rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--muted); font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out); }
     .sc-fav:hover { color: var(--accent); transform: scale(1.12); }

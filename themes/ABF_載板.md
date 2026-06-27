@@ -10,14 +10,13 @@
 
 **關鍵指標:** 關鍵材料=味之素 ABF 膜 | 主要應用=HPC / AI 晶片載板 | 供需狀況=高階吃緊 | 台廠角色=欣興 / 南電 / 景碩
 
-**相關主題:** [[CoWoS]] (51) | [[AI 伺服器]] (276) | [[PCB]] (101)
+**相關主題:** [[CoWoS]] (52) | [[AI 伺服器]] (278) | [[PCB]] (101)
 
 ---
 
-## 上游 (2)
+## 上游 (1)
 
 - **2330 台積電** (Semiconductors) [ABF 載板 (CoWoS 封裝基板)]
-- **3114 好德** (Industrial Distribution) [IC載板設備]
 
 ## 中游 (4)
 
@@ -26,9 +25,10 @@
 - **3189 景碩** (Semiconductor Equipment & Materials) [子公司]
 - **7795 長廣** (Specialty Industrial Machinery)
 
-## 下游 (6)
+## 下游 (7)
 
 - **8074 鉅橡** (Electronic Components) [ABF 載板廠]
+- **3114 好德** (Industrial Distribution) [ABF載板廠]
 - **8438 昶昕** (Chemicals) [先進封裝]
 - **1303 南亞** (Specialty Chemicals) [載板]
 - **3485 敘豐** (Specialty Industrial Machinery) [載板]
