@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 9
 
-**分類:** 平面顯示器
+**分類:** 光學顯示
 
 **CAGR:** 20%+
 
@@ -16,15 +16,15 @@
 
 ## 中游 (6)
 
-- **5215 科嘉-KY** (Computer Hardware) [新應用]
-- **3714 富采** (Electronic Components) [封裝與模組]
-- **6775 穎台科技** (Electronic Components) [Mini LED 擴散板]
 - **3437 榮創** (Semiconductors) [LED 封裝]
+- **6775 穎台科技** (Electronic Components) [Mini LED 擴散板]
+- **3714 富采** (Electronic Components) [封裝與模組]
+- **5215 科嘉-KY** (Computer Hardware) [新應用]
 - **6654 天正國際** (Specialty Industrial Machinery)
 - **6706 惠特** (Specialty Industrial Machinery)
 
 ## 下游 (3)
 
+- **6812 梭特** (Specialty Industrial Machinery) [先進封裝]
 - **4927 泰鼎-KY** (Electronic Components) [顯示]
 - **4942 嘉彰** (Electronic Components) [顯示器/背光模組]
-- **6812 梭特** (Specialty Industrial Machinery) [先進封裝]

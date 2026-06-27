@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 9
 
-**分類:** 半導體
+**分類:** 記憶體
 
 **CAGR:** 循環性 ~8%
 
@@ -18,17 +18,17 @@
 
 ## 上游 (6)
 
+- **2491 吉祥全** (Furnishings, Fixtures & Appliances) [DRAM 模組]
+- **6265 方土昶** (Electronics & Computer Distribution) [DRAM記憶體]
 - **2345 智邦** (Communication Equipment) [記憶體]
 - **2425 承啟** (Computer Hardware) [記憶體]
 - **5386 青雲** (Computer Hardware) [記憶體原廠]
 - **7711 永擎** (Computer Hardware) [高速記憶體]
-- **6265 方土昶** (Electronics & Computer Distribution) [DRAM記憶體]
-- **2491 吉祥全** (Furnishings, Fixtures & Appliances) [DRAM 模組]
 
 ## 中游 (2)
 
-- **2444 兆勁** (Communication Equipment) [記憶體模組]
 - **6770 力積電** (Semiconductors) [力積電 (PSMC)]
+- **2444 兆勁** (Communication Equipment) [記憶體模組]
 
 ## 下游 (1)
 

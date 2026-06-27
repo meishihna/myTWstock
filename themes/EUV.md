@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 8
 
-**分類:** 半導體
+**分類:** 半導體製造
 
 **CAGR:** 15%+
 
@@ -16,14 +16,14 @@
 
 ## 上游 (3)
 
+- **2330 台積電** (Semiconductors) [EUV 微影機台]
 - **6196 帆宣** (Electronic Components) [EUV 設備]
 - **5434 崇越** (Electronics & Computer Distribution) [矽晶圓/光阻]
-- **2330 台積電** (Semiconductors) [EUV 微影機台]
 
 ## 下游 (5)
 
+- **4768 晶呈科技** (Specialty Chemicals) [EUV]
 - **4551 智伸科** (Auto Parts) [半導體設備]
 - **6895 宏碩系統** (Electrical Equipment & Parts) [半導體設備商]
 - **6823 濾能** (Pollution & Treatment Controls) [晶圓代工]
-- **4768 晶呈科技** (Specialty Chemicals) [EUV]
 - **6909 創控** (Specialty Industrial Machinery)

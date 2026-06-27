@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 13
 
-**分類:** 平面顯示器
+**分類:** 光學顯示
 
 **CAGR:** 8–10%
 
@@ -16,22 +16,22 @@
 
 ## 上游 (5)
 
-- **4980 佐臻** (Communication Equipment) [微顯示元件]
 - **2349 錸德** (Computer Hardware) [OLED 原料]
-- **2489 瑞軒** (Electrical Equipment & Parts) [OLED 面板]
 - **6916 華凌** (Electronic Components) [OLED 有機材料]
 - **8104 錸寶** (Electronic Components) [OLED 有機材料]
+- **2489 瑞軒** (Electrical Equipment & Parts) [OLED 面板]
+- **4980 佐臻** (Communication Equipment) [微顯示元件]
 
 ## 中游 (6)
 
-- **6729 機光科技** (Chemicals) [機光科技]
-- **3535 晶彩科** (Computer Hardware) [面板 AOI]
 - **3149 正達** (Electronic Components) [3D 熱彎成型]
 - **6120 達運** (Electronic Components) [FMM]
-- **6405 悅城** (Electronic Components) [玻璃薄化]
 - **6698 旭暉應材** (Electronic Components) [OLED遮罩]
+- **6729 機光科技** (Chemicals) [機光科技]
+- **6405 悅城** (Electronic Components) [玻璃薄化]
+- **3535 晶彩科** (Computer Hardware) [面板 AOI]
 
 ## 下游 (2)
 
-- **3595 山太士** (Electronic Components) [面板/觸控]
 - **4714 永捷** (Specialty Chemicals) [折疊手機]
+- **3595 山太士** (Electronic Components) [面板/觸控]

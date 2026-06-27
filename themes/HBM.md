@@ -4,7 +4,7 @@
 
 **涵蓋公司數:** 13
 
-**分類:** 半導體
+**分類:** 記憶體
 
 **CAGR:** 45%+
 
@@ -18,18 +18,18 @@
 
 ## 上游 (6)
 
+- **6669 緯穎** (Computer Hardware) [HBM 記憶體]
+- **6933 AMAX-KY** (Computer Hardware) [HBM 記憶體]
 - **2356 英業達** (Computer Hardware) [記憶體]
 - **2357 華碩** (Computer Hardware) [記憶體/儲存]
 - **2465 麗臺** (Computer Hardware) [顯示記憶體]
-- **6669 緯穎** (Computer Hardware) [HBM 記憶體]
-- **6933 AMAX-KY** (Computer Hardware) [HBM 記憶體]
 - **7711 永擎** (Computer Hardware) [高速記憶體]
 
 ## 中游 (3)
 
-- **3044 健鼎** (Electronic Components) [記憶體模組 PCB]
-- **6191 精成科** (Electronic Components) [探針卡]
 - **8096 擎亞** (Semiconductors) [IC 設計服務/代理]
+- **6191 精成科** (Electronic Components) [探針卡]
+- **3044 健鼎** (Electronic Components) [記憶體模組 PCB]
 
 ## 下游 (4)
 
