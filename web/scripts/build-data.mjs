@@ -39,6 +39,6 @@ const screener = run("build-screener-index.mjs");
 const momentum = run("build-momentum.mjs"); // 連三月年增,只依賴 financials_store
 await hub; // stubs reads wikilink-hub output, so wait for hub specifically
 await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener, momentum]);
-// map-index needs themes-index + screener-index + momentum + wikilink-hub (all resolved) -> run last
-await run("build-map-index.mjs");
+// map-index(/map 投資題材)+ industries-index(產業 TPEx 鏈)都需 screener+momentum(已 resolved)
+await Promise.all([run("build-map-index.mjs"), run("build-industries-index.mjs")]);
 console.error(`[build-data] all indexes built in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
