@@ -304,7 +304,7 @@ THEME_DEFINITIONS = {
         "name": "PCB 印刷電路板",
         "desc": "電子產品訊號互連基礎，涵蓋硬板、軟板、HDI 與載板",
         "related": ["ABF 載板", "銅箔", "連接器", "AI 伺服器"],
-        "category": "半導體",
+        "category": "印刷電路板",
         "cagr": "8%+",
         "market_size": "全球約 US$80B",
         "indicators": [
@@ -331,7 +331,7 @@ THEME_DEFINITIONS = {
         "name": "銅箔",
         "desc": "PCB 與鋰電池負極關鍵材料，AI 載板與電動車雙引擎",
         "related": ["PCB", "ABF 載板", "電動車", "儲能"],
-        "category": "半導體",
+        "category": "印刷電路板",
         "cagr": "8–10%",
         "indicators": [
             {"label": "主力產品", "value": "電解銅箔"},
@@ -927,7 +927,7 @@ THEME_DEFINITIONS = {
     "sub-ccl": {
         "name": "基板材料｜銅箔基板 CCL",
         "desc": "PCB 與載板核心基材銅箔基板 (CCL),AI 伺服器帶動高速低損耗材料需求。",
-        "category": "半導體",
+        "category": "印刷電路板",
         "cagr": "10%+",
         "indicators": [
             {"label": "主要產品", "value": "銅箔基板 CCL"},
@@ -940,7 +940,7 @@ THEME_DEFINITIONS = {
     "sub-glass": {
         "name": "基板材料｜玻纖布與樹脂",
         "desc": "PCB 基材上游玻纖布、玻纖紗與樹脂,低介電 (Low-Dk) 規格隨高速板升級。",
-        "category": "半導體",
+        "category": "印刷電路板",
         "cagr": "高個位數",
         "indicators": [
             {"label": "主要產品", "value": "玻纖布 / 玻纖紗"},
@@ -1572,6 +1572,14 @@ THEME_DEFINITIONS = {
             "midstream": {"醫療器材研發、設計、製造": ["2483", "6201", "3373", "5457", "4729", "8071", "4438", "6504", "9919", "8929", "2301", "2352", "5398", "2465", "4171", "6228", "3038", "8183"]},
             "downstream": {"醫療器材代理銷售及通路": ["2371", "4720", "6614", "9917", "4431"]},
         },
+    },
+    "connector-highspeed": {
+        "name": "高速連接器",
+        "desc": "高速傳輸與電力連接元件,AI 伺服器(224G、CPU socket)與車用需求帶動規格升級,為連接器產業中的高階成長區隔。",
+        "category": "連接器",
+        "cagr": "8–10%",
+        "indicators": [{"label": "主要應用", "value": "AI 伺服器 / 車用"}, {"label": "規格升級", "value": "224G / 大電流"}, {"label": "技術趨勢", "value": "液冷快接"}, {"label": "代表廠商", "value": "嘉澤 / 貿聯"}],
+        "members": {"midstream": ["3533", "3665", "3526", "3605", "6205", "3003", "3023"]},
     },
 }
 
