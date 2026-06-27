@@ -36,7 +36,10 @@ if (fs.existsSync(indPath)) {
     <div class="ind-grid">
       {industries.map((ind: any) => (
         <a class="ind-card" href={`/sectors/chain/${ind.slug}`}>
-          <span class="ind-card-title">{ind.title}</span>
+          <div class="ind-card-top">
+            <span class="ind-card-title">{ind.title}</span>
+            {ind.category && ind.category !== ind.title && ind.title.length <= 5 && <span class="ind-card-cat">{ind.category}</span>}
+          </div>
           <span class="ind-card-count">{ind.companyCount} {HOME.filesUnit}</span>
           <span class="ind-card-go"><Bi zh="看產業鏈" en="View chain" /> →</span>
         </a>
@@ -66,7 +69,9 @@ if (fs.existsSync(indPath)) {
   .ind-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.7rem; }
   .ind-card { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.8rem 0.9rem; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; text-decoration: none; color: var(--text-primary); transition: border-color 0.15s, transform 0.1s; }
   .ind-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .ind-card-top { display: flex; align-items: baseline; gap: 0.4rem; justify-content: space-between; }
   .ind-card-title { font-size: 1.02rem; font-weight: 700; }
+  .ind-card-cat { font-size: 0.66rem; color: var(--text-secondary); background: var(--surface-elevated); padding: 0.05rem 0.4rem; border-radius: 6px; flex: 0 0 auto; }
   .ind-card-count { font-size: 0.78rem; color: var(--text-secondary); }
   .ind-card-go { font-size: 0.74rem; color: var(--accent); margin-top: 0.15rem; }
 </style>
