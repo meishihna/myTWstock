@@ -2,7 +2,7 @@
 
 > 車用感測、運算與自動駕駛供應鏈
 
-**涵蓋公司數:** 57
+**涵蓋公司數:** 32
 
 **分類:** 能源車用
 
@@ -10,7 +10,7 @@
 
 **關鍵指標:** 感測元件=鏡頭 / 雷達 / 光達 | 運算核心=車用 SoC | 等級演進=L2 → L3 | 台廠角色=感測 / 連接 / PCB
 
-**相關主題:** [[電動車]] (213) | [[MOSFET]] (50) | [[連接器]] (21)
+**相關主題:** [[電動車]] (218) | [[MOSFET]] (51) | [[連接器]] (21)
 
 ---
 
@@ -51,31 +51,3 @@
 - **3321 同泰** (Electronic Components) [車載電子]
 - **2484 希華** (Electronic Components) [電動車]
 - **3019 亞光** (Electronic Components) [電動車/ADAS]
-
-## 相關公司 (25)
-
-- **1533 車王電** (Auto Parts)
-- **2252 為昇科** (Auto Parts)
-- **6190 萬泰科** (Communication Equipment)
-- **6220 岳豐** (Communication Equipment)
-- **2385 群光** (Computer Hardware)
-- **3349 寶德** (Computer Hardware)
-- **6680 鑫創電子** (Computer Hardware)
-- **6737 秀育** (Computer Hardware)
-- **4989 榮科** (Copper)
-- **3290 東浦** (Electrical Equipment & Parts)
-- **3550 聯穎** (Electrical Equipment & Parts)
-- **2375 凱美** (Electronic Components)
-- **3310 佳穎** (Electronic Components)
-- **3362 先進光** (Electronic Components)
-- **3426 台興** (Electronic Components)
-- **3441 聯一光** (Electronic Components)
-- **4958 臻鼎-KY** (Electronic Components)
-- **4976 佳凌** (Electronic Components)
-- **6158 禾昌** (Electronic Components)
-- **6174 安碁** (Electronic Components)
-- **6516 勤崴國際** (Scientific & Technical Instruments)
-- **6271 同欣電** (Semiconductor Equipment & Materials)
-- **6787 晶瑞光** (Semiconductor Equipment & Materials)
-- **6233 旺玖** (Semiconductors)
-- **6695 芯鼎** (Semiconductors)

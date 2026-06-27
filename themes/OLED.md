@@ -2,7 +2,7 @@
 
 > 有機發光二極體顯示，手機、穿戴與筆電滲透提升
 
-**涵蓋公司數:** 26
+**涵蓋公司數:** 13
 
 **分類:** 光學顯示
 
@@ -35,19 +35,3 @@
 
 - **4714 永捷** (Specialty Chemicals) [折疊手機]
 - **3595 山太士** (Electronic Components) [面板/觸控]
-
-## 相關公司 (13)
-
-- **1522 堤維西** (Auto Parts)
-- **3346 麗清** (Auto Parts)
-- **3285 微端** (Electronic Components)
-- **3481 群創** (Electronic Components)
-- **6176 瑞儀** (Electronic Components)
-- **6246 臺龍** (Electronic Components)
-- **6456 GIS-KY** (Electronic Components)
-- **7419 達勝** (Electronic Components)
-- **8215 明基材** (Electronic Components)
-- **9912 偉聯** (Electronic Components)
-- **3663 鑫科** (Metal Fabrication)
-- **6147 頎邦** (Semiconductor Equipment & Materials)
-- **5245 智晶** (Semiconductors)

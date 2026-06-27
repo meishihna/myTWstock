@@ -2,7 +2,7 @@
 
 > 先進製程關鍵微影技術，7nm 以下節點必備
 
-**涵蓋公司數:** 11
+**涵蓋公司數:** 8
 
 **分類:** 半導體製造
 
@@ -27,9 +27,3 @@
 - **6895 宏碩系統** (Electrical Equipment & Parts) [半導體設備商]
 - **6823 濾能** (Pollution & Treatment Controls) [晶圓代工]
 - **6909 創控** (Specialty Industrial Machinery)
-
-## 相關公司 (3)
-
-- **4576 大銀微系統** (Electrical Equipment & Parts)
-- **3178 公準** (Semiconductor Equipment & Materials)
-- **3680 家登** (Semiconductors)

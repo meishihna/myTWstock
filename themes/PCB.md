@@ -2,7 +2,7 @@
 
 > 電子產品訊號互連基礎，涵蓋硬板、軟板、HDI 與載板
 
-**涵蓋公司數:** 101
+**涵蓋公司數:** 74
 
 **分類:** 基板材料
 
@@ -12,7 +12,7 @@
 
 **關鍵指標:** 技術核心=HDI / 載板 / 軟板 | 升級驅動=AI 載板+車用 | 主流材料=銅箔 / 玻纖布 | 產業地位=電子互連基礎
 
-**相關主題:** [[ABF 載板]] (18) | [[銅箔]] (33) | [[連接器]] (21) | [[AI 伺服器]] (275)
+**相關主題:** [[ABF 載板]] (18) | [[銅箔]] (33) | [[連接器]] (21) | [[AI 伺服器]] (276)
 
 ---
 
@@ -98,33 +98,3 @@
 - **6944 兆聯實業** (Pollution & Treatment Controls) [面板/PCB]
 - **3631 晟楠** (Metal Fabrication)
 - **4561 健椿** (Metal Fabrication)
-
-## 相關公司 (27)
-
-- **1815 富喬** (Electronic Components)
-- **2316 楠梓電** (Electronic Components)
-- **2328 廣宇** (Electronic Components)
-- **3044 健鼎** (Electronic Components)
-- **3093 港建** (Electronic Components)
-- **3715 定穎投控** (Electronic Components)
-- **4958 臻鼎-KY** (Electronic Components)
-- **5469 瀚宇博** (Electronic Components)
-- **6191 精成科** (Electronic Components)
-- **6194 育富** (Electronic Components)
-- **6210 慶生** (Electronic Components)
-- **6274 台燿** (Electronic Components)
-- **6691 洋基工程** (Engineering & Construction)
-- **2493 揚博** (Semiconductor Equipment & Materials)
-- **3563 牧德** (Semiconductor Equipment & Materials)
-- **6223 旺矽** (Semiconductor Equipment & Materials)
-- **6510 精測** (Semiconductor Equipment & Materials)
-- **6877 鏵友益** (Semiconductor Equipment & Materials)
-- **3581 博磊** (Semiconductors)
-- **6278 台表科** (Semiconductors)
-- **6515 穎崴** (Semiconductors)
-- **7815 新特** (Semiconductors)
-- **4577 達航科技** (Specialty Industrial Machinery)
-- **6438 迅得** (Specialty Industrial Machinery)
-- **5340 建榮** (Textile Manufacturing)
-- **5475 德宏** (Textile Manufacturing)
-- **6771 平和環保-創** (Waste Management)

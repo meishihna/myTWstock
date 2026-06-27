@@ -2,7 +2,7 @@
 
 > Ajinomoto Build-up Film 載板，高階 IC 封裝基板
 
-**涵蓋公司數:** 18
+**涵蓋公司數:** 12
 
 **分類:** 基板材料
 
@@ -10,7 +10,7 @@
 
 **關鍵指標:** 關鍵材料=味之素 ABF 膜 | 主要應用=HPC / AI 晶片載板 | 供需狀況=高階吃緊 | 台廠角色=欣興 / 南電 / 景碩
 
-**相關主題:** [[CoWoS]] (51) | [[AI 伺服器]] (275) | [[PCB]] (101)
+**相關主題:** [[CoWoS]] (51) | [[AI 伺服器]] (276) | [[PCB]] (101)
 
 ---
 
@@ -34,12 +34,3 @@
 - **3485 敘豐** (Specialty Industrial Machinery) [載板]
 - **6691 洋基工程** (Engineering & Construction) [載板/PCB]
 - **4577 達航科技** (Specialty Industrial Machinery) [載板廠]
-
-## 相關公司 (6)
-
-- **1802 台玻** (Building Materials)
-- **4989 榮科** (Copper)
-- **3455 由田** (Electronic Components)
-- **4958 臻鼎-KY** (Electronic Components)
-- **6405 悅城** (Electronic Components)
-- **6664 群翊** (Specialty Industrial Machinery)

@@ -2,7 +2,7 @@
 
 > 動態隨機存取記憶體，AI、伺服器與消費電子需求循環
 
-**涵蓋公司數:** 27
+**涵蓋公司數:** 9
 
 **分類:** 記憶體
 
@@ -12,17 +12,17 @@
 
 **關鍵指標:** 主力產品=DDR5 / LPDDR | 全球寡占=三星 / SK海力士 / 美光 | 市場特性=景氣循環明顯 | 台廠角色=利基 / 模組 / 封測
 
-**相關主題:** [[HBM]] (23) | [[DDR5]] (9) | [[記憶體]] (18)
+**相關主題:** [[HBM]] (23) | [[DDR5]] (10) | [[記憶體]] (18)
 
 ---
 
 ## 上游 (6)
 
+- **2491 吉祥全** (Furnishings, Fixtures & Appliances) [DRAM 模組]
 - **6265 方土昶** (Electronics & Computer Distribution) [DRAM記憶體]
 - **2345 智邦** (Communication Equipment) [記憶體]
 - **2425 承啟** (Computer Hardware) [記憶體]
 - **5386 青雲** (Computer Hardware) [記憶體原廠]
-- **2491 吉祥全** (Furnishings, Fixtures & Appliances) [電子零件]
 - **7711 永擎** (Computer Hardware) [高速記憶體]
 
 ## 中游 (2)
@@ -33,24 +33,3 @@
 ## 下游 (1)
 
 - **9933 中鼎** (Engineering & Construction) [半導體]
-
-## 相關公司 (18)
-
-- **4967 十銓** (Computer Hardware)
-- **4973 廣穎** (Computer Hardware)
-- **5289 宜鼎** (Computer Hardware)
-- **6108 競國** (Electronic Components)
-- **5351 鈺創** (Semiconductor Equipment & Materials)
-- **2342 茂矽** (Semiconductors)
-- **2344 華邦電** (Semiconductors)
-- **2408 南亞科** (Semiconductors)
-- **3006 晶豪科** (Semiconductors)
-- **3260 威剛** (Semiconductors)
-- **6239 力成** (Semiconductors)
-- **6270 倍微** (Semiconductors)
-- **6278 台表科** (Semiconductors)
-- **8084 巨虹** (Semiconductors)
-- **8112 至上** (Semiconductors)
-- **8131 福懋科** (Semiconductors)
-- **8271 宇瞻** (Semiconductors)
-- **8277 商丞** (Semiconductors)

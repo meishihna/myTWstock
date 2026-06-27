@@ -2,7 +2,7 @@
 
 > Co-Packaged Optics，將光學元件整合於晶片封裝中以突破頻寬瓶頸
 
-**涵蓋公司數:** 28
+**涵蓋公司數:** 20
 
 **分類:** 光通訊
 
@@ -10,7 +10,7 @@
 
 **關鍵指標:** 技術核心=光學共封裝 | 主要應用=交換器/AI 互連 | 商轉節點=1.6T / 3.2T | 產業地位=頻寬功耗解方
 
-**相關主題:** [[矽光子]] (28) | [[光收發模組]] (12) | [[AI 伺服器]] (275) | [[資料中心]] (88)
+**相關主題:** [[矽光子]] (28) | [[光收發模組]] (12) | [[AI 伺服器]] (276) | [[資料中心]] (92)
 
 ---
 
@@ -42,14 +42,3 @@
 - **3678 聯享** (Chemicals) [光學通訊]
 - **8111 立碁** (Electronic Components) [矽光子 資料中心]
 - **3081 聯亞** (Semiconductor Equipment & Materials) [資料中心]
-
-## 相關公司 (8)
-
-- **4977 眾達-KY** (Computer Hardware)
-- **3504 揚明光** (Electrical Equipment & Parts)
-- **3455 由田** (Electronic Components)
-- **3689 湧德** (Electronic Components)
-- **6442 光聖** (Electronic Components)
-- **6597 立誠** (Electronic Components)
-- **6854 錼創科技-KY創** (Electronic Components)
-- **6515 穎崴** (Semiconductors)

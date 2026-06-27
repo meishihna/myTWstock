@@ -2,13 +2,13 @@
 
 > 蘋果公司台灣供應鏈成員
 
-**涵蓋公司數:** 92
+**涵蓋公司數:** 81
 
 **分類:** 消費終端
 
 **關鍵指標:** 核心產品=iPhone / Mac / 穿戴 | 台廠角色=代工 / 零組件 | 關鍵夥伴=台積電 / 鴻海 | 產業趨勢=自研晶片 / AI
 
-**相關主題:** [[台積電]] (211) | [[鴻海]] (71)
+**相關主題:** [[台積電]] (212) | [[鴻海]] (71)
 
 ---
 
@@ -101,17 +101,3 @@
 - **3711 日月光投控** (Semiconductors)
 - **4966 譜瑞-KY** (Semiconductors)
 - **6706 惠特** (Specialty Industrial Machinery)
-
-## 相關公司 (11)
-
-- **2255 凱銳光電** (Auto Parts)
-- **3419 譁裕** (Communication Equipment)
-- **6805 富世達** (Computer Hardware)
-- **3360 尚立** (Electronics & Computer Distribution)
-- **6118 建達** (Electronics & Computer Distribution)
-- **5223 安力-KY** (Metal Fabrication)
-- **3105 穩懋** (Semiconductors)
-- **6278 台表科** (Semiconductors)
-- **6488 環球晶** (Semiconductors)
-- **1717 長興** (Specialty Chemicals)
-- **2476 鉅祥** (Specialty Industrial Machinery)

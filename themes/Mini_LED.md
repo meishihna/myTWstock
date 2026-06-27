@@ -2,7 +2,7 @@
 
 > 高動態對比背光技術，應用於高階顯示器、電視與筆電
 
-**涵蓋公司數:** 19
+**涵蓋公司數:** 9
 
 **分類:** 光學顯示
 
@@ -10,7 +10,7 @@
 
 **關鍵指標:** 技術核心=細間距背光 | 主要應用=高階顯示 / 車用 | 關鍵技術=區域調光 | 台廠角色=晶電 / 隆達 / 設備
 
-**相關主題:** [[OLED]] (26) | [[LED]] (46) | [[面板]] (1)
+**相關主題:** [[OLED]] (26) | [[LED]] (49) | [[面板]] (1)
 
 ---
 
@@ -28,16 +28,3 @@
 - **6812 梭特** (Specialty Industrial Machinery) [先進封裝]
 - **4927 泰鼎-KY** (Electronic Components) [顯示]
 - **4942 嘉彰** (Electronic Components) [顯示器/背光模組]
-
-## 相關公司 (10)
-
-- **3049 精金** (Electronic Components)
-- **3066 李洲** (Electronic Components)
-- **3481 群創** (Electronic Components)
-- **4935 茂林-KY** (Electronic Components)
-- **5244 弘凱** (Electronic Components)
-- **6120 達運** (Electronic Components)
-- **6673 和詮** (Electronic Components)
-- **6854 錼創科技-KY創** (Electronic Components)
-- **3527 聚積** (Semiconductors)
-- **6278 台表科** (Semiconductors)

@@ -2,7 +2,7 @@
 
 > 3D 感測、光通訊及 LiDAR 核心光源元件
 
-**涵蓋公司數:** 13
+**涵蓋公司數:** 10
 
 **分類:** 光通訊
 
@@ -32,9 +32,3 @@
 ## 下游 (1)
 
 - **3081 聯亞** (Semiconductor Equipment & Materials) [光收發模組]
-
-## 相關公司 (3)
-
-- **2340 台亞** (Semiconductors)
-- **3105 穩懋** (Semiconductors)
-- **8086 宏捷科** (Semiconductors)

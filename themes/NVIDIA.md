@@ -2,13 +2,13 @@
 
 > NVIDIA GPU 及 AI 平台台灣供應鏈
 
-**涵蓋公司數:** 169
+**涵蓋公司數:** 123
 
 **分類:** AI 伺服器
 
 **關鍵指標:** 核心平台=GB200 / Blackwell | 台廠角色=代工+封裝+散熱 | 關鍵供應=CoWoS / HBM | 產業地位=AI 算力領導
 
-**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[AI 伺服器]] (275) | [[台積電]] (211)
+**相關主題:** [[CoWoS]] (51) | [[HBM]] (23) | [[AI 伺服器]] (276) | [[台積電]] (212)
 
 ---
 
@@ -100,7 +100,6 @@
 - **6834 天二科技** (Electronic Components) [AI 伺服器]
 - **7861 貝爾威勒** (Electronic Components) [AI 伺服器]
 - **2354 鴻準** (Electronics & Computer Distribution) [AI 伺服器]
-- **2059 川湖** (Furnishings, Fixtures & Appliances) [AI 伺服器]
 - **2360 致茂** (Scientific & Technical Instruments) [AI 伺服器]
 - **4549 桓達** (Scientific & Technical Instruments) [AI 伺服器]
 - **3026 禾伸堂** (Electronic Components) [AI 伺服器 PSU/VRM]
@@ -113,7 +112,8 @@
 - **6715 嘉基** (Communication Equipment) [AI 加速卡]
 - **3605 宏致** (Electronic Components) [AI 加速器]
 - **3363 上詮** (Communication Equipment) [AI 加速晶片]
-- **6584 南俊國際** (Furnishings, Fixtures & Appliances) [AI 平台]
+- **2059 川湖** (Furnishings, Fixtures & Appliances) [AI 平台]
+- **6584 南俊國際** (Furnishings, Fixtures & Appliances) [AI 平台認證]
 - **6217 中探針** (Electronic Components) [AI 晶片]
 - **3017 奇鋐** (Electronic Components) [AI 晶片廠]
 - **6210 慶生** (Electronic Components) [AI 晶片樣品板]
@@ -143,52 +143,3 @@
 - **8039 台虹** (Electronic Components) [終端品牌（間接）]
 - **1303 南亞** (Specialty Chemicals) [載板]
 - **2449 京元電子** (Semiconductors) [邏輯 IC]
-
-## 相關公司 (46)
-
-- **5203 訊連** (Software - Application) [技術夥伴]
-- **1802 台玻** (Building Materials)
-- **3209 全科** (Communication Equipment)
-- **4908 前鼎** (Communication Equipment)
-- **6285 啟碁** (Communication Equipment)
-- **6820 連訊** (Communication Equipment)
-- **2417 圓剛** (Computer Hardware)
-- **2495 普安** (Computer Hardware)
-- **3005 神基** (Computer Hardware)
-- **3032 偉訓** (Computer Hardware)
-- **3535 晶彩科** (Computer Hardware)
-- **5289 宜鼎** (Computer Hardware)
-- **5386 青雲** (Computer Hardware)
-- **5465 富驊** (Computer Hardware)
-- **8093 保銳** (Computer Hardware)
-- **8210 勤誠** (Computer Hardware)
-- **3078 僑威** (Electrical Equipment & Parts)
-- **3211 順達** (Electrical Equipment & Parts)
-- **6121 新普** (Electrical Equipment & Parts)
-- **6412 群電** (Electrical Equipment & Parts)
-- **2359 所羅門** (Electronic Components)
-- **2383 台光電** (Electronic Components)
-- **3207 耀勝** (Electronic Components)
-- **3217 優群** (Electronic Components)
-- **3595 山太士** (Electronic Components)
-- **4573 高明鐵** (Electronic Components)
-- **5284 jpp-KY** (Electronic Components)
-- **5392 能率** (Electronic Components)
-- **6203 海韻電** (Electronic Components)
-- **6230 尼得科超眾** (Electronic Components)
-- **6418 詠昇** (Electronic Components)
-- **8042 金山電** (Electronic Components)
-- **8043 蜜望實** (Electronic Components)
-- **8074 鉅橡** (Electronic Components)
-- **3033 威健** (Electronics & Computer Distribution)
-- **3483 力致** (Electronics & Computer Distribution)
-- **3540 曜越** (Electronics & Computer Distribution)
-- **6150 撼訊** (Electronics & Computer Distribution)
-- **6223 旺矽** (Semiconductor Equipment & Materials)
-- **3443 創意** (Semiconductors)
-- **6231 系微** (Software - Application)
-- **3167 大量** (Specialty Industrial Machinery)
-- **6125 廣運** (Specialty Industrial Machinery)
-- **6561 是方** (Telecom Services)
-- **5475 德宏** (Textile Manufacturing)
-- **6994 富威電力** (Utilities - Renewable)

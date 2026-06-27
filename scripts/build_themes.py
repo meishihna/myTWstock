@@ -1257,7 +1257,9 @@ def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
     lines.append("")
     lines.append(f"> {theme_def['desc']}")
     lines.append("")
-    lines.append(f"**涵蓋公司數:** {len(entries)}")
+    # 涵蓋家數:只計入實際列入供應鏈(上/中/下游)者,與價值鏈結構/角色分群/熱力圖一致
+    tier_n = sum(1 for e in entries if e.get("role") in ("upstream", "midstream", "downstream"))
+    lines.append(f"**涵蓋公司數:** {tier_n}")
     lines.append("")
 
     # Curated metadata (分類必填;CAGR/市場規模/關鍵指標 選填,有才輸出)
@@ -1330,11 +1332,8 @@ def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
         lines.extend(format_entries(downstream))
         lines.append("")
 
-    if other:
-        lines.append(f"## 相關公司 ({len(other)})")
-        lines.append("")
-        lines.extend(format_entries(other))
-        lines.append("")
+    # 註:role="related"(僅提及、未列入上中下游)者不輸出,亦不計入涵蓋家數,
+    # 以確保「涵蓋家數」與頁面實際呈現的供應鏈一致。
 
     return "\n".join(lines)
 
