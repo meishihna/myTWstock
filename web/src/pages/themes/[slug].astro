@@ -233,12 +233,12 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
               <span class="sc-tier-n">{tier.length}</span>
             </button>
             <div class="sc-tier-body">
-              <div class="sc-rolegrid">
-                {groups.map((g) => (
-                  <Fragment>
-                    {!flat && (
-                      <h3 class="sc-subhead">{g.subcat || "其他"} <span class="sc-subn">{g.items.length}</span></h3>
-                    )}
+              {groups.map((g) => (
+                <div class="sc-subgroup">
+                  {!flat && (
+                    <h3 class="sc-subhead">{g.subcat || "其他"} <span class="sc-subn">{g.items.length}</span></h3>
+                  )}
+                  <div class="sc-grid">
                     {g.items.map((c) => {
                       const st = statusInfo(c.status);
                       const ll = linkLabel(c.link);
@@ -263,9 +263,9 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
                         </article>
                       );
                     })}
-                  </Fragment>
-                ))}
-              </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         );
@@ -585,7 +585,8 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .thm-tile-t { font-size: 0.72rem; font-weight: 600; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .thm-tile-p { font-size: 0.68rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
 
-    .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 0.55rem; }
+    .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 8.15rem; }
     .sc-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.62rem 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -615,28 +616,29 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-tier.is-collapsed .sc-tier-caret { transform: rotate(-90deg); }
     .sc-tier.is-collapsed .sc-tier-body { display: none; }
     .sc-tier-title { font-family: var(--font-display); font-size: 1.18rem; color: var(--text-heading); }
-    /* 角色分群:單一連續格線,子分類小標題佔整列,卡片依序往右換行 */
-    .sc-rolegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(166px, 1fr)); gap: 0.55rem; align-items: start; }
-    .sc-subhead { grid-column: 1 / -1; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0.7rem 0 0.05rem; display: flex; align-items: baseline; gap: 0.4rem; }
-    .sc-subhead:first-child { margin-top: 0; }
-    .sc-subn { font-size: 0.74rem; color: var(--accent); font-weight: 700; }
+    /* 角色分群:每個子分類為小模組(小標題在左上 + 其公司卡),模組依序往右排列、
+       換行;不同分類可同排。卡片固定寬度,大小一致。 */
+    .sc-tier-body { display: flex; flex-wrap: wrap; gap: 0.9rem 1.15rem; align-items: flex-start; }
+    .sc-subgroup { display: flex; flex-direction: column; gap: 0.45rem; max-width: 100%; }
+    .sc-subhead { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin: 0; display: flex; align-items: baseline; gap: 0.35rem; padding-left: 0.4rem; border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+    .sc-subn { font-size: 0.72rem; color: var(--accent); font-weight: 700; }
 
     /* 公司卡(豐富版) */
-    .sc-card2 { position: relative; display: flex; flex-direction: column; gap: 0.45rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .sc-card2 { position: relative; display: flex; flex-direction: column; gap: 0.22rem; padding: 0.45rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card2:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-fav { position: absolute; top: 0.45rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--muted); font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out); }
     .sc-fav:hover { color: var(--accent); transform: scale(1.12); }
     .sc-fav.is-on { color: var(--accent); }
     .sc-card2-main { display: flex; flex-direction: column; gap: 2px; text-decoration: none; padding-right: 1.2rem; }
     .sc-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-    .sc-status { font-size: 0.68rem; padding: 1px 7px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
+    .sc-status { font-size: 0.64rem; padding: 0 6px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
     .sc-status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
     .sc-status.lead { color: var(--accent); background: var(--accent-soft); }
     .sc-status.challenge { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
-    .sc-link { font-size: 0.68rem; padding: 1px 7px; border-radius: 999px; color: var(--text-secondary); border: 1px solid var(--border); }
-    .sc-card2-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem; }
+    .sc-link { font-size: 0.64rem; padding: 0 6px; border-radius: 999px; color: var(--text-secondary); border: 1px solid var(--border); }
+    .sc-card2-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem; margin-top: auto; }
     .sc-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-    .sc-tag { font-size: 0.66rem; color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); padding: 1px 6px; border-radius: 4px; }
+    .sc-tag { font-size: 0.63rem; color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); padding: 0 5px; border-radius: 4px; }
 
     /* 差異比較表 */
     .cmp-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
