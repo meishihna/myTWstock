@@ -233,12 +233,12 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
               <span class="sc-tier-n">{tier.length}</span>
             </button>
             <div class="sc-tier-body">
-              {groups.map((g) => (
-                <div class="sc-subgroup">
-                  {!flat && (
-                    <h3 class="sc-subhead">{g.subcat || "其他"} <span class="sc-subn">{g.items.length}</span></h3>
-                  )}
-                  <div class="sc-grid">
+              <div class="sc-rolegrid">
+                {groups.map((g) => (
+                  <Fragment>
+                    {!flat && (
+                      <h3 class="sc-subhead">{g.subcat || "其他"} <span class="sc-subn">{g.items.length}</span></h3>
+                    )}
                     {g.items.map((c) => {
                       const st = statusInfo(c.status);
                       const ll = linkLabel(c.link);
@@ -263,9 +263,9 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
                         </article>
                       );
                     })}
-                  </div>
-                </div>
-              ))}
+                  </Fragment>
+                ))}
+              </div>
             </div>
           </section>
         );
@@ -615,8 +615,10 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-tier.is-collapsed .sc-tier-caret { transform: rotate(-90deg); }
     .sc-tier.is-collapsed .sc-tier-body { display: none; }
     .sc-tier-title { font-family: var(--font-display); font-size: 1.18rem; color: var(--text-heading); }
-    .sc-subgroup { margin-bottom: 1rem; }
-    .sc-subhead { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0 0 0.5rem; display: flex; align-items: baseline; gap: 0.4rem; }
+    /* 角色分群:單一連續格線,子分類小標題佔整列,卡片依序往右換行 */
+    .sc-rolegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(166px, 1fr)); gap: 0.55rem; align-items: start; }
+    .sc-subhead { grid-column: 1 / -1; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0.7rem 0 0.05rem; display: flex; align-items: baseline; gap: 0.4rem; }
+    .sc-subhead:first-child { margin-top: 0; }
     .sc-subn { font-size: 0.74rem; color: var(--accent); font-weight: 700; }
 
     /* 公司卡(豐富版) */
