@@ -54,7 +54,7 @@ function main() {
   }
 
   // 連三月營收年增:ticker -> true(build-momentum.mjs)
-  const mom3 = existsSync(MOMENTUM) ? (JSON.parse(readFileSync(MOMENTUM, "utf8")).mom3 || {}) : {};
+  const momByTicker = existsSync(MOMENTUM) ? (JSON.parse(readFileSync(MOMENTUM, "utf8")).mom || {}) : {};
 
   // 關聯度:公司名 -> 被引用次數(wikilink-hub-top500),→ high/mid/""
   const linkByName = {};
@@ -97,7 +97,7 @@ function main() {
           mc,
           subcat: c.subcat || "",
           revYoy: f.revYoy ?? null,
-          mom3: !!mom3[c.ticker],
+          mom: momByTicker[c.ticker] || 0,
           link: linkLevel(c.name),
           status: challenge ? "challenge" : "",
         });

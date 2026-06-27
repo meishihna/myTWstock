@@ -8,7 +8,7 @@ import path from "node:path";
 
 type MapCo = {
   t: string; n: string; s: string; ss: string; mc: number | null;
-  subcat?: string; revYoy?: number | null; mom3?: boolean;
+  subcat?: string; revYoy?: number | null; mom?: number;
   link?: string; status?: string;
 };
 type Indicator = { label: string; value: string };
@@ -102,11 +102,15 @@ function statusInfo(s?: string) {
 function linkLabel(l?: string) {
   return l === "high" ? THEMES_PAGE.linkHigh : l === "mid" ? THEMES_PAGE.linkMid : "";
 }
-function coTags(c: MapCo): string[] {
-  const tags: string[] = [];
-  if (c.revYoy != null && c.revYoy > 0) tags.push(THEMES_PAGE.tagRevYoy);
-  if (c.mom3) tags.push(THEMES_PAGE.tagMom3);
-  return tags;
+// 動態營收動能標籤:依逐月年增/年減連續月數(1→營收年增/減、N→連N月年增/減,N 用阿拉伯數字)
+function momTag(c: MapCo): { label: string; cls: string } | null {
+  const s = c.mom ?? 0;
+  if (!s) return null;
+  const n = Math.abs(s);
+  const dir = s > 0 ? "年增" : "年減";
+  const cls = s > 0 ? "up" : "down";
+  if (n === 1) return { label: `營收${dir}`, cls };
+  return { label: `連${n}月${dir}`, cls };
 }
 
 const indicators = theme.indicators ?? [];
@@ -242,7 +246,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
                     {g.items.map((c) => {
                       const st = statusInfo(c.status);
                       const ll = linkLabel(c.link);
-                      const tags = coTags(c);
+                      const mt = momTag(c);
                       return (
                         <article class="sc-card2" data-t={c.t}>
                           <button class="sc-fav" type="button" data-fav-tk={c.t} title={THEMES_PAGE.fav} aria-label={`${THEMES_PAGE.fav} ${c.n}`}>☆</button>
@@ -257,7 +261,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
                             </div>
                           )}
                           <div class="sc-card2-foot">
-                            <div class="sc-tags">{tags.map((t) => <span class="sc-tag">{t}</span>)}</div>
+                            <div class="sc-tags">{mt ? <span class={`sc-tag ${mt.cls}`}>{mt.label}</span> : null}</div>
                             <span class="sc-q" data-px><span class="sc-dash">—</span></span>
                           </div>
                         </article>
@@ -586,7 +590,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .thm-tile-p { font-size: 0.68rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
 
     .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 8.15rem; }
+    .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 8rem; }
     .sc-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.62rem 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -594,9 +598,9 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-nm { font-size: 0.95rem; font-weight: 600; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sc-tk { font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; color: var(--accent); flex: 0 0 auto; }
     .sc-sec { font-size: 0.73rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sc-q { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: 0 0 auto; text-align: right; }
-    .sc-price { font-size: 0.9rem; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-    .sc-chg { font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .sc-q { display: flex; flex-direction: column; align-items: flex-end; gap: 0; flex: 0 0 auto; text-align: right; }
+    .sc-price { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+    .sc-chg { font-size: 0.78rem; font-variant-numeric: tabular-nums; }
     .sc-chg.up { color: var(--up); }
     .sc-chg.down { color: var(--down); }
     .sc-chg.flat { color: var(--muted); }
@@ -638,7 +642,9 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-link { font-size: 0.64rem; padding: 0 6px; border-radius: 999px; color: var(--text-secondary); border: 1px solid var(--border); }
     .sc-card2-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem; margin-top: auto; }
     .sc-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-    .sc-tag { font-size: 0.63rem; color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); padding: 0 5px; border-radius: 4px; }
+    .sc-tag { font-size: 0.68rem; font-weight: 600; }
+    .sc-tag.up { color: var(--up); }
+    .sc-tag.down { color: var(--down); }
 
     /* 差異比較表 */
     .cmp-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
