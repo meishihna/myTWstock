@@ -280,10 +280,13 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   function renderStock() {
     const root = document.getElementById("ind-hm-stock"); if (!root) return;
     const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
-    const rows = hmCons
+    const all = hmCons
       .map((c) => { const s = stats[c.t]; return s && s[period] ? { ...c, chg: s[period][0], tov: s[period][1] } : null; })
       .filter((c): c is { t: string; n: string; chg: number; tov: number } => !!c && c.tov > 0)
-      .sort((a, b) => b.tov - a.tov).slice(0, 40);
+      .sort((a, b) => b.tov - a.tov);
+    // 去尾端細長條:只留成交額 >= 最大值 2.5% 的個股,最多 30 檔
+    const topTov = all.length ? all[0].tov : 0;
+    const rows = all.filter((c) => c.tov >= topTov * 0.025).slice(0, 30);
     if (rows.length === 0) { root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
     const laid = treemap(rows.map((c) => ({ ...c, value: Math.sqrt(c.tov) })), 0, 0, W, H);
     const G = 1;
