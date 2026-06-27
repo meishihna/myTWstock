@@ -491,6 +491,269 @@ THEME_DEFINITIONS = {
             {"label": "政策驅動", "value": "區塊開發"},
         ],
     },
+
+    # ============================================================
+    # 細分子題材(策展成員清單)—— 把大分類再切成可投資的細分群
+    # members: {tier: [tickers]};代號以 Pilot_Reports 涵蓋者為準(build 會略過未涵蓋者)
+    # ============================================================
+
+    # --- IC 設計 ---
+    "ic-asic-ip": {
+        "name": "IC 設計｜客製 ASIC 與矽智財",
+        "desc": "雲端服務商「去輝達化」與晶片自研推動,矽智財 (IP) 授權與客製 ASIC 設計成為 AI 算力落地核心。",
+        "category": "IC 設計",
+        "cagr": "30%+",
+        "indicators": [
+            {"label": "商業模式", "value": "NRE + 量產 / IP 授權"},
+            {"label": "核心客戶", "value": "北美 CSP / AI 系統廠"},
+            {"label": "技術節點", "value": "3nm / 2nm"},
+            {"label": "產業地位", "value": "價值鏈最頂端"},
+        ],
+        "members": {"midstream": ["3443", "3661", "3035", "3529", "6533", "6643"]},
+    },
+    "ic-hpc-network": {
+        "name": "IC 設計｜HPC 與網通 IC",
+        "desc": "聚焦高效能運算 (HPC)、高速介面與 5G/WiFi 網通核心晶片的 Fabless IC 設計公司。",
+        "category": "IC 設計",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要產品", "value": "SoC / 網通 / 高速介面"},
+            {"label": "技術重點", "value": "PCIe / 乙太網 / WiFi"},
+            {"label": "終端應用", "value": "AI 伺服器 / 消費"},
+            {"label": "代表廠商", "value": "聯發科 / 瑞昱"},
+        ],
+        "members": {"midstream": ["2454", "2379", "4966", "5269", "5274", "6526"]},
+    },
+    "ic-analog-power": {
+        "name": "IC 設計｜類比與功率管理 IC",
+        "desc": "負責電力管理、訊號感測的核心類比與功率晶片設計公司,涵蓋 PMIC、DC-DC 與驅動 IC。",
+        "category": "IC 設計",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "主要產品", "value": "PMIC / DC-DC"},
+            {"label": "終端應用", "value": "消費 / 工控 / 車用"},
+            {"label": "產品特性", "value": "高毛利 / 多料號"},
+            {"label": "代表廠商", "value": "矽力-KY / 致新"},
+        ],
+        "members": {"midstream": ["6415", "8081", "6138", "3438", "3588", "6719"]},
+    },
+    "ic-mcu": {
+        "name": "IC 設計｜MCU 微控制器",
+        "desc": "通用 32-bit MCU、觸控感測與音訊語音 IC 設計廠,應用於家電、消費與工控。",
+        "category": "IC 設計",
+        "cagr": "高個位數",
+        "indicators": [
+            {"label": "主要產品", "value": "32-bit MCU / 觸控"},
+            {"label": "終端應用", "value": "家電 / 消費 / 工控"},
+            {"label": "市場特性", "value": "庫存循環敏感"},
+            {"label": "代表廠商", "value": "新唐 / 盛群"},
+        ],
+        "members": {"midstream": ["4919", "6202", "5471", "2458", "4952", "6494"]},
+    },
+    "ic-ddic": {
+        "name": "IC 設計｜顯示驅動 IC",
+        "desc": "顯示驅動 IC (DDIC) 控制面板像素電壓,是顯示影像核心;隨 OLED 滲透率提升升級。",
+        "category": "IC 設計",
+        "cagr": "5–8%",
+        "indicators": [
+            {"label": "主要產品", "value": "DDIC / TDDI / TCON"},
+            {"label": "終端應用", "value": "手機 / 面板 / 車載"},
+            {"label": "技術趨勢", "value": "OLED 驅動"},
+            {"label": "代表廠商", "value": "聯詠 / 敦泰"},
+        ],
+        "members": {"midstream": ["3034", "3545", "4961", "8016", "3592"]},
+    },
+
+    # --- 半導體製造 ---
+    "semi-foundry": {
+        "name": "半導體製造｜晶圓代工",
+        "desc": "依 IC 設計藍圖製造晶圓,涵蓋先進邏輯製程與特殊/成熟製程,是價值轉化為實體晶片的核心。",
+        "category": "半導體製造",
+        "cagr": "10%+",
+        "market_size": "全球約 US$130B",
+        "indicators": [
+            {"label": "製程分布", "value": "先進 / 特殊 / 成熟"},
+            {"label": "龍頭地位", "value": "台積電全球領先"},
+            {"label": "需求動能", "value": "AI / HPC"},
+            {"label": "代表廠商", "value": "台積電 / 聯電"},
+        ],
+        "members": {"midstream": ["2330", "2303", "5347", "6770"]},
+    },
+    "semi-equip": {
+        "name": "半導體製造｜晶圓廠設備",
+        "desc": "提供晶圓製造前段所需設備、量測儀器與設備關鍵零組件,涵蓋濕製程、量測與廠務整合。",
+        "category": "半導體製造",
+        "cagr": "12–15%",
+        "indicators": [
+            {"label": "主要環節", "value": "濕製程 / 量測 / 廠務"},
+            {"label": "需求動能", "value": "晶圓廠擴產"},
+            {"label": "技術角色", "value": "設備在地化"},
+            {"label": "代表廠商", "value": "京鼎 / 帆宣"},
+        ],
+        "members": {"upstream": ["3413", "3131", "3583", "6196", "2404", "3680"]},
+    },
+    "semi-material": {
+        "name": "半導體製造｜前段製程材料",
+        "desc": "晶圓前段製程所需高純度化學品與功能性材料,涵蓋光阻、特化、靶材與電子氣體。",
+        "category": "半導體製造",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "主要材料", "value": "特化 / 靶材 / 氣體"},
+            {"label": "供應特性", "value": "認證門檻高"},
+            {"label": "趨勢", "value": "材料在地化"},
+            {"label": "代表廠商", "value": "三福化 / 光洋科"},
+        ],
+        "members": {"upstream": ["4755", "5234", "1773", "1785"]},
+    },
+    "semi-thirdgen": {
+        "name": "半導體製造｜第三代半導體",
+        "desc": "化合物半導體跨向量產;SiC 聚焦電動車 800V 與 AI 高壓直流,GaN 走向快充與射頻。",
+        "category": "半導體製造",
+        "cagr": "25%+",
+        "indicators": [
+            {"label": "材料世代", "value": "SiC / GaN"},
+            {"label": "主要應用", "value": "電動車 / 快充 / 射頻"},
+            {"label": "製程環節", "value": "磊晶 / 代工"},
+            {"label": "代表廠商", "value": "穩懋 / 漢磊"},
+        ],
+        "members": {"midstream": ["3707", "3016", "3105", "6488", "2342"]},
+    },
+
+    # --- 先進封測 ---
+    "atp-osat": {
+        "name": "先進封測｜封測代工 (OSAT)",
+        "desc": "涵蓋主流 OSAT 代工、特殊封裝製程與記憶體封裝服務,追蹤整體半導體景氣循環。",
+        "category": "先進封測",
+        "cagr": "8–10%",
+        "indicators": [
+            {"label": "主要服務", "value": "封裝 + 測試"},
+            {"label": "龍頭地位", "value": "日月光全球第一"},
+            {"label": "需求動能", "value": "AI / 先進封裝"},
+            {"label": "代表廠商", "value": "日月光 / 力成"},
+        ],
+        "members": {"midstream": ["3711", "2449", "6239", "6147", "8150", "2441"]},
+    },
+    "atp-probe": {
+        "name": "先進封測｜測試介面與探針卡",
+        "desc": "晶圓測試與成品測試所需探針卡、測試座與介面耗材,AI/HPC 高腳數需求推升。",
+        "category": "先進封測",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要產品", "value": "探針卡 / 測試座"},
+            {"label": "需求動能", "value": "AI 高腳數測試"},
+            {"label": "產品特性", "value": "耗材性 / 高毛利"},
+            {"label": "代表廠商", "value": "旺矽 / 穎崴"},
+        ],
+        "members": {"midstream": ["6223", "6515", "6510", "6582"]},
+    },
+    "atp-equip": {
+        "name": "先進封測｜封裝材料與設備",
+        "desc": "提供先進封裝核心製程所需機台與材料,涵蓋雷射、鍵合、點膠與檢測設備。",
+        "category": "先進封測",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要環節", "value": "封裝設備 / 材料"},
+            {"label": "需求動能", "value": "CoWoS / 面板級封裝"},
+            {"label": "技術角色", "value": "製程機台"},
+            {"label": "代表廠商", "value": "均豪 / 群翊"},
+        ],
+        "members": {"upstream": ["5443", "8027", "6664", "6706"]},
+    },
+
+    # --- 記憶體 ---
+    "mem-dram-module": {
+        "name": "記憶體｜DRAM 與模組",
+        "desc": "台系 DRAM 製造與記憶體模組廠,受 AI 伺服器與消費需求循環驅動。",
+        "category": "記憶體",
+        "cagr": "循環性",
+        "indicators": [
+            {"label": "主要產品", "value": "DRAM / 模組"},
+            {"label": "需求動能", "value": "伺服器 / 消費"},
+            {"label": "市場特性", "value": "景氣循環明顯"},
+            {"label": "代表廠商", "value": "南亞科 / 威剛"},
+        ],
+        "members": {"midstream": ["2408", "2344", "3260", "4967", "2451", "8271"]},
+    },
+    "mem-storage-ctrl": {
+        "name": "記憶體｜NAND 與儲存控制 IC",
+        "desc": "NAND Flash 與 SSD/儲存控制 IC,受惠 AI 資料儲存與企業級需求。",
+        "category": "記憶體",
+        "cagr": "循環性",
+        "indicators": [
+            {"label": "主要產品", "value": "NAND / 控制 IC"},
+            {"label": "需求動能", "value": "企業級 SSD"},
+            {"label": "技術角色", "value": "儲存韌體"},
+            {"label": "代表廠商", "value": "群聯 / 旺宏"},
+        ],
+        "members": {"midstream": ["8299", "2337", "6485"]},
+    },
+
+    # --- AI 伺服器 ---
+    "ai-server-odm": {
+        "name": "AI 伺服器｜整機與 ODM",
+        "desc": "AI 伺服器整機櫃組裝與 ODM 出貨,北美 CSP 與品牌客戶為主要動能。",
+        "category": "AI 伺服器",
+        "cagr": "30%+",
+        "indicators": [
+            {"label": "主要業務", "value": "整機 / 模組組裝"},
+            {"label": "核心客戶", "value": "北美 CSP / NVIDIA"},
+            {"label": "趨勢", "value": "整機櫃 / 液冷"},
+            {"label": "代表廠商", "value": "鴻海 / 廣達 / 緯穎"},
+        ],
+        "members": {"midstream": ["2317", "2382", "3231", "6669", "2356", "2376"]},
+    },
+    "ai-server-cooling": {
+        "name": "AI 伺服器｜散熱",
+        "desc": "AI 伺服器高功耗推升散熱需求,氣冷轉液冷與均熱片、水冷板題材。",
+        "category": "AI 伺服器",
+        "cagr": "20%+",
+        "indicators": [
+            {"label": "技術轉換", "value": "氣冷 → 液冷"},
+            {"label": "主要產品", "value": "均熱片 / 水冷板"},
+            {"label": "需求動能", "value": "GB200 / 高功耗"},
+            {"label": "代表廠商", "value": "奇鋐 / 雙鴻"},
+        ],
+        "members": {"midstream": ["3017", "3324", "2421", "8996", "3483"]},
+    },
+    "ai-server-power": {
+        "name": "AI 伺服器｜電源",
+        "desc": "AI 伺服器電源供應器與電源轉換,高功率密度與高壓直流為升級重點。",
+        "category": "AI 伺服器",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要產品", "value": "PSU / 電源轉換"},
+            {"label": "技術趨勢", "value": "高壓直流 / 高密度"},
+            {"label": "需求動能", "value": "AI 機櫃功耗"},
+            {"label": "代表廠商", "value": "台達電 / 光寶科"},
+        ],
+        "members": {"midstream": ["2308", "2301", "6412", "6282", "3015"]},
+    },
+    "ai-server-pcb": {
+        "name": "AI 伺服器｜PCB 與載板",
+        "desc": "AI 伺服器高層數 PCB、高速 CCL 與 IC 載板,規格升級帶動量價齊揚。",
+        "category": "AI 伺服器",
+        "cagr": "10–15%",
+        "indicators": [
+            {"label": "主要產品", "value": "高層板 / CCL / 載板"},
+            {"label": "技術趨勢", "value": "高速 / 高層數"},
+            {"label": "需求動能", "value": "AI 加速卡 / 交換器"},
+            {"label": "代表廠商", "value": "金像電 / 台光電"},
+        ],
+        "members": {"midstream": ["2368", "3044", "3037", "8046", "2383"]},
+    },
+    "ai-server-chassis": {
+        "name": "AI 伺服器｜機殼與連接",
+        "desc": "AI 伺服器機殼、滑軌與高速連接器,高電流與高速傳輸需求升溫。",
+        "category": "AI 伺服器",
+        "cagr": "12–15%",
+        "indicators": [
+            {"label": "主要產品", "value": "機殼 / 滑軌 / 連接器"},
+            {"label": "規格升級", "value": "224G / 大電流"},
+            {"label": "需求動能", "value": "整機櫃出貨"},
+            {"label": "代表廠商", "value": "勤誠 / 嘉澤"},
+        ],
+        "members": {"midstream": ["8210", "3693", "2059", "3533"]},
+    },
 }
 
 
@@ -577,11 +840,51 @@ def scan_wikilinks():
     return wl_map
 
 
-def build_theme_page(theme_tag, theme_def, wl_map):
-    """Build a single theme markdown page."""
-    entries = wl_map.get(theme_tag, [])
-    if not entries:
-        return None
+def scan_ticker_meta():
+    """{ticker: {company, sector}} —— 由 Pilot_Reports 檔名建立,供策展子題材查名稱/產業。"""
+    meta = {}
+    for sector_dir in os.listdir(REPORTS_DIR):
+        sector_path = os.path.join(REPORTS_DIR, sector_dir)
+        if not os.path.isdir(sector_path):
+            continue
+        for f in os.listdir(sector_path):
+            m = re.match(r"^(\d{4})_(.+)\.md$", f)
+            if m:
+                meta[m.group(1)] = {"company": m.group(2), "sector": sector_dir}
+    return meta
+
+
+def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
+    """Build a single theme markdown page.
+
+    成員兩種來源:
+    - 策展子題材:theme_def["members"] = {tier: [tickers]} → 依代號查名稱/產業
+      (tier ∈ upstream/midstream/downstream;無 wikilink 標籤的細分題材用此)
+    - wikilink 題材:掃描 wl_map[theme_tag](成員報告提及該標籤)
+    """
+    members = theme_def.get("members")
+    if members:
+        meta = ticker_meta or {}
+        entries = []
+        for tier in ("upstream", "midstream", "downstream"):
+            for tk in members.get(tier, []):
+                m = meta.get(tk)
+                if not m:
+                    print(f"  [warn] {theme_tag}: 代號 {tk} 不在涵蓋範圍,略過")
+                    continue
+                entries.append({
+                    "ticker": tk,
+                    "company": m["company"],
+                    "sector": m["sector"],
+                    "role": tier,
+                    "subcat": "",
+                })
+        if not entries:
+            return None
+    else:
+        entries = wl_map.get(theme_tag, [])
+        if not entries:
+            return None
 
     lines = []
     lines.append(f"# {theme_def['name']}")
@@ -721,7 +1024,8 @@ def main():
 
     print("Scanning wikilinks across all reports...")
     wl_map = scan_wikilinks()
-    print(f"Found {len(wl_map)} unique wikilinks.\n")
+    ticker_meta = scan_ticker_meta()
+    print(f"Found {len(wl_map)} unique wikilinks, {len(ticker_meta)} tickers.\n")
 
     # Filter to requested theme or build all
     if args and args[0] != "--list":
@@ -734,13 +1038,17 @@ def main():
 
     themes_built = {}
     for tag, defn in themes_to_build.items():
-        page = build_theme_page(tag, defn, wl_map)
+        page = build_theme_page(tag, defn, wl_map, ticker_meta)
         if page:
             safe_name = tag.replace(" ", "_").replace("/", "_")
             filepath = os.path.join(THEMES_DIR, f"{safe_name}.md")
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(page)
-            count = len(wl_map.get(tag, []))
+            count = (
+                sum(len(v) for v in defn["members"].values())
+                if defn.get("members")
+                else len(wl_map.get(tag, []))
+            )
             themes_built[tag] = count
             print(f"  {tag}: {count} companies -> {safe_name}.md")
 
