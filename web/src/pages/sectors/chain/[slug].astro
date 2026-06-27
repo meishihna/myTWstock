@@ -1,0 +1,187 @@
+---
+// 產業 section — 單一 TPEx 產業價值鏈頁:上方上下游框圖 + 下方角色分群卡片。
+// 資料來源 industries-index.json(build_industries.py → build-industries-index.mjs)。
+import Layout from "../../../layouts/Layout.astro";
+import Bi from "../../../components/Bi.astro";
+import { SITE } from "../../../lib/ui";
+import fs from "node:fs";
+import path from "node:path";
+
+export function getStaticPaths() {
+  const p = path.join(process.cwd(), "public/data/industries-index.json");
+  if (!fs.existsSync(p)) return [];
+  const { industries } = JSON.parse(fs.readFileSync(p, "utf8"));
+  return industries.map((ind: any) => ({ params: { slug: ind.slug }, props: { ind } }));
+}
+
+const { ind } = Astro.props as { ind: any };
+const TIER = { u: "上游", m: "中游", d: "下游" } as const;
+const tiersPresent = (["u", "m", "d"] as const).filter((k) => ind.tiers[k].length);
+
+function groupNodes(arr: any[]) {
+  const m = new Map<string, any[]>();
+  for (const c of arr) {
+    const k = c.subcat || "其他";
+    if (!m.has(k)) m.set(k, []);
+    m.get(k)!.push(c);
+  }
+  return [...m.entries()].map(([node, items]) => ({ node, items }));
+}
+const grouped: Record<string, { node: string; items: any[] }[]> = {
+  u: groupNodes(ind.tiers.u), m: groupNodes(ind.tiers.m), d: groupNodes(ind.tiers.d),
+};
+
+function momTag(n: number) {
+  if (!n) return null;
+  const dir = n > 0 ? "年增" : "年減";
+  const a = Math.abs(n);
+  return { label: a === 1 ? `營收${dir}` : `連${a}月${dir}`, cls: n > 0 ? "up" : "down" };
+}
+function fmtMc(mc: number | null) {
+  if (mc == null) return "—";
+  if (mc >= 1_000_000) return (mc / 1_000_000).toFixed(2) + "兆";
+  if (mc >= 100) return (mc / 100).toFixed(0) + "億";
+  return mc + "百萬";
+}
+const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
+---
+
+<Layout title={`${ind.title} 產業鏈 — ${SITE.name}`} description={`${ind.title} 產業價值鏈：上中下游與成分股`}>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><Bi zh="首頁" en="Home" /></a><span class="bc-sep"> / </span>
+    <a href="/sectors"><Bi zh="產業" en="Industries" /></a><span class="bc-sep"> / </span>
+    <span>{ind.title}</span>
+  </div>
+
+  <h1 class="page-h1">{ind.title} <span class="ind-h1-sub">產業鏈</span></h1>
+  <p class="page-lead">
+    {ind.companyCount} 家成分股 ·
+    <span class="ind-src">結構參照櫃買中心產業價值鏈平台</span>
+  </p>
+
+  {ind.indicators?.length > 0 && (
+    <div class="ind-keyrow">
+      {ind.indicators.map((d: any) => (
+        <div class="ind-key"><span class="ind-key-l">{d.label}</span><span class="ind-key-v">{d.value}</span></div>
+      ))}
+    </div>
+  )}
+
+  {/* 上下游框圖 */}
+  <h2 class="ind-sec-h">產業鏈結構</h2>
+  <div class={`chain-diagram ${ind.flat ? "flat" : ""}`}>
+    {ind.flat ? (
+      <div class="chain-tier full">
+        <div class="chain-nodes">
+          {grouped.m.map((g) => (
+            <a class="chain-node" href={`#${anchor("m", g.node)}`}>{g.node}<span class="cn-n">{g.items.length}</span></a>
+          ))}
+        </div>
+      </div>
+    ) : (
+      tiersPresent.map((tk, i) => (
+        <>
+          <div class="chain-tier">
+            <div class="chain-tier-label">{TIER[tk]}</div>
+            <div class="chain-nodes">
+              {grouped[tk].map((g) => (
+                <a class="chain-node" href={`#${anchor(tk, g.node)}`}>{g.node}<span class="cn-n">{g.items.length}</span></a>
+              ))}
+            </div>
+          </div>
+          {i < tiersPresent.length - 1 && <div class="chain-arrow">▸</div>}
+        </>
+      ))
+    )}
+  </div>
+
+  {/* 角色分群 */}
+  <h2 class="ind-sec-h">成分股(依節點分群)</h2>
+  <div class="sc-rolegrid">
+    {tiersPresent.map((tk) => (
+      <section class="sc-tier">
+        {!ind.flat && <div class="sc-tier-title">{TIER[tk]} <span>{ind.tiers[tk].length}</span></div>}
+        {grouped[tk].map((g) => (
+          <div class="sc-subgroup" id={anchor(tk, g.node)}>
+            <h3 class="sc-subhead">{g.node} <span class="sc-subn">{g.items.length}</span></h3>
+            <div class="sc-grid">
+              {g.items.map((c: any) => {
+                const mt = momTag(c.mom);
+                return (
+                  <a class="sc-card2" href={`/report/${c.t}`}>
+                    <div class="sc-card2-top">
+                      <span class="sc-name">{c.n}</span>
+                      <span class="sc-tk">{c.t}</span>
+                    </div>
+                    <div class="sc-sector">{c.s}</div>
+                    <div class="sc-tags">
+                      {c.status === "lead" && <span class="sc-tag lead">產業龍頭</span>}
+                      {c.status === "challenge" && <span class="sc-tag down">成長挑戰</span>}
+                      {mt && <span class={`sc-tag ${mt.cls}`}>{mt.label}</span>}
+                    </div>
+                    <div class="sc-card2-foot">
+                      <span class="sc-mc">市值 {fmtMc(c.mc)}</span>
+                      {c.revYoy != null && (
+                        <span class={`sc-yoy ${c.revYoy >= 0 ? "up" : "down"}`}>營收 {c.revYoy >= 0 ? "+" : ""}{c.revYoy}%</span>
+                      )}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
+    ))}
+  </div>
+</Layout>
+
+<style is:global>
+  .ind-h1-sub { font-size: 0.6em; color: var(--text-secondary); font-weight: 500; }
+  .ind-src { color: var(--text-secondary); font-size: 0.85em; }
+  .ind-keyrow { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.8rem 0 1.4rem; }
+  .ind-key { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.45rem 0.7rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  .ind-key-l { font-size: 0.7rem; color: var(--text-secondary); }
+  .ind-key-v { font-size: 0.85rem; font-weight: 600; }
+  .ind-sec-h { font-size: 1.05rem; margin: 1.6rem 0 0.8rem; padding-left: 0.5rem; border-left: 3px solid var(--accent); }
+
+  /* 上下游框圖 */
+  .chain-diagram { display: flex; align-items: stretch; gap: 0.5rem; overflow-x: auto; padding: 0.4rem 0 0.8rem; }
+  .chain-diagram.flat { display: block; }
+  .chain-tier { flex: 1 1 0; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.55rem; }
+  .chain-tier.full { min-width: 0; }
+  .chain-tier-label { text-align: center; font-weight: 700; color: var(--accent); font-size: 0.85rem; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+  .chain-nodes { display: flex; flex-direction: column; gap: 0.4rem; }
+  .chain-diagram.flat .chain-nodes { flex-direction: row; flex-wrap: wrap; }
+  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; padding: 0.45rem 0.6rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); text-decoration: none; transition: border-color 0.15s, background 0.15s; }
+  .chain-node:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated)); }
+  .cn-n { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
+  .chain-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 1.1rem; }
+
+  /* 角色分群(沿用 /map 卡片語言) */
+  .sc-rolegrid { display: flex; flex-direction: column; gap: 1.4rem; }
+  .sc-tier-title { font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-bottom: 0.6rem; }
+  .sc-tier-title span { color: var(--text-secondary); font-weight: 500; }
+  .sc-tier { display: flex; flex-direction: column; gap: 0.9rem; }
+  .sc-subgroup { display: flex; flex-direction: column; gap: 0.45rem; scroll-margin-top: 70px; }
+  .sc-subhead { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin: 0; display: flex; align-items: baseline; gap: 0.35rem; padding-left: 0.4rem; border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+  .sc-subn { font-size: 0.72rem; color: var(--text-secondary); }
+  .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 7rem; }
+  .sc-card2 { display: flex; flex-direction: column; gap: 0.14rem; padding: 0.4rem 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; text-decoration: none; color: var(--text-primary); transition: border-color 0.15s; }
+  .sc-card2:hover { border-color: var(--accent); }
+  .sc-card2-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.3rem; }
+  .sc-name { font-weight: 700; font-size: 0.92rem; }
+  .sc-tk { font-size: 0.72rem; color: var(--text-secondary); }
+  .sc-sector { font-size: 0.7rem; color: var(--text-secondary); }
+  .sc-tags { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.1rem; }
+  .sc-tag { font-size: 0.68rem; font-weight: 600; }
+  .sc-tag.up { color: var(--up); }
+  .sc-tag.down { color: var(--down); }
+  .sc-tag.lead { color: var(--accent); }
+  .sc-card2-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline; gap: 0.3rem; padding-top: 0.2rem; }
+  .sc-mc { font-size: 0.75rem; color: var(--text-secondary); }
+  .sc-yoy { font-size: 0.75rem; font-weight: 600; }
+  .sc-yoy.up { color: var(--up); }
+  .sc-yoy.down { color: var(--down); }
+</style>
