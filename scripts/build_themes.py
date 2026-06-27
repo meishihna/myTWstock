@@ -1120,6 +1120,77 @@ THEME_DEFINITIONS = {
         ],
         "members": {"midstream": ["1519", "1513", "1503", "1514", "2371"]},
     },
+
+    # --- 國防軍工(新分類)---
+    "def-aero": {
+        "name": "國防軍工｜航太",
+        "desc": "航太機體零件、發動機件與 MRO 維修,受惠國機國造、民航復甦與國防預算成長。",
+        "category": "國防軍工",
+        "cagr": "穩健成長",
+        "indicators": [
+            {"label": "主要業務", "value": "機體零件 / MRO"},
+            {"label": "核心客戶", "value": "Boeing / Airbus / 國防部"},
+            {"label": "成長動能", "value": "國機國造 / 民航復甦"},
+            {"label": "代表廠商", "value": "漢翔 / 長榮航太"},
+        ],
+        "members": {"upstream": ["4541", "4572", "8222", "4546"], "midstream": ["2634", "2645", "2630"]},
+    },
+    "def-ship": {
+        "name": "國防軍工｜造船",
+        "desc": "軍艦與商船建造,國艦國造、潛艦國造與海巡擴編帶動長線需求。",
+        "category": "國防軍工",
+        "cagr": "政策驅動",
+        "indicators": [
+            {"label": "主要業務", "value": "軍艦 / 商船"},
+            {"label": "成長動能", "value": "國艦國造 / 潛艦"},
+            {"label": "核心客戶", "value": "海軍 / 海巡"},
+            {"label": "代表廠商", "value": "台船 / 龍德造船"},
+        ],
+        "members": {"midstream": ["2208", "6753", "2644"]},
+    },
+    "def-electronics": {
+        "name": "國防軍工｜無人機與軍用電子",
+        "desc": "軍規電腦、無人機與軍用電子,不對稱戰力與國防預算成長驅動。",
+        "category": "國防軍工",
+        "cagr": "15%+",
+        "indicators": [
+            {"label": "主要產品", "value": "軍規電腦 / 無人機"},
+            {"label": "成長動能", "value": "不對稱戰力 / 國防預算"},
+            {"label": "產品特性", "value": "軍規認證"},
+            {"label": "代表廠商", "value": "茂訊 / 事欣科"},
+        ],
+        "members": {"midstream": ["3213", "4916", "3229"]},
+    },
+
+    # --- 人形機器人(歸 智慧機器人)---
+    "humanoid-robot": {
+        "name": "人形機器人",
+        "desc": "NVIDIA、Tesla Optimus 帶動的人形機器人供應鏈,台廠減速機、滾珠螺桿、致動與感測為核心。",
+        "category": "智慧機器人",
+        "cagr": "高成長(早期)",
+        "indicators": [
+            {"label": "核心零件", "value": "減速機 / 滾珠螺桿"},
+            {"label": "推動者", "value": "NVIDIA / Tesla"},
+            {"label": "台廠角色", "value": "傳動 / 致動 / 感測"},
+            {"label": "產業階段", "value": "量產前夕"},
+        ],
+        "members": {"midstream": ["2049", "1536", "4540", "1597", "4583", "2233", "4571", "3060"]},
+    },
+
+    # --- 玻璃基板(歸 基板材料)---
+    "glass-substrate": {
+        "name": "玻璃基板 Glass Substrate",
+        "desc": "下一代先進封裝核心基板,玻璃取代 ABF/矽中介層;台積電、Intel 推進,台廠玻璃與加工卡位。",
+        "category": "基板材料",
+        "cagr": "新興高成長",
+        "indicators": [
+            {"label": "核心技術", "value": "玻璃核心基板"},
+            {"label": "取代對象", "value": "ABF 載板 / 矽中介層"},
+            {"label": "推進者", "value": "台積電 / Intel"},
+            {"label": "台廠角色", "value": "玻璃 / 加工 / 設備"},
+        ],
+        "members": {"upstream": ["1815", "1802", "1809"], "midstream": ["3149", "3037", "3615", "2409"]},
+    },
 }
 
 
