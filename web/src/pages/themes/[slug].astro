@@ -186,8 +186,15 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
 
     {cons.length > 0 && (
       <section class="theme-hm-sec" aria-label="題材個股熱力圖">
-        <h2 class="theme-sec-h">{THEMES_PAGE.heatTitle} <span class="theme-sec-sub">{THEMES_PAGE.heatSub}</span></h2>
-        <div id="theme-hm" class="theme-hm" role="img" aria-label={`${theme.title} 成分股漲跌熱力圖`} />
+        <div class="hm-head">
+          <h2 class="theme-sec-h">{THEMES_PAGE.heatTitle} <span class="theme-sec-sub">{THEMES_PAGE.heatSub}</span></h2>
+          <div class="hmp-toggle" role="tablist" aria-label="期間切換">
+            <button class="hmp-tab is-active" type="button" role="tab" aria-selected="true" data-hmp="d">{THEMES_PAGE.periodD}</button>
+            <button class="hmp-tab" type="button" role="tab" aria-selected="false" data-hmp="w">{THEMES_PAGE.periodW}</button>
+            <button class="hmp-tab" type="button" role="tab" aria-selected="false" data-hmp="m">{THEMES_PAGE.periodM}</button>
+          </div>
+        </div>
+        <div id="theme-hm" class="theme-hm" role="img" aria-label={`${theme.title} 成分股成交額熱力圖`} />
       </section>
     )}
 
@@ -281,10 +288,13 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     import { getWatchlist, toggleWatch } from "../../lib/watchlist";
 
     interface Con { t: string; n: string; mc: number | null; }
+    type Stat = { d: number[]; w: number[]; m: number[] };
     const dataEl = document.getElementById("theme-cons");
     const cons: Con[] = dataEl ? JSON.parse(dataEl.textContent || "[]") : [];
     const pct: Record<string, number> = {};
     const px: Record<string, number> = {};
+    const stats: Record<string, Stat> = {};
+    let period: "d" | "w" | "m" = "d";
 
     function esc(s: string): string {
       return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -293,22 +303,27 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       return p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.toFixed(0);
     }
 
+    // 熱力圖:磚塊大小＝期間成交額(億,sqrt 壓縮),顏色＝期間漲跌%(紅漲綠跌)
     function renderHm() {
       const root = document.getElementById("theme-hm");
       if (!root) return;
       const W = root.clientWidth, H = root.clientHeight;
       if (W < 10 || H < 10 || cons.length === 0) return;
-      const withMc = cons
-        .filter((c) => c.mc != null && c.mc > 0)
-        .sort((a, b) => (b.mc as number) - (a.mc as number))
+      const withTov = cons
+        .map((c) => {
+          const s = stats[c.t];
+          return s ? { ...c, chg: s[period][0], tov: s[period][1] } : null;
+        })
+        .filter((c): c is Con & { chg: number; tov: number } => !!c && c.tov > 0)
+        .sort((a, b) => b.tov - a.tov)
         .slice(0, 36);
-      if (withMc.length === 0) { root.innerHTML = ""; return; }
-      const nodes = withMc.map((c) => ({ ...c, value: Math.sqrt(c.mc as number) }));
+      if (withTov.length === 0) { root.innerHTML = `<p class="hm-empty">暫無成交額資料</p>`; return; }
+      const nodes = withTov.map((c) => ({ ...c, value: Math.sqrt(c.tov) }));
       const laid = treemap(nodes, 0, 0, W, H);
       const G = 1;
       root.innerHTML = laid
         .map((c) => {
-          const p = pct[c.t];
+          const p = c.chg;
           const big = c.w > 54 && c.h > 26;
           const showP = p != null && c.w > 44 && c.h > 38;
           return `<a class="thm-tile" href="/report/${c.t}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
@@ -333,6 +348,19 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       });
     }
 
+    // 熱力圖資料:期間成交額/漲跌快照(每日 CI 更新)
+    async function loadStats() {
+      try {
+        const r = await fetch("/data/heatmap-stats.json");
+        if (r.ok) {
+          const j = await r.json();
+          Object.assign(stats, j.stats || {});
+        }
+      } catch { /* ignore */ }
+      renderHm();
+    }
+
+    // 成分股卡片即時報價(quote-batch);與熱力圖快照分開
     async function load() {
       const tickers = cons.map((c) => c.t).filter((t) => /^\d{4}$/.test(t));
       const CHUNK = 110;
@@ -354,8 +382,22 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
           if (typeof v.price === "number" && isFinite(v.price)) px[k] = v.price;
         }
       }
-      renderHm();
       fillCards();
+    }
+
+    function initHmPeriod() {
+      const tabs = Array.prototype.slice.call(document.querySelectorAll<HTMLButtonElement>(".hmp-tab"));
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          period = (tab.getAttribute("data-hmp") as "d" | "w" | "m") || "d";
+          tabs.forEach((t) => {
+            const on = t === tab;
+            t.classList.toggle("is-active", on);
+            t.setAttribute("aria-selected", on ? "true" : "false");
+          });
+          renderHm();
+        });
+      });
     }
 
     // ---- 收藏 ☆(個股,沿用 watchlist) ----
@@ -472,9 +514,11 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     initSviews();
     initCollapse();
     initFavs();
+    initHmPeriod();
     const initial = new URLSearchParams(location.search).get("tab") === "structure" ? "structure" : "overview";
     setTab(initial, false);
     renderHm();
+    loadStats();
     load();
     if (typeof ResizeObserver !== "undefined") {
       let t: number | undefined;
@@ -529,6 +573,12 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-tier-n { font-family: var(--font-body); font-size: 0.8rem; color: var(--accent); font-weight: 700; }
 
     .theme-hm-sec { margin-top: 0.4rem; }
+    .hm-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem; }
+    .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); flex: 0 0 auto; }
+    .hmp-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .hmp-tab:hover { color: var(--text); }
+    .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
+    .hm-empty { color: var(--muted); text-align: center; padding: 2rem 1rem; }
     .theme-hm { position: relative; width: 100%; height: clamp(220px, 38vh, 380px); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
     .thm-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; text-decoration: none; color: #f4efe6; border-radius: 2px; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.1s var(--ease-out); }
     .thm-tile:hover, .thm-tile:focus-visible { outline-color: var(--accent); z-index: 3; }

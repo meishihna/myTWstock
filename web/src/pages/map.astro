@@ -26,8 +26,12 @@ export const prerender = true;
       <div class="map-toolbar">
         <p class="map-hint">{MAP_PAGE.heatmapHint}</p>
         <div class="map-toolbar-r">
+          <div class="hmp-toggle" role="tablist" aria-label="期間切換">
+            <button class="hmp-tab is-active" type="button" role="tab" aria-selected="true" data-hmp="d">{MAP_PAGE.periodD}</button>
+            <button class="hmp-tab" type="button" role="tab" aria-selected="false" data-hmp="w">{MAP_PAGE.periodW}</button>
+            <button class="hmp-tab" type="button" role="tab" aria-selected="false" data-hmp="m">{MAP_PAGE.periodM}</button>
+          </div>
           <span id="hm-status" class="map-status" data-prefix={MAP_PAGE.updatedAt} role="status"></span>
-          <button id="hm-refresh" class="map-refresh" type="button">{MAP_PAGE.refresh}</button>
         </div>
       </div>
       <div id="hm-root" class="hm-root" aria-label="題材市場熱力圖" role="img"></div>
@@ -80,10 +84,16 @@ export const prerender = true;
     }
     interface Rect { x: number; y: number; w: number; h: number; }
 
-    const TOP_N = 6;          // 每題材取市值前 N 檔估算平均漲跌（控制報價量）
+    const TOP_N = 6;          // 卡片 pct 用:每題材取市值前 N 檔估算平均漲跌
     const CHUNK = 110;        // /api/quote-batch 單次上限 120
     let themes: Theme[] = [];
     const pctByTicker: Record<string, number> = {};
+
+    // 熱力圖:成交額/漲跌快照(日/週/月)
+    type Stat = { d: number[]; w: number[]; m: number[] };
+    const statsByTicker: Record<string, Stat> = {};
+    let hmPeriod: "d" | "w" | "m" = "d";
+    let statsAt = "";
 
     // 題材總覽狀態
     const I18N: Record<string, string> = JSON.parse(
@@ -166,15 +176,35 @@ export const prerender = true;
       return wsum > 0 ? psum / wsum : simple / n;
     }
 
+    // 題材的期間成交額(億)與成交額加權漲跌%(取所有有快照的成分股)
+    function themeStat(t: Theme): { tov: number; chg: number | null } {
+      let tov = 0, wsum = 0, psum = 0;
+      const seen = new Set<string>();
+      for (const c of [...t.tiers.u, ...t.tiers.m, ...t.tiers.d]) {
+        if (seen.has(c.t)) continue; seen.add(c.t);
+        const s = statsByTicker[c.t]; if (!s) continue;
+        const arr = s[hmPeriod]; if (!arr) continue;
+        const chg = arr[0], tv = arr[1];
+        if (typeof tv === "number" && tv > 0) {
+          tov += tv;
+          if (typeof chg === "number" && isFinite(chg)) { wsum += tv; psum += tv * chg; }
+        }
+      }
+      return { tov, chg: wsum > 0 ? psum / wsum : null };
+    }
+
+    // 熱力圖:磚塊大小＝題材期間成交額(sqrt 壓縮),顏色＝成交額加權漲跌%
     function renderHeatmap() {
       const root = $("hm-root"); if (!root) return;
       const W = root.clientWidth, H = root.clientHeight;
       if (W < 10 || H < 10 || themes.length === 0) return;
-      const nodes = themes.map((t) => ({ ...t, value: t.companyCount || 1 }));
+      const rows = themes.map((t) => ({ t, st: themeStat(t) })).filter((x) => x.st.tov > 0);
+      if (rows.length === 0) { root.innerHTML = `<p class="map-fail">暫無成交額資料</p>`; return; }
+      const nodes = rows.map((x) => ({ ...x.t, value: Math.sqrt(x.st.tov), _chg: x.st.chg }));
       const laid = treemap(nodes, 0, 0, W, H);
       const G = 1; // 內縮 gap
       root.innerHTML = laid.map((t) => {
-        const pct = themeAvgPct(t);
+        const pct = (t as typeof t & { _chg: number | null })._chg;
         const big = t.w > 74 && t.h > 30;
         const showPct = pct != null && t.w > 52 && t.h > 42;
         const pctStr = pct == null ? "" : (pct > 0 ? "+" : "") + pct.toFixed(2) + "%";
@@ -306,32 +336,47 @@ export const prerender = true;
       return { any, fetchedAt };
     }
 
-    function setStatus(fetchedAt: string) {
+    function setStatus() {
       const el = $("hm-status"); if (!el) return;
       const prefix = el.getAttribute("data-prefix") || "";
-      if (!fetchedAt) { el.textContent = ""; return; }
-      const d = new Date(fetchedAt);
-      const hhmm = isNaN(d.getTime())
-        ? ""
-        : new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(d);
-      el.textContent = hhmm ? `${prefix} ${hhmm}` : "";
+      const d = fmtDate(statsAt);
+      el.textContent = d ? `${prefix} ${d}` : "";
     }
 
-    let refreshing = false;
-    async function refreshQuotes() {
-      if (refreshing) return;
-      refreshing = true;
-      const btn = $("hm-refresh") as HTMLButtonElement | null;
-      if (btn) btn.disabled = true;
+    // 熱力圖資料:成交額/漲跌快照(每日 CI 更新)
+    async function loadStats() {
       try {
-        const { any, fetchedAt } = await loadQuotes();
-        renderHeatmap();
-        renderTov();
-        if (any) setStatus(fetchedAt || new Date().toISOString());
-      } finally {
-        refreshing = false;
-        if (btn) btn.disabled = false;
-      }
+        const r = await fetch("/data/heatmap-stats.json");
+        if (r.ok) {
+          const j = await r.json();
+          Object.assign(statsByTicker, j.stats || {});
+          statsAt = j.generatedAt || "";
+        }
+      } catch { /* ignore */ }
+      renderHeatmap();
+      setStatus();
+    }
+
+    // 卡片 pct 徽章:即時報價(quote-batch),抓完重繪卡牆
+    async function loadGallery() {
+      const { any } = await loadQuotes();
+      if (any) renderThemes();
+    }
+
+    function initHmPeriod() {
+      const tabs = Array.prototype.slice.call(document.querySelectorAll<HTMLButtonElement>(".hmp-tab"));
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          hmPeriod = (tab.getAttribute("data-hmp") as "d" | "w" | "m") || "d";
+          tabs.forEach((t) => {
+            const on = t === tab;
+            t.classList.toggle("is-active", on);
+            t.setAttribute("aria-selected", on ? "true" : "false");
+          });
+          const tip = $("hm-tip"); if (tip) tip.hidden = true;
+          renderHeatmap();
+        });
+      });
     }
 
     // ---- tooltip ----
@@ -343,12 +388,14 @@ export const prerender = true;
         if (!tgt) { tip.hidden = true; return; }
         const t = bySlug(tgt.getAttribute("data-slug") || "");
         if (!t) { tip.hidden = true; return; }
-        const pct = themeAvgPct(t);
-        const pctStr = pct == null ? "—" : `<b class="${pct > 0 ? "up" : pct < 0 ? "down" : "flat"}">${pct > 0 ? "+" : ""}${pct.toFixed(2)}%</b>`;
-        const mc = t.aggMcap >= 1e6 ? `${(t.aggMcap / 1e6).toFixed(2)} 兆` : `${Math.round(t.aggMcap / 100)} 億`;
+        const st = themeStat(t);
+        const c = st.chg;
+        const pctStr = c == null ? "—" : `<b class="${c > 0 ? "up" : c < 0 ? "down" : "flat"}">${c > 0 ? "+" : ""}${c.toFixed(2)}%</b>`;
+        const tovStr = st.tov >= 10000 ? `${(st.tov / 10000).toFixed(2)} 兆` : `${Math.round(st.tov)} 億`;
+        const pl = hmPeriod === "d" ? "當日" : hmPeriod === "w" ? "近週" : "近月";
         tip.innerHTML = `<span class="hm-tip-t">${esc(t.title)}</span>`
-          + `<span class="hm-tip-r">涵蓋 ${t.companyCount} 家 · 市值合計 ${mc}</span>`
-          + `<span class="hm-tip-r">當日平均 ${pctStr}</span>`;
+          + `<span class="hm-tip-r">涵蓋 ${t.companyCount} 家 · ${pl}成交額 ${tovStr}</span>`
+          + `<span class="hm-tip-r">${pl}漲跌 ${pctStr}</span>`;
         tip.hidden = false;
         const pad = 14, tw = tip.offsetWidth, th = tip.offsetHeight;
         let lx = e.clientX + pad, ly = e.clientY + pad;
@@ -394,7 +441,7 @@ export const prerender = true;
     // ---- init ----
     initTabs();
     initTooltip();
-    $("hm-refresh")?.addEventListener("click", refreshQuotes);
+    initHmPeriod();
     favSet = new Set(getThemes());
     readUrl();
     if (typeof ResizeObserver !== "undefined") {
@@ -412,7 +459,8 @@ export const prerender = true;
         renderPills();
         renderHeatmap();
         renderThemes();
-        refreshQuotes();
+        loadStats();   // 熱力圖:成交額快照
+        loadGallery(); // 卡牆:即時 pct 徽章
         // 帶著題材總覽篩選進站 → 自動切到「主題」分頁
         if (curFav || curCat !== "__all__") {
           (document.querySelector('.map-tab[data-tab="industry"]') as HTMLButtonElement | null)?.click();
@@ -439,6 +487,10 @@ export const prerender = true;
     .map-hint { color: var(--muted); font-size: 0.8rem; margin: 0; line-height: 1.5; flex: 1 1 300px; }
     .map-toolbar-r { display: inline-flex; align-items: center; gap: 0.7rem; margin-left: auto; }
     .map-status { color: var(--muted); font-size: 0.76rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); flex: 0 0 auto; }
+    .hmp-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .hmp-tab:hover { color: var(--text); }
+    .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
     .map-refresh { appearance: none; height: 32px; padding: 0 13px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: border-color var(--duration) var(--ease-out); }
     .map-refresh:hover { border-color: var(--accent); }
     .map-refresh:disabled { opacity: 0.5; cursor: default; }
