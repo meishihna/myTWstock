@@ -167,6 +167,26 @@
   font-size: 0.72rem;
 }
 
+/* 籌碼面走勢圖(各序列各自縮放套疊;股價金線) */
+.chips-trend {
+  width: 100%;
+  margin-top: 0.2rem;
+}
+.chips-trend .ct-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.chips-trend .ct-x {
+  fill: var(--fd-muted, #8a8a8a);
+  font-size: 11px;
+  text-anchor: middle;
+}
+.chips-trend .ct-note {
+  fill: var(--fd-muted, #8a8a8a);
+  font-size: 12px;
+}
+
 .fin-dash__kpi-note {
   margin-top: auto;
   font-size: 0.75rem;

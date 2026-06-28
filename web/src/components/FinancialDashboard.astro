@@ -22,6 +22,7 @@ import {
   MARGIN_LINE_LABELS,
 } from "../lib/industryConfig";
 import type { ChipsRow } from "../lib/chipsSnapshot";
+import type { ChipsHistory } from "../lib/chipsHistory";
 
 interface Props {
   financialsJson: FinancialsJson;
@@ -30,9 +31,11 @@ interface Props {
   industryType?: IndustryType | string;
   chips?: ChipsRow | null;
   chipsDate?: string | null;
+  chipsHistory?: ChipsHistory | null;
 }
 
-const { financialsJson, companyName, ticker, industryType, chips, chipsDate } = Astro.props;
+const { financialsJson, companyName, ticker, industryType, chips, chipsDate, chipsHistory } =
+  Astro.props;
 const indCfg = getIndustryConfig(industryType);
 
 // ── 籌碼面分頁(三大法人最新一日 + 融資融券)──
@@ -1818,6 +1821,23 @@ const mRevYTickMarks =
           </div>
         </figure>
       )}
+      {chipsHistory && (chipsHistory.inst || chipsHistory.holders) && (
+        <>
+          {chipsHistory.inst && (
+            <figure class="fin-dash__chart">
+              <p class="fin-dash__sl">三大法人合計買賣超 vs 股價（近 30 交易日；買超紅／賣超綠，股價金線）</p>
+              <div class="chips-trend" data-chips-trend="inst" />
+            </figure>
+          )}
+          {chipsHistory.holders && (
+            <figure class="fin-dash__chart">
+              <p class="fin-dash__sl">大戶持股 vs 股價（千張藍／400張紫／股價金；大戶為週資料，累積中）</p>
+              <div class="chips-trend" data-chips-trend="holders" />
+            </figure>
+          )}
+          <script type="application/json" data-chips-history set:html={JSON.stringify({ ticker, ...chipsHistory })} />
+        </>
+      )}
     </div>
   </div>
 </section>
@@ -1848,5 +1868,57 @@ const mRevYTickMarks =
         });
       });
     });
+  })();
+</script>
+
+<script>
+  // 籌碼面走勢圖:三大法人(柱)+ 股價(線);千張/400張大戶(線)+ 股價(線)。
+  // 歷史(三大法人/大戶)由頁面嵌入;股價即時抓 /api/bars/[ticker]。各序列各自縮放套疊。
+  (function () {
+    const holder = document.querySelector("[data-chips-history]");
+    if (!holder) return;
+    let H;
+    try { H = JSON.parse(holder.textContent || "{}"); } catch { return; }
+    if (!H.ticker) return;
+
+    const W = 720, HT = 210, P = { l: 12, r: 12, t: 18, b: 22 };
+    const pw = W - P.l - P.r, ph = HT - P.t - P.b;
+    const UP = "#e24b4a", DOWN = "#1d9e75", GOLD = "#d6a64a", BLUE = "#4a9ed6", PURP = "#b07bd6";
+    const p2 = (n) => (n < 10 ? "0" : "") + n;
+    const toYmd = (t) => {
+      if (t == null) return "";
+      if (typeof t === "number") { const d = new Date(t > 1e11 ? t : t * 1000); return "" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()); }
+      return String(t).slice(0, 10).replace(/-/g, "");
+    };
+    const xAt = (i, n) => P.l + (n <= 1 ? pw / 2 : (pw * i) / (n - 1));
+    const sY = (v, mn, mx) => (mx === mn ? P.t + ph / 2 : P.t + ph - ((v - mn) / (mx - mn)) * ph);
+    const linePath = (pts) => { let d = "", on = false; for (const p of pts) { if (!p) { on = false; continue; } d += (on ? " L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1); on = true; } return d; };
+    const xticks = (dates) => { const n = dates.length, s = Math.max(1, Math.floor(n / 5)), o = []; for (let i = 0; i < n; i += s) { const d = dates[i]; o.push(`<text x="${xAt(i, n).toFixed(1)}" y="${HT - 6}" class="ct-x">${d.slice(4, 6)}/${d.slice(6, 8)}</text>`); } return o.join(""); };
+    const priceLine = (dates, pbd) => { const cl = dates.map((d) => pbd[d]); const fin = cl.filter((v) => v != null && isFinite(v)); if (fin.length < 2) return ""; const mn = Math.min(...fin), mx = Math.max(...fin), n = dates.length; const pts = cl.map((v, i) => (v == null || !isFinite(v) ? null : { x: xAt(i, n), y: sY(v, mn, mx) })); return `<path d="${linePath(pts)}" fill="none" stroke="${GOLD}" stroke-width="1.6"/>`; };
+
+    function drawInst(el, dates, net3, pbd) {
+      const n = dates.length, am = Math.max(1, ...net3.map((v) => (v == null ? 0 : Math.abs(v)))), zy = P.t + ph / 2, bw = Math.max(1.5, (pw / n) * 0.62);
+      let bars = "";
+      for (let i = 0; i < n; i++) { const v = net3[i]; if (v == null || !isFinite(v)) continue; const h = (Math.abs(v) / am) * (ph / 2); const x = xAt(i, n) - bw / 2; const y = v >= 0 ? zy - h : zy; bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h, 0.5).toFixed(1)}" fill="${v >= 0 ? UP : DOWN}" opacity="0.85"/>`; }
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${HT}" class="ct-svg"><line x1="${P.l}" x2="${W - P.r}" y1="${zy}" y2="${zy}" stroke="rgba(255,255,255,.16)"/>${bars}${priceLine(dates, pbd)}${xticks(dates)}</svg>`;
+    }
+    function drawHolders(el, xdates, hdates, k1000, k400, pbd) {
+      const n = xdates.length, idx = {}; xdates.forEach((d, i) => (idx[d] = i));
+      const map = (vals) => { const a = new Array(n).fill(null); hdates.forEach((d, j) => { const i = idx[d]; if (i != null && vals[j] != null) a[i] = vals[j]; }); return a; };
+      const s1 = map(k1000), s4 = map(k400), all = [...s1, ...s4].filter((v) => v != null && isFinite(v));
+      let pct = "";
+      if (all.length) { const mn = Math.min(...all), mx = Math.max(...all); const mk = (arr, c) => { const pts = arr.map((v, i) => (v == null ? null : { x: xAt(i, n), y: sY(v, mn, mx) })); const dots = pts.filter(Boolean).map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.6" fill="${c}"/>`).join(""); return `<path d="${linePath(pts)}" fill="none" stroke="${c}" stroke-width="1.6"/>${dots}`; }; pct = mk(s1, BLUE) + mk(s4, PURP); }
+      const note = hdates.length < 2 ? `<text x="${P.l}" y="${P.t + 4}" class="ct-note">大戶累積中（目前 ${hdates.length} 週）</text>` : "";
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${HT}" class="ct-svg">${priceLine(xdates, pbd)}${pct}${note}${xticks(xdates)}</svg>`;
+    }
+
+    fetch("/api/bars/" + encodeURIComponent(H.ticker)).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      const pbd = {};
+      if (j && j.bars) for (const b of j.bars) { const d = toYmd(b.time); if (d) pbd[d] = b.close; }
+      const ie = document.querySelector('[data-chips-trend="inst"]');
+      if (ie && H.inst) drawInst(ie, H.inst.dates, H.inst.net3, pbd);
+      const he = document.querySelector('[data-chips-trend="holders"]');
+      if (he && H.holders) drawHolders(he, (H.inst && H.inst.dates) || H.holders.dates, H.holders.dates, H.holders.k1000, H.holders.k400, pbd);
+    }).catch(() => {});
   })();
 </script>

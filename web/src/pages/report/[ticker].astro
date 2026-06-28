@@ -51,6 +51,7 @@ import {
 import { showFinancialDashboard } from "../../lib/financialDashboard";
 import { valuationSnapshotRow } from "../../lib/valuationSnapshot";
 import { chipsSnapshotRow, chipsInstDate } from "../../lib/chipsSnapshot";
+import { chipsHistoryForTicker } from "../../lib/chipsHistory";
 import {
   readRevenueMixForTicker,
   revenueStructureForRelationTab,
@@ -280,6 +281,7 @@ const valuation: ValuationParsed = valSnapRow
 // 籌碼面快照(三大法人最新一日 + 融資融券),供財務儀表板「籌碼面」分頁
 const chipsRow = chipsSnapshotRow(ticker!);
 const chipsDate = chipsInstDate();
+const chipsHistory = chipsHistoryForTicker(ticker!);
 
 /** 季度表「累積合併」用；與 Markdown 單季表同期別對齊 */
 const quarterlyYtdJsonForTable =
@@ -631,6 +633,7 @@ const reportLd = [
       industryType={finDashIndustryType}
       chips={chipsRow}
       chipsDate={chipsDate}
+      chipsHistory={chipsHistory}
     />
   )}
 
