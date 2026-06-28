@@ -33,9 +33,8 @@ import {
   parseQuarterlyRevenue,
   parseRelationBlocks,
   parseReportSummary,
-  mergeValuationJsonWithMarkdown,
   parseValuation,
-  valuationFromFinancialsJson,
+  valuationFromSnapshot,
   stripRelationSectionsForBody,
   stripValuationMarkdownSubsection,
   extractBusinessIntroMarkdown,
@@ -50,6 +49,7 @@ import {
   type ValuationParsed,
 } from "../../lib/parseReport";
 import { showFinancialDashboard } from "../../lib/financialDashboard";
+import { valuationSnapshotRow } from "../../lib/valuationSnapshot";
 import {
   readRevenueMixForTicker,
   revenueStructureForRelationTab,
@@ -269,13 +269,12 @@ function metaDisplayField(v: unknown): string {
 const sectorDisplay = metaDisplayField(summary.board);
 const industryDisplay = metaDisplayField(summary.industry);
 
-const mdValuation = parseValuation(raw);
-const valuation: ValuationParsed = fj?.valuation
-  ? mergeValuationJsonWithMarkdown(
-      valuationFromFinancialsJson(fj.valuation as Record<string, unknown>),
-      mdValuation,
-    )
-  : mdValuation;
+// 估值卡片改讀全市場快照 valuation-index.json(TWSE/TPEx 官方 + Yahoo Beta);
+// 查無此檔/此股時退回報告內 MD 估值表(多已移除 → 顯示 4 張「—」卡)。
+const valSnapRow = valuationSnapshotRow(ticker!);
+const valuation: ValuationParsed = valSnapRow
+  ? valuationFromSnapshot(valSnapRow)
+  : parseValuation(raw);
 
 /** 季度表「累積合併」用；與 Markdown 單季表同期別對齊 */
 const quarterlyYtdJsonForTable =

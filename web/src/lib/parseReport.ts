@@ -67,16 +67,41 @@ const VAL_TABLE_SOURCE_KEYS = [
   "debtEquity",
 ] as const;
 
-/** 估值區塊 UI 顯示順序（不含 ROE） */
+/** 估值區塊 UI 顯示順序（固定 4 張卡;資料來自 valuation-index.json 快照） */
 const VAL_KEYS = [
   { key: "peTtm", labelZh: "本益比", labelEn: "P/E (TTM)" },
-  { key: "forwardPe", labelZh: "前瞻本益比", labelEn: "Forward P/E" },
-  { key: "psTtm", labelZh: "股價營收比", labelEn: "P/S (TTM)" },
+  { key: "dividendYield", labelZh: "殖利率", labelEn: "Dividend Yield" },
   { key: "pb", labelZh: "股價淨值比", labelEn: "P/B" },
-  { key: "evEbitda", labelZh: "企業價值倍數", labelEn: "EV/EBITDA" },
   { key: "beta", labelZh: "Beta", labelEn: "Beta" },
-  { key: "debtEquity", labelZh: "負債權益比", labelEn: "Debt/Equity" },
 ] as const;
+
+/**
+ * 由 valuation-index.json 單檔資料(pe/pb/yield/beta,數字或 null)組出固定 4 張卡。
+ * 缺值顯示「—」,版面恆為 4 格;殖利率附「%」。
+ */
+export function valuationFromSnapshot(
+  row:
+    | { pe?: number | null; pb?: number | null; yield?: number | null; beta?: number | null }
+    | null
+    | undefined,
+): ValuationParsed {
+  const r = row ?? {};
+  const fmt = (v: number | null | undefined, suffix = "") =>
+    typeof v === "number" && Number.isFinite(v) ? `${v.toFixed(2)}${suffix}` : "—";
+  const metrics: Record<string, string> = {
+    peTtm: fmt(r.pe),
+    dividendYield: fmt(r.yield, "%"),
+    pb: fmt(r.pb),
+    beta: fmt(r.beta),
+  };
+  const labels = VAL_KEYS.map((k) => ({
+    key: k.key,
+    label: `${k.labelZh} ${k.labelEn}`,
+    labelZh: k.labelZh,
+    labelEn: k.labelEn,
+  }));
+  return { metrics, labels };
+}
 
 /** JSON／Yahoo 與 MD 表格欄位是否視為「有值」（N/A、空、— 皆視為缺） */
 export function valuationMetricLooksPresent(v: unknown): boolean {
