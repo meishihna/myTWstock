@@ -80,6 +80,7 @@ function computeStats(rows) {
     d: [r2((last / rows[n - 2].close - 1) * 100), r1(rows[n - 1].tov)],
     w: span(5),
     m: span(20),
+    p: r2(last), // 當日收盤價(tooltip 用)
   };
 }
 
