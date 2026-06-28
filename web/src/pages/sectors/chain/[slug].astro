@@ -319,7 +319,8 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   function renderNode() {
     const root = document.getElementById("ind-hm-node"); if (!root) return;
     const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
-    const rows = hmNodes.map((g) => ({ g, st: nodeStat(g) })).filter((x) => x.st.tov > 0);
+    const rows = hmNodes.map((g) => ({ g, st: nodeStat(g) })).filter((x) => x.st.tov > 0)
+      .sort((a, b) => b.st.tov - a.st.tov); // 依成交額由大到小 → 最大在左、往右下遞減
     if (rows.length === 0) { root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
     const laid = treemap(rows.map((x) => ({ node: x.g.node, count: x.g.tickers.length, value: Math.sqrt(x.st.tov), _chg: x.st.chg, _tov: x.st.tov })), 0, 0, W, H);
     const G = 1;
