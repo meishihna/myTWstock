@@ -147,6 +147,26 @@
   color: var(--fd-neg);
 }
 
+/* 籌碼面:卡片更精簡、主數字更大 */
+[data-fin-panel="chips"] .fin-dash__kpi-row {
+  gap: 0.55rem 0.55rem;
+  margin: 0.6rem 0 1.1rem;
+}
+[data-fin-panel="chips"] .fin-dash__kpi-card {
+  min-height: 4.6rem;
+  padding: 0.5rem 0.7rem 0.55rem;
+}
+[data-fin-panel="chips"] .fin-dash__kpi-label {
+  font-size: 0.72rem;
+}
+[data-fin-panel="chips"] .fin-dash__kpi-value {
+  font-size: 2rem;
+  margin: 0.2rem 0 0.25rem;
+}
+[data-fin-panel="chips"] .fin-dash__kpi-delta {
+  font-size: 0.72rem;
+}
+
 .fin-dash__kpi-note {
   margin-top: auto;
   font-size: 0.75rem;
