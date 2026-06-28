@@ -1890,7 +1890,8 @@ const mRevYTickMarks =
     };
     const xAt = (i, n) => P.l + (n <= 1 ? pw / 2 : (pw * i) / (n - 1));
     const sY = (v, mn, mx) => (mx === mn ? P.t + ph / 2 : P.t + ph - ((v - mn) / (mx - mn)) * ph);
-    const linePath = (pts) => { let d = "", on = false; for (const p of pts) { if (!p) { on = false; continue; } d += (on ? " L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1); on = true; } return d; };
+    // 缺值不斷線:跳過 null、把前後有效點直接相連(股價偶有單日缺、大戶為週點,皆連續呈現)
+    const linePath = (pts) => { let d = "", on = false; for (const p of pts) { if (!p) continue; d += (on ? " L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1); on = true; } return d; };
     const xticks = (dates) => { const n = dates.length, s = Math.max(1, Math.floor(n / 5)), o = []; for (let i = 0; i < n; i += s) { const d = dates[i]; o.push(`<text x="${xAt(i, n).toFixed(1)}" y="${HT - 6}" class="ct-x">${d.slice(4, 6)}/${d.slice(6, 8)}</text>`); } return o.join(""); };
     const priceLine = (dates, pbd) => { const cl = dates.map((d) => pbd[d]); const fin = cl.filter((v) => v != null && isFinite(v)); if (fin.length < 2) return ""; const mn = Math.min(...fin), mx = Math.max(...fin), n = dates.length; const pts = cl.map((v, i) => (v == null || !isFinite(v) ? null : { x: xAt(i, n), y: sY(v, mn, mx) })); return `<path d="${linePath(pts)}" fill="none" stroke="${GOLD}" stroke-width="1.6"/>`; };
 
