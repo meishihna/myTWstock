@@ -79,9 +79,11 @@ export function treemap<T extends { value: number }>(
 
 /** 漲跌配色:紅漲綠跌(暖調低彩,襯深底)。pct=null 為等待報價。 */
 export function tileColor(pct: number | null): string {
-  if (pct == null) return "#221d18";
+  if (pct == null) return "#2a2620";
   const a = Math.abs(pct);
-  if (a < 0.2) return "#3a342b";
-  if (pct > 0) return a >= 3 ? "#a13b34" : a >= 1.5 ? "#8a3a35" : a >= 0.6 ? "#6f3a36" : "#56352f";
-  return a >= 3 ? "#1f6f4f" : a >= 1.5 ? "#2c684d" : a >= 0.6 ? "#395f4a" : "#42493a";
+  if (a < 0.2) return "#38332d";
+  // 紅漲:弱→強 由暗紅到亮紅;對比加大,層次分明
+  if (pct > 0) return a >= 3 ? "#ee4640" : a >= 1.5 ? "#c83d34" : a >= 0.6 ? "#9c382e" : "#6a342e";
+  // 綠跌:弱→強 由暗綠到亮綠
+  return a >= 3 ? "#15ab7a" : a >= 1.5 ? "#148f66" : a >= 0.6 ? "#19704f" : "#2b4b3d";
 }
