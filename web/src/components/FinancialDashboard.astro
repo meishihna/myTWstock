@@ -1765,6 +1765,12 @@ const mRevYTickMarks =
       ) : (
         <p class="fin-dash__sl">三大法人：上櫃個股暫無全市場免費資料(待後續優化補上)。</p>
       )}
+      {chipsHistory?.inst && (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">三大法人合計買賣超 vs 股價（近 120 交易日；買超紅／賣超綠，股價金線）</p>
+          <div class="chips-trend" data-chips-trend="inst" />
+        </figure>
+      )}
       {chipsMargin && (
         <figure class="fin-dash__chart">
           <p class="fin-dash__sl">融資融券餘額（單位：張）</p>
@@ -1821,22 +1827,14 @@ const mRevYTickMarks =
           </div>
         </figure>
       )}
+      {chipsHistory?.holders && (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">大戶持股 vs 股價（千張藍／400張紫／股價金；大戶為週資料，累積中）</p>
+          <div class="chips-trend" data-chips-trend="holders" />
+        </figure>
+      )}
       {chipsHistory && (chipsHistory.inst || chipsHistory.holders) && (
-        <>
-          {chipsHistory.inst && (
-            <figure class="fin-dash__chart">
-              <p class="fin-dash__sl">三大法人合計買賣超 vs 股價（近 30 交易日；買超紅／賣超綠，股價金線）</p>
-              <div class="chips-trend" data-chips-trend="inst" />
-            </figure>
-          )}
-          {chipsHistory.holders && (
-            <figure class="fin-dash__chart">
-              <p class="fin-dash__sl">大戶持股 vs 股價（千張藍／400張紫／股價金；大戶為週資料，累積中）</p>
-              <div class="chips-trend" data-chips-trend="holders" />
-            </figure>
-          )}
-          <script type="application/json" data-chips-history set:html={JSON.stringify({ ticker, ...chipsHistory })} />
-        </>
+        <script type="application/json" data-chips-history set:html={JSON.stringify({ ticker, ...chipsHistory })} />
       )}
     </div>
   </div>
@@ -1896,11 +1894,50 @@ const mRevYTickMarks =
     const xticks = (dates) => { const n = dates.length, s = Math.max(1, Math.floor(n / 5)), o = []; for (let i = 0; i < n; i += s) { const d = dates[i]; o.push(`<text x="${xAt(i, n).toFixed(1)}" y="${HT - 6}" class="ct-x">${d.slice(4, 6)}/${d.slice(6, 8)}</text>`); } return o.join(""); };
     const priceLine = (dates, pbd) => { const cl = dates.map((d) => pbd[d]); const fin = cl.filter((v) => v != null && isFinite(v)); if (fin.length < 2) return ""; const mn = Math.min(...fin), mx = Math.max(...fin), n = dates.length; const pts = cl.map((v, i) => (v == null || !isFinite(v) ? null : { x: xAt(i, n), y: sY(v, mn, mx) })); return `<path d="${linePath(pts)}" fill="none" stroke="${GOLD}" stroke-width="1.6"/>`; };
 
+    // ── 互動 tooltip + 十字準星(共用) ──
+    let _tip;
+    const getTip = () => { if (_tip) return _tip; _tip = document.createElement("div"); _tip.className = "ct-tip"; _tip.style.display = "none"; document.body.appendChild(_tip); return _tip; };
+    const fmtDate = (y) => (y && y.length >= 8 ? y.slice(0, 4) + "/" + y.slice(4, 6) + "/" + y.slice(6, 8) : y);
+    function attachHover(el, model) {
+      const svg = el.querySelector("svg"); if (!svg) return;
+      const NS = "http://www.w3.org/2000/svg";
+      const cross = document.createElementNS(NS, "line");
+      cross.setAttribute("y1", P.t); cross.setAttribute("y2", P.t + ph);
+      cross.setAttribute("stroke", "rgba(255,255,255,.32)"); cross.setAttribute("stroke-dasharray", "3 3");
+      cross.style.display = "none"; svg.appendChild(cross);
+      const tip = getTip();
+      el.addEventListener("mousemove", (e) => {
+        const r = svg.getBoundingClientRect();
+        const vx = ((e.clientX - r.left) / r.width) * W;
+        let i = Math.round(((vx - P.l) / pw) * (model.n - 1));
+        i = Math.max(0, Math.min(model.n - 1, i));
+        const cx = xAt(i, model.n);
+        cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.style.display = "";
+        let html = `<div class="ct-tip-d">${fmtDate(model.dates[i])}</div>`;
+        for (const s of model.series) {
+          const v = s.values[i];
+          const col = s.signColor ? (v == null ? "#999" : v > 0 ? UP : DOWN) : s.color;
+          html += `<div class="ct-tip-r"><i style="background:${col}"></i>${s.label} <b>${v == null || !isFinite(v) ? "—" : s.fmt(v)}</b></div>`;
+        }
+        tip.innerHTML = html; tip.style.display = "block";
+        tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 170) + "px";
+        tip.style.top = (e.clientY + 14) + "px";
+      });
+      el.addEventListener("mouseleave", () => { cross.style.display = "none"; tip.style.display = "none"; });
+    }
+    const fmtLots = (v) => (v > 0 ? "+" : "") + Math.round(v).toLocaleString() + " 張";
+    const fmtPrice = (v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtPct = (v) => v.toFixed(2) + "%";
+
     function drawInst(el, dates, net3, pbd) {
       const n = dates.length, am = Math.max(1, ...net3.map((v) => (v == null ? 0 : Math.abs(v)))), zy = P.t + ph / 2, bw = Math.max(1.5, (pw / n) * 0.62);
       let bars = "";
       for (let i = 0; i < n; i++) { const v = net3[i]; if (v == null || !isFinite(v)) continue; const h = (Math.abs(v) / am) * (ph / 2); const x = xAt(i, n) - bw / 2; const y = v >= 0 ? zy - h : zy; bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h, 0.5).toFixed(1)}" fill="${v >= 0 ? UP : DOWN}" opacity="0.85"/>`; }
       el.innerHTML = `<svg viewBox="0 0 ${W} ${HT}" class="ct-svg"><line x1="${P.l}" x2="${W - P.r}" y1="${zy}" y2="${zy}" stroke="rgba(255,255,255,.16)"/>${bars}${priceLine(dates, pbd)}${xticks(dates)}</svg>`;
+      attachHover(el, { dates, n, series: [
+        { label: "三大法人", signColor: true, values: net3, fmt: fmtLots },
+        { label: "股價", color: GOLD, values: dates.map((d) => pbd[d] ?? null), fmt: fmtPrice },
+      ] });
     }
     function drawHolders(el, xdates, hdates, k1000, k400, pbd) {
       const n = xdates.length, idx = {}; xdates.forEach((d, i) => (idx[d] = i));
@@ -1910,6 +1947,11 @@ const mRevYTickMarks =
       if (all.length) { const mn = Math.min(...all), mx = Math.max(...all); const mk = (arr, c) => { const pts = arr.map((v, i) => (v == null ? null : { x: xAt(i, n), y: sY(v, mn, mx) })); const dots = pts.filter(Boolean).map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.6" fill="${c}"/>`).join(""); return `<path d="${linePath(pts)}" fill="none" stroke="${c}" stroke-width="1.6"/>${dots}`; }; pct = mk(s1, BLUE) + mk(s4, PURP); }
       const note = hdates.length < 2 ? `<text x="${P.l}" y="${P.t + 4}" class="ct-note">大戶累積中（目前 ${hdates.length} 週）</text>` : "";
       el.innerHTML = `<svg viewBox="0 0 ${W} ${HT}" class="ct-svg">${priceLine(xdates, pbd)}${pct}${note}${xticks(xdates)}</svg>`;
+      attachHover(el, { dates: xdates, n, series: [
+        { label: "千張大戶", color: BLUE, values: s1, fmt: fmtPct },
+        { label: "400張大戶", color: PURP, values: s4, fmt: fmtPct },
+        { label: "股價", color: GOLD, values: xdates.map((d) => pbd[d] ?? null), fmt: fmtPrice },
+      ] });
     }
 
     fetch("/api/bars/" + encodeURIComponent(H.ticker)).then((r) => (r.ok ? r.json() : null)).then((j) => {

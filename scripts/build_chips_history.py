@@ -33,9 +33,9 @@ from utils import find_ticker_files, parse_scope_args, setup_stdout
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "web", "public", "data", "chips-history.json")
 
-INST_MAX_DAYS = int(os.environ.get("CHIPS_HIST_BACKFILL", "30"))  # 三大法人保留交易日數
-HOLDERS_MAX_WEEKS = 12                                            # 大戶保留週數
-SCAN_BACK_DAYS = 50                                              # 往回掃描日曆日上限
+INST_MAX_DAYS = int(os.environ.get("CHIPS_HIST_BACKFILL", "120"))  # 三大法人保留交易日數
+HOLDERS_MAX_WEEKS = 26                                             # 大戶保留週數(~半年,對齊 120 交易日)
+SCAN_BACK_DAYS = 240                                              # 往回掃描日曆日上限(夠 120 交易日)
 
 
 def fetch_inst_day(dt: str, universe: set[str]) -> dict[str, int] | None:
@@ -65,17 +65,20 @@ def build_inst_history(universe: set[str], prev: dict) -> dict:
     have = set(prev_dates)
 
     # 已有歷史 → 只往回找尚未收錄的交易日(通常即最新 1~數天);無歷史 → 回補 INST_MAX_DAYS。
-    need = INST_MAX_DAYS if not prev_dates else 8
     collected: dict[str, dict[str, int]] = {}
     back = 0
-    while back < SCAN_BACK_DAYS and len(collected) < need:
+    while back < SCAN_BACK_DAYS:
         dt = (date.today() - timedelta(days=back)).strftime("%Y%m%d")
         back += 1
         if dt in have:
+            if prev_dates:  # 增量:碰到已存日期 → 新交易日已收完,停止(不重抓舊資料)
+                break
             continue
         day = fetch_inst_day(dt, universe)
         if day is not None:
             collected[dt] = day
+        if not prev_dates and len(collected) >= INST_MAX_DAYS:
+            break  # 首次回補滿 INST_MAX_DAYS 交易日
     if not collected and not prev_dates:
         print("  [inst] no trading-day data fetched")
         return {"dates": [], "rows": {}}

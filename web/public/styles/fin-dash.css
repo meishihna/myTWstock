@@ -187,6 +187,45 @@
   font-size: 12px;
 }
 
+/* 走勢圖互動 tooltip(跟隨游標) */
+.ct-tip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  background: rgba(20, 20, 20, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.76rem;
+  color: #ededed;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  min-width: 132px;
+}
+.ct-tip-d {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.ct-tip-r {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.ct-tip-r i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+  flex: none;
+}
+.ct-tip-r b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
 .fin-dash__kpi-note {
   margin-top: auto;
   font-size: 0.75rem;
