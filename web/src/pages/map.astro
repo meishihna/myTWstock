@@ -146,13 +146,28 @@ export const prerender = true;
       return out;
     }
 
-    // ---- 漲跌配色：紅漲綠跌（暖調低彩，襯深底） ----
-    function tileColor(pct: number | null): string {
-      if (pct == null) return "#221d18";          // 等待報價
+    // ---- 漲跌配色（台股慣例）：接近平盤=淺，漲跌越大顏色越深；紅漲綠跌 ----
+    function tileRGB(pct: number | null): [number, number, number] {
+      if (pct == null) return [185, 183, 177];     // 無資料：淺灰
       const a = Math.abs(pct);
-      if (a < 0.2) return "#3a342b";               // 平：暖中性
-      if (pct > 0) return a >= 3 ? "#a13b34" : a >= 1.5 ? "#8a3a35" : a >= 0.6 ? "#6f3a36" : "#56352f"; // 漲=紅
-      return a >= 3 ? "#1f6f4f" : a >= 1.5 ? "#2c684d" : a >= 0.6 ? "#395f4a" : "#42493a";              // 跌=綠
+      if (a < 0.15) return [197, 195, 189];         // 平盤：淺灰
+      const t = Math.min(a / 6, 1);                 // 線性，越大越深
+      const light = pct > 0 ? [223, 196, 194] : [196, 223, 202]; // 淺紅 / 淺綠
+      const deep = pct > 0 ? [135, 27, 24] : [19, 84, 47];       // 深紅 / 深綠
+      return [
+        Math.round(light[0] + (deep[0] - light[0]) * t),
+        Math.round(light[1] + (deep[1] - light[1]) * t),
+        Math.round(light[2] + (deep[2] - light[2]) * t),
+      ];
+    }
+    function tileColor(pct: number | null): string {
+      const [r, g, b] = tileRGB(pct);
+      return `rgb(${r},${g},${b})`;
+    }
+    // 依底色亮度決定文字色：淺底深字、深底淺字
+    function tileTextColor(pct: number | null): string {
+      const [r, g, b] = tileRGB(pct);
+      return 0.299 * r + 0.587 * g + 0.114 * b > 148 ? "#1c1c1c" : "#f5f3ee";
     }
 
     function dedupTop(t: Theme): Co[] {
@@ -209,7 +224,7 @@ export const prerender = true;
         const showPct = pct != null && t.w > 52 && t.h > 42;
         const pctStr = pct == null ? "" : (pct > 0 ? "+" : "") + pct.toFixed(2) + "%";
         return `<a class="hm-tile" href="/themes/${encodeURIComponent(t.slug)}" data-slug="${esc(t.slug)}" `
-          + `style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(pct)}">`
+          + `style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(pct)};color:${tileTextColor(pct)}">`
           + (big ? `<span class="hm-tile-t">${esc(t.title)}</span>` : "")
           + (showPct ? `<span class="hm-tile-p">${pctStr}</span>` : "")
           + `</a>`;

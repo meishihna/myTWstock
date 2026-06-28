@@ -78,14 +78,27 @@ export function treemap<T extends { value: number }>(
 }
 
 /** 漲跌配色:紅漲綠跌(暖調低彩,襯深底)。pct=null 為等待報價。 */
-// 動態連續配色(參照 TradingView):由中性灰平滑插值到端點色,越大越濃;紅漲綠跌。
-// ±MAX% 達最飽和;sqrt 讓小幅也看得出顏色。
+// 動態連續配色(台股慣例):接近平盤=淺,漲跌越大顏色越深;紅漲綠跌。
+// ±MAX% 達最深。由「淺色」線性插值到「深色」。
+function tileRGB(pct: number | null): [number, number, number] {
+  if (pct == null) return [185, 183, 177]; // 無資料:淺灰
+  const a = Math.abs(pct);
+  if (a < 0.15) return [197, 195, 189]; // 平盤:淺灰
+  const t = Math.min(a / 6, 1); // 線性,越大越深
+  const light = pct > 0 ? [223, 196, 194] : [196, 223, 202]; // 淺紅 / 淺綠
+  const deep = pct > 0 ? [135, 27, 24] : [19, 84, 47]; // 深紅 / 深綠
+  return [
+    Math.round(light[0] + (deep[0] - light[0]) * t),
+    Math.round(light[1] + (deep[1] - light[1]) * t),
+    Math.round(light[2] + (deep[2] - light[2]) * t),
+  ];
+}
 export function tileColor(pct: number | null): string {
-  if (pct == null) return "#2a2620";
-  const MAX = 6;
-  const t = Math.sqrt(Math.min(Math.abs(pct) / MAX, 1));
-  const g = [58, 53, 46]; // 近 0% 中性灰 #3a352e
-  const end = pct >= 0 ? [238, 70, 64] : [21, 171, 122]; // 漲=亮紅 #ee4640 / 跌=亮綠 #15ab7a
-  const c = (i: number) => Math.round(g[i] + (end[i] - g[i]) * t);
-  return `rgb(${c(0)},${c(1)},${c(2)})`;
+  const [r, g, b] = tileRGB(pct);
+  return `rgb(${r},${g},${b})`;
+}
+// 依磚塊底色亮度決定文字色:淺底深字、深底淺字
+export function tileTextColor(pct: number | null): string {
+  const [r, g, b] = tileRGB(pct);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 148 ? "#1c1c1c" : "#f5f3ee";
 }

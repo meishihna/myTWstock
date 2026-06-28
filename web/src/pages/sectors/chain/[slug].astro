@@ -242,8 +242,8 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   #ind-hm-node { height: 300px; }
   #ind-hm-stock { height: 360px; }
   .ind-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; border-radius: 3px; text-decoration: none; }
-  .ind-tile-t { font-size: 0.72rem; font-weight: 600; color: #f1ede5; line-height: 1.15; }
-  .ind-tile-p { font-size: 0.68rem; color: #e6e1d8; }
+  .ind-tile-t { font-size: 0.72rem; font-weight: 600; color: inherit; line-height: 1.15; }
+  .ind-tile-p { font-size: 0.68rem; color: inherit; opacity: 0.85; }
   .ind-hm-empty { color: var(--text-secondary); font-size: 0.82rem; padding: 1rem; text-align: center; }
   .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
   .hmp-tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; }
@@ -289,7 +289,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
 </script>
 
 <script>
-  import { treemap, tileColor } from "../../../lib/heatmap";
+  import { treemap, tileColor, tileTextColor } from "../../../lib/heatmap";
   type Stat = { d: number[]; w: number[]; m: number[] };
   const stats: Record<string, Stat> = {};
   let period: "d" | "w" | "m" = "d";
@@ -314,7 +314,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     const G = 1;
     root.innerHTML = laid.map((c) => {
       const p = c.chg, big = c.w > 52 && c.h > 26, showP = p != null && c.w > 42 && c.h > 38;
-      return `<a class="ind-tile" href="/report/${c.t}" data-name="${esc(c.n)}" data-code="${c.t}" data-price="${c.price != null ? c.price : ""}" data-chg="${p != null ? p.toFixed(2) : ""}" data-tov="${c.tov}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+      return `<a class="ind-tile" href="/report/${c.t}" data-name="${esc(c.n)}" data-code="${c.t}" data-price="${c.price != null ? c.price : ""}" data-chg="${p != null ? p.toFixed(2) : ""}" data-tov="${c.tov}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)};color:${tileTextColor(p ?? null)}">`
         + (big ? `<span class="ind-tile-t">${esc(c.n)}</span>` : "")
         + (showP ? `<span class="ind-tile-p">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span>` : "") + `</a>`;
     }).join("");
@@ -343,7 +343,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
       const tt = t as typeof t & { _chg: number | null; count: number; _tov: number };
       const p = tt._chg;
       const big = t.w > 60 && t.h > 28, showP = p != null && t.w > 48 && t.h > 40;
-      return `<div class="ind-tile node" data-name="${esc(t.node)}" data-count="${tt.count}" data-chg="${p != null ? p.toFixed(2) : ""}" data-tov="${tt._tov}" style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+      return `<div class="ind-tile node" data-name="${esc(t.node)}" data-count="${tt.count}" data-chg="${p != null ? p.toFixed(2) : ""}" data-tov="${tt._tov}" style="left:${t.x + G}px;top:${t.y + G}px;width:${Math.max(0, t.w - 2 * G)}px;height:${Math.max(0, t.h - 2 * G)}px;background:${tileColor(p ?? null)};color:${tileTextColor(p ?? null)}">`
         + (big ? `<span class="ind-tile-t">${esc(t.node)}</span>` : "")
         + (showP ? `<span class="ind-tile-p">${p! > 0 ? "+" : ""}${p!.toFixed(2)}%</span>` : "") + `</div>`;
     }).join("");

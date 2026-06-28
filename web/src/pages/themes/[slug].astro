@@ -288,7 +288,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
   <script type="application/json" id="theme-cons" set:html={JSON.stringify(cons)} />
 
   <script>
-    import { treemap, tileColor } from "../../lib/heatmap";
+    import { treemap, tileColor, tileTextColor } from "../../lib/heatmap";
     import { getWatchlist, toggleWatch } from "../../lib/watchlist";
 
     interface Con { t: string; n: string; mc: number | null; }
@@ -330,7 +330,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
           const p = c.chg;
           const big = c.w > 54 && c.h > 26;
           const showP = p != null && c.w > 44 && c.h > 38;
-          return `<a class="thm-tile" href="/report/${c.t}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)}">`
+          return `<a class="thm-tile" href="/report/${c.t}" style="left:${c.x + G}px;top:${c.y + G}px;width:${Math.max(0, c.w - 2 * G)}px;height:${Math.max(0, c.h - 2 * G)}px;background:${tileColor(p ?? null)};color:${tileTextColor(p ?? null)}">`
             + (big ? `<span class="thm-tile-t">${esc(c.n)}</span>` : "")
             + (showP ? `<span class="thm-tile-p">${p > 0 ? "+" : ""}${p.toFixed(2)}%</span>` : "")
             + `</a>`;
