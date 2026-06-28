@@ -78,12 +78,14 @@ export function treemap<T extends { value: number }>(
 }
 
 /** 漲跌配色:紅漲綠跌(暖調低彩,襯深底)。pct=null 為等待報價。 */
+// 動態連續配色(參照 TradingView):由中性灰平滑插值到端點色,越大越濃;紅漲綠跌。
+// ±MAX% 達最飽和;sqrt 讓小幅也看得出顏色。
 export function tileColor(pct: number | null): string {
   if (pct == null) return "#2a2620";
-  const a = Math.abs(pct);
-  if (a < 0.2) return "#38332d";
-  // 紅漲:弱→強 由暗紅到亮紅;對比加大,層次分明
-  if (pct > 0) return a >= 3 ? "#ee4640" : a >= 1.5 ? "#c83d34" : a >= 0.6 ? "#9c382e" : "#6a342e";
-  // 綠跌:弱→強 由暗綠到亮綠
-  return a >= 3 ? "#15ab7a" : a >= 1.5 ? "#148f66" : a >= 0.6 ? "#19704f" : "#2b4b3d";
+  const MAX = 6;
+  const t = Math.sqrt(Math.min(Math.abs(pct) / MAX, 1));
+  const g = [58, 53, 46]; // 近 0% 中性灰 #3a352e
+  const end = pct >= 0 ? [238, 70, 64] : [21, 171, 122]; // 漲=亮紅 #ee4640 / 跌=亮綠 #15ab7a
+  const c = (i: number) => Math.round(g[i] + (end[i] - g[i]) * t);
+  return `rgb(${c(0)},${c(1)},${c(2)})`;
 }

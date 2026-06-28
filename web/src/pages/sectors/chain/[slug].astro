@@ -135,13 +135,13 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   <h3 class="ind-hm-h3" id="ind-hm-stock-h">個股</h3>
   <div id="ind-hm-stock" class="ind-hm" role="img" aria-label="個股成交額熱力圖" />
   <div class="ind-legend" aria-label="漲跌色階(紅漲綠跌)">
-    <div class="ind-legend-cell"><span>-8%</span><i style="background:#15ab7a"></i></div>
-    <div class="ind-legend-cell"><span>-5%</span><i style="background:#148f66"></i></div>
-    <div class="ind-legend-cell"><span>-2%</span><i style="background:#19704f"></i></div>
-    <div class="ind-legend-cell"><span>0%</span><i style="background:#38332d"></i></div>
-    <div class="ind-legend-cell"><span>+2%</span><i style="background:#9c382e"></i></div>
-    <div class="ind-legend-cell"><span>+5%</span><i style="background:#c83d34"></i></div>
-    <div class="ind-legend-cell"><span>+8%</span><i style="background:#ee4640"></i></div>
+    <div class="ind-legend-cell"><span>-6%</span><i data-pct="-6"></i></div>
+    <div class="ind-legend-cell"><span>-4%</span><i data-pct="-4"></i></div>
+    <div class="ind-legend-cell"><span>-2%</span><i data-pct="-2"></i></div>
+    <div class="ind-legend-cell"><span>0%</span><i data-pct="0"></i></div>
+    <div class="ind-legend-cell"><span>+2%</span><i data-pct="2"></i></div>
+    <div class="ind-legend-cell"><span>+4%</span><i data-pct="4"></i></div>
+    <div class="ind-legend-cell"><span>+6%</span><i data-pct="6"></i></div>
   </div>
   <script type="application/json" id="ind-hm-cons" set:html={JSON.stringify(hmCons)} />
   <script type="application/json" id="ind-hm-nodes" set:html={JSON.stringify(hmNodes)} />
@@ -355,6 +355,11 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     try { const r = await fetch("/data/heatmap-stats.json"); if (r.ok) Object.assign(stats, (await r.json()).stats || {}); } catch { /* ignore */ }
     renderAll();
   })();
+
+  // 色階圖例:用同一個 tileColor 上色,確保與磚塊一致
+  document.querySelectorAll<HTMLElement>(".ind-legend-cell i[data-pct]").forEach((el) => {
+    el.style.background = tileColor(parseFloat(el.dataset.pct || "0"));
+  });
 
   document.querySelectorAll<HTMLButtonElement>(".hmp-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
