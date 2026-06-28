@@ -135,13 +135,9 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   <h3 class="ind-hm-h3" id="ind-hm-stock-h">個股</h3>
   <div id="ind-hm-stock" class="ind-hm" role="img" aria-label="個股成交額熱力圖" />
   <div class="ind-legend" aria-label="漲跌色階(紅漲綠跌)">
-    <div class="ind-legend-cell"><span>-6%</span><i data-pct="-6"></i></div>
-    <div class="ind-legend-cell"><span>-4%</span><i data-pct="-4"></i></div>
-    <div class="ind-legend-cell"><span>-2%</span><i data-pct="-2"></i></div>
-    <div class="ind-legend-cell"><span>0%</span><i data-pct="0"></i></div>
-    <div class="ind-legend-cell"><span>+2%</span><i data-pct="2"></i></div>
-    <div class="ind-legend-cell"><span>+4%</span><i data-pct="4"></i></div>
-    <div class="ind-legend-cell"><span>+6%</span><i data-pct="6"></i></div>
+    <span class="lg-end dn">跌</span>
+    {[-6, -4.8, -3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6, 4.8, 6].map((p) => <i data-pct={p}></i>)}
+    <span class="lg-end up">漲</span>
   </div>
   <script type="application/json" id="ind-hm-cons" set:html={JSON.stringify(hmCons)} />
   <script type="application/json" id="ind-hm-nodes" set:html={JSON.stringify(hmNodes)} />
@@ -256,12 +252,11 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .ind-hm-tip .tip-m { display: flex; flex-direction: column; gap: 1px; }
   .ind-hm-tip .tip-l { font-size: 0.66rem; color: var(--text-secondary); }
   .ind-hm-tip .tip-v { font-size: 0.82rem; font-weight: 600; }
-  .ind-legend { display: flex; max-width: 520px; margin: 0.8rem 0 0.2rem; }
-  .ind-legend-cell { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .ind-legend-cell span { font-size: 0.7rem; color: var(--text-secondary); }
-  .ind-legend-cell i { width: 100%; height: 13px; display: block; }
-  .ind-legend-cell:first-child i { border-radius: 4px 0 0 4px; }
-  .ind-legend-cell:last-child i { border-radius: 0 4px 4px 0; }
+  .ind-legend { display: flex; align-items: center; justify-content: center; gap: 3px; margin: 0.85rem 0 0.2rem; font-size: 0.72rem; color: var(--text-secondary); }
+  .ind-legend i { width: 15px; height: 15px; border-radius: 3px; display: block; flex: none; }
+  .ind-legend .lg-end { letter-spacing: 0.04em; }
+  .ind-legend .lg-end.dn { margin-right: 5px; }
+  .ind-legend .lg-end.up { margin-left: 5px; }
 </style>
 
 <script>
@@ -357,7 +352,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   })();
 
   // 色階圖例:用同一個 tileColor 上色,確保與磚塊一致
-  document.querySelectorAll<HTMLElement>(".ind-legend-cell i[data-pct]").forEach((el) => {
+  document.querySelectorAll<HTMLElement>(".ind-legend i[data-pct]").forEach((el) => {
     el.style.background = tileColor(parseFloat(el.dataset.pct || "0"));
   });
 

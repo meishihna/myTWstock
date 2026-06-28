@@ -38,9 +38,7 @@ export const prerender = true;
       <div class="map-foot">
         <div class="hm-legend" aria-hidden="true">
           <span>{MAP_PAGE.legendDown}</span>
-          <i style="background:#1f6f4f"></i><i style="background:#2c684d"></i><i style="background:#42493a"></i>
-          <i style="background:#3a342b"></i>
-          <i style="background:#56352f"></i><i style="background:#8a3a35"></i><i style="background:#a13b34"></i>
+          {[-6, -4.8, -3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6, 4.8, 6].map((p) => <i data-pct={p}></i>)}
           <span>{MAP_PAGE.legendUp}</span>
         </div>
         <p class="map-note">{MAP_PAGE.delayedNote}</p>
@@ -454,6 +452,10 @@ export const prerender = true;
     }
 
     // ---- init ----
+    // 色階圖例:與磚塊同一個 tileColor 上色,確保一致
+    document.querySelectorAll<HTMLElement>(".hm-legend i[data-pct]").forEach((el) => {
+      el.style.background = tileColor(parseFloat(el.dataset.pct || "0"));
+    });
     initTabs();
     initTooltip();
     initHmPeriod();
@@ -519,9 +521,9 @@ export const prerender = true;
 
     .map-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; margin-top: 0.7rem; }
     .hm-legend { display: inline-flex; align-items: center; gap: 3px; font-size: 0.74rem; color: var(--muted); }
-    .hm-legend i { width: 16px; height: 11px; border-radius: 2px; display: inline-block; }
-    .hm-legend span:first-child { margin-right: 3px; }
-    .hm-legend span:last-child { margin-left: 3px; }
+    .hm-legend i { width: 15px; height: 15px; border-radius: 3px; display: inline-block; flex: none; }
+    .hm-legend span:first-child { margin-right: 5px; }
+    .hm-legend span:last-child { margin-left: 5px; }
     .map-note { color: var(--muted); font-size: 0.72rem; margin: 0; opacity: 0.85; }
 
     .hm-tip { position: fixed; z-index: 50; pointer-events: none; max-width: 260px; padding: 8px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-elevated); box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 2px; }

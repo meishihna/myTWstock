@@ -199,6 +199,11 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
           </div>
         </div>
         <div id="theme-hm" class="theme-hm" role="img" aria-label={`${theme.title} 成分股成交額熱力圖`} />
+        <div class="thm-legend" aria-label="漲跌色階(紅漲綠跌)">
+          <span class="lg-end dn">跌</span>
+          {[-6, -4.8, -3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6, 4.8, 6].map((p) => <i data-pct={p}></i>)}
+          <span class="lg-end up">漲</span>
+        </div>
       </section>
     )}
 
@@ -519,6 +524,10 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     initCollapse();
     initFavs();
     initHmPeriod();
+    // 色階圖例:與磚塊同一個 tileColor 上色,確保一致
+    document.querySelectorAll<HTMLElement>(".thm-legend i[data-pct]").forEach((el) => {
+      el.style.background = tileColor(parseFloat(el.dataset.pct || "0"));
+    });
     const initial = new URLSearchParams(location.search).get("tab") === "structure" ? "structure" : "overview";
     setTab(initial, false);
     renderHm();
@@ -588,6 +597,11 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .thm-tile:hover, .thm-tile:focus-visible { outline-color: var(--accent); z-index: 3; }
     .thm-tile-t { font-size: 0.72rem; font-weight: 600; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .thm-tile-p { font-size: 0.68rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
+    .thm-legend { display: flex; align-items: center; justify-content: center; gap: 3px; margin: 0.8rem 0 0.2rem; font-size: 0.72rem; color: var(--text-secondary); }
+    .thm-legend i { width: 15px; height: 15px; border-radius: 3px; display: block; flex: none; }
+    .thm-legend .lg-end { letter-spacing: 0.04em; }
+    .thm-legend .lg-end.dn { margin-right: 5px; }
+    .thm-legend .lg-end.up { margin-left: 5px; }
 
     .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 7rem; }
