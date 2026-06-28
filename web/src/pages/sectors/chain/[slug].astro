@@ -132,7 +132,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   </div>
   <h3 class="ind-hm-h3">分類(節點)</h3>
   <div id="ind-hm-node" class="ind-hm" role="img" aria-label="產業鏈節點成交額熱力圖" />
-  <h3 class="ind-hm-h3">個股</h3>
+  <h3 class="ind-hm-h3" id="ind-hm-stock-h">個股</h3>
   <div id="ind-hm-stock" class="ind-hm" role="img" aria-label="個股成交額熱力圖" />
   <script type="application/json" id="ind-hm-cons" set:html={JSON.stringify(hmCons)} />
   <script type="application/json" id="ind-hm-nodes" set:html={JSON.stringify(hmNodes)} />
@@ -279,15 +279,16 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
 
   function renderStock() {
     const root = document.getElementById("ind-hm-stock"); if (!root) return;
-    const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
     const all = hmCons
       .map((c) => { const s = stats[c.t]; return s && s[period] ? { ...c, chg: s[period][0], tov: s[period][1] } : null; })
       .filter((c): c is { t: string; n: string; chg: number; tov: number } => !!c && c.tov > 0)
       .sort((a, b) => b.tov - a.tov);
-    // 去尾端細長條:只留成交額 >= 最大值 2.5% 的個股,最多 30 檔
-    const topTov = all.length ? all[0].tov : 0;
-    const rows = all.filter((c) => c.tov >= topTov * 0.025).slice(0, 30);
-    if (rows.length === 0) { root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
+    const rows = all.slice(0, 60); // 上限 60 檔(避免上百檔產業過密);其餘依檔數加高處理細條
+    const hh = document.getElementById("ind-hm-stock-h");
+    if (hh) hh.textContent = rows.length < hmCons.length ? `個股(成交額前 ${rows.length} 大)` : "個股";
+    if (rows.length === 0) { root.style.height = "120px"; root.innerHTML = `<p class="ind-hm-empty">暫無成交額資料</p>`; return; }
+    root.style.height = Math.max(280, Math.min(620, 150 + rows.length * 8)) + "px"; // 檔數越多越高 → 不被擠成細長條
+    const W = root.clientWidth, H = root.clientHeight; if (W < 10 || H < 10) return;
     const laid = treemap(rows.map((c) => ({ ...c, value: Math.sqrt(c.tov) })), 0, 0, W, H);
     const G = 1;
     root.innerHTML = laid.map((c) => {
