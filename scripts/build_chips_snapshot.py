@@ -26,6 +26,8 @@ build_chips_snapshot.py — 全市場籌碼面快照(最新一日三大法人 + 
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import ssl
@@ -43,6 +45,7 @@ OUT = os.path.join(ROOT, "web", "public", "data", "chips-index.json")
 T86 = "https://www.twse.com.tw/rwd/zh/fund/T86?date={d}&selectType=ALL&response=json"
 TWSE_MARGIN = "https://openapi.twse.com.tw/v1/exchangeReport/MI_MARGN"
 TPEX_MARGIN = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance"
+TDCC = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"  # 集保戶股權分散表(每週、含上市+上櫃)
 
 # 公開政府端點、只讀;憑證鏈在部分環境驗證失敗 → 不驗證。
 _SSL = ssl.create_default_context()
@@ -76,6 +79,70 @@ def _int(x):
         return int(round(float(s)))
     except ValueError:
         return None
+
+
+def _get_text(url: str, retries: int = 3) -> str:
+    last: Exception | None = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 twstock-chips"})
+            with urllib.request.urlopen(req, timeout=120, context=_SSL) as r:
+                return r.read().decode("utf-8-sig", "replace")  # TDCC CSV 帶 BOM
+        except Exception as e:
+            last = e
+            time.sleep(2 * (i + 1))
+    raise last if last else RuntimeError("unreachable")
+
+
+def _cell(x) -> str:
+    """TDCC CSV 值常被單引號包住(強制文字),去引號與空白。"""
+    return str(x or "").strip().strip("'").strip()
+
+
+def _f(x):
+    s = _cell(x).replace(",", "")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# 大戶持股(集保戶股權分散表):千張 = 分級 15(≥1,000,001 股);
+# 400張 = 分級 12~15 合計(≥400,001 股)。含上市+上櫃,每週更新。
+# ---------------------------------------------------------------------------
+def build_holders(universe: set[str]) -> dict[str, dict]:
+    try:
+        raw = _get_text(TDCC)
+    except Exception as e:
+        print(f"  [holders] TDCC FAILED: {str(e)[:60]}")
+        return {}
+    agg: dict[str, dict] = {}
+    for row in csv.DictReader(io.StringIO(raw)):
+        code = _cell(row.get("證券代號"))
+        if code not in universe:
+            continue
+        lvl = _cell(row.get("持股分級"))
+        pct = _f(row.get("占集保庫存數比例%"))
+        ppl = _int(_cell(row.get("人數")))
+        d = agg.setdefault(
+            code,
+            {
+                "date": _cell(row.get("資料日期")),
+                "k1000": {"pct": None, "people": None},
+                "k400": {"pct": 0.0, "people": 0},
+            },
+        )
+        if lvl == "15":
+            d["k1000"] = {"pct": pct, "people": ppl}
+        if lvl in ("12", "13", "14", "15"):
+            d["k400"]["pct"] = (d["k400"]["pct"] or 0) + (pct or 0)
+            d["k400"]["people"] = (d["k400"]["people"] or 0) + (ppl or 0)
+    for d in agg.values():
+        if d["k400"]["pct"] is not None:
+            d["k400"]["pct"] = round(d["k400"]["pct"], 2)
+    print(f"  [holders] TDCC {len(agg)} 檔(集保)")
+    return agg
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +237,7 @@ def main() -> None:
 
     inst_map, inst_date = build_inst_twse(universe)
     margin_map = build_margin(universe)
+    holders_map = build_holders(universe)
 
     # 韌性:某來源(如 T86 自 CI 連線)失敗時沿用前值,避免整批上市三大法人/資券消失。
     prev: dict[str, dict] = {}
@@ -189,8 +257,20 @@ def main() -> None:
         old = prev.get(t) or {}
         inst = inst_map[t] if t in inst_map else old.get("inst")
         margin = margin_map[t] if t in margin_map else old.get("margin")
-        if inst or margin:
-            rows[t] = {"inst": inst, "margin": margin}
+        # 大戶:TDCC 失敗沿用前值;週增減基準 prevPct 僅在「資料日不同(新一週)」時以舊 pct 更新
+        new_h = holders_map.get(t)
+        old_h = old.get("holders")
+        if new_h:
+            for k in ("k1000", "k400"):
+                if old_h and old_h.get("date") and old_h["date"] != new_h["date"]:
+                    new_h[k]["prevPct"] = (old_h.get(k) or {}).get("pct")
+                else:
+                    new_h[k]["prevPct"] = (old_h.get(k) or {}).get("prevPct") if old_h else None
+            holders = new_h
+        else:
+            holders = old_h
+        if inst or margin or holders:
+            rows[t] = {"inst": inst, "margin": margin, "holders": holders}
 
     payload = {
         "generatedAt": datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

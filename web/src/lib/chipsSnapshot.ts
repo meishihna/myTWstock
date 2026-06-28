@@ -21,9 +21,20 @@ export interface ChipsMargin {
   shortBal: number | null;
   shortChg: number | null;
 }
+export interface ChipsHoldersLevel {
+  pct: number | null;       // 占集保庫存比例%
+  people: number | null;    // 大戶人數
+  prevPct: number | null;   // 上一週 pct(算週增減用;首週為 null)
+}
+export interface ChipsHolders {
+  date: string | null;      // 集保資料日(YYYYMMDD)
+  k1000: ChipsHoldersLevel; // 千張(≥1000張,分級 15)
+  k400: ChipsHoldersLevel;  // 400張(≥400張,分級 12~15)
+}
 export interface ChipsRow {
   inst: ChipsInst | null;
   margin: ChipsMargin | null;
+  holders: ChipsHolders | null;
 }
 
 let cache: { rows: Record<string, ChipsRow>; instDate: string | null } | null | undefined;

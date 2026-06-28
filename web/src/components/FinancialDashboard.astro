@@ -38,7 +38,8 @@ const indCfg = getIndustryConfig(industryType);
 // ── 籌碼面分頁(三大法人最新一日 + 融資融券)──
 const chipsInst = chips?.inst ?? null;
 const chipsMargin = chips?.margin ?? null;
-const hasChips = Boolean(chipsInst || chipsMargin);
+const chipsHolders = chips?.holders ?? null;
+const hasChips = Boolean(chipsInst || chipsMargin || chipsHolders);
 const fmtLot = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("zh-TW");
 const fmtSignedLot = (n: number | null | undefined) =>
@@ -46,6 +47,16 @@ const fmtSignedLot = (n: number | null | undefined) =>
 // 買賣超／增減:買超或增(正)＝紅、賣超或減(負)＝綠(紅漲綠跌)
 const netColorStyle = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) || n === 0 ? "" : n > 0 ? "color:#e24b4a" : "color:#1d9e75";
+const fmtPct1 = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(1)}%`;
+// 大戶持股週增減(pp):本週 pct − 上週 pct;無上週資料 → null
+const wkDeltaPpt = (lvl?: { pct: number | null; prevPct: number | null } | null) => {
+  if (!lvl || lvl.pct == null || lvl.prevPct == null) return null;
+  const d = lvl.pct - lvl.prevPct;
+  return Number.isFinite(d) ? d : null;
+};
+const fmtPpt = (d: number | null) =>
+  d == null ? null : `${d > 0 ? "+" : ""}${d.toFixed(2)}pp`;
 const instCells = chipsInst
   ? [
       { label: "外資", v: chipsInst.foreign },
@@ -1768,6 +1779,41 @@ const mRevYTickMarks =
               <span class="fin-dash__kpi-delta" style={netColorStyle(chipsMargin.shortChg)}>
                 日增減 {fmtSignedLot(chipsMargin.shortChg)}
               </span>
+            </div>
+          </div>
+        </figure>
+      )}
+      {chipsHolders && (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">
+            大戶持股{chipsHolders.date ? `（集保 ${chipsHolders.date}）` : ""}（占集保比例;增紅減綠）
+          </p>
+          <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
+            <div class="fin-dash__kpi-card">
+              <span class="fin-dash__kpi-label">千張大戶持股</span>
+              <span class="fin-dash__kpi-value">{fmtPct1(chipsHolders.k1000.pct)}</span>
+              {wkDeltaPpt(chipsHolders.k1000) != null && (
+                <span class="fin-dash__kpi-delta" style={netColorStyle(wkDeltaPpt(chipsHolders.k1000))}>
+                  週 {fmtPpt(wkDeltaPpt(chipsHolders.k1000))}
+                </span>
+              )}
+            </div>
+            <div class="fin-dash__kpi-card">
+              <span class="fin-dash__kpi-label">千張大戶人數</span>
+              <span class="fin-dash__kpi-value">{fmtLot(chipsHolders.k1000.people)}</span>
+            </div>
+            <div class="fin-dash__kpi-card">
+              <span class="fin-dash__kpi-label">400張大戶持股</span>
+              <span class="fin-dash__kpi-value">{fmtPct1(chipsHolders.k400.pct)}</span>
+              {wkDeltaPpt(chipsHolders.k400) != null && (
+                <span class="fin-dash__kpi-delta" style={netColorStyle(wkDeltaPpt(chipsHolders.k400))}>
+                  週 {fmtPpt(wkDeltaPpt(chipsHolders.k400))}
+                </span>
+              )}
+            </div>
+            <div class="fin-dash__kpi-card">
+              <span class="fin-dash__kpi-label">400張大戶人數</span>
+              <span class="fin-dash__kpi-value">{fmtLot(chipsHolders.k400.people)}</span>
             </div>
           </div>
         </figure>
