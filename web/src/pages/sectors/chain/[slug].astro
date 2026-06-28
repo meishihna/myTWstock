@@ -134,6 +134,15 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   <div id="ind-hm-node" class="ind-hm" role="img" aria-label="產業鏈節點成交額熱力圖" />
   <h3 class="ind-hm-h3" id="ind-hm-stock-h">個股</h3>
   <div id="ind-hm-stock" class="ind-hm" role="img" aria-label="個股成交額熱力圖" />
+  <div class="ind-legend" aria-label="漲跌色階(紅漲綠跌)">
+    <div class="ind-legend-cell"><span>-8%</span><i style="background:#1f6f4f"></i></div>
+    <div class="ind-legend-cell"><span>-5%</span><i style="background:#2c684d"></i></div>
+    <div class="ind-legend-cell"><span>-2%</span><i style="background:#395f4a"></i></div>
+    <div class="ind-legend-cell"><span>0%</span><i style="background:#3a342b"></i></div>
+    <div class="ind-legend-cell"><span>+2%</span><i style="background:#6f3a36"></i></div>
+    <div class="ind-legend-cell"><span>+5%</span><i style="background:#8a3a35"></i></div>
+    <div class="ind-legend-cell"><span>+8%</span><i style="background:#a13b34"></i></div>
+  </div>
   <script type="application/json" id="ind-hm-cons" set:html={JSON.stringify(hmCons)} />
   <script type="application/json" id="ind-hm-nodes" set:html={JSON.stringify(hmNodes)} />
 
@@ -247,6 +256,12 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .ind-hm-tip .tip-m { display: flex; flex-direction: column; gap: 1px; }
   .ind-hm-tip .tip-l { font-size: 0.66rem; color: var(--text-secondary); }
   .ind-hm-tip .tip-v { font-size: 0.82rem; font-weight: 600; }
+  .ind-legend { display: flex; max-width: 520px; margin: 0.8rem 0 0.2rem; }
+  .ind-legend-cell { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ind-legend-cell span { font-size: 0.7rem; color: var(--text-secondary); }
+  .ind-legend-cell i { width: 100%; height: 13px; display: block; }
+  .ind-legend-cell:first-child i { border-radius: 4px 0 0 4px; }
+  .ind-legend-cell:last-child i { border-radius: 0 4px 4px 0; }
 </style>
 
 <script>
