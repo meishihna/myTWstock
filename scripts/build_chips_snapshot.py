@@ -30,6 +30,7 @@ import json
 import os
 import ssl
 import sys
+import time
 from datetime import date, datetime, timedelta, timezone
 import urllib.request
 
@@ -49,10 +50,19 @@ _SSL.check_hostname = False
 _SSL.verify_mode = ssl.CERT_NONE
 
 
-def _get_json(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 twstock-chips", "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=90, context=_SSL) as r:
-        return json.loads(r.read().decode("utf-8"))
+def _get_json(url: str, retries: int = 3):
+    last: Exception | None = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "Mozilla/5.0 twstock-chips", "Accept": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=90, context=_SSL) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            last = e
+            time.sleep(2 * (i + 1))
+    raise last if last else RuntimeError("unreachable")
 
 
 def _int(x):
@@ -161,10 +171,24 @@ def main() -> None:
     inst_map, inst_date = build_inst_twse(universe)
     margin_map = build_margin(universe)
 
+    # 韌性:某來源(如 T86 自 CI 連線)失敗時沿用前值,避免整批上市三大法人/資券消失。
+    prev: dict[str, dict] = {}
+    prev_inst_date = None
+    try:
+        if os.path.exists(OUT):
+            pj = json.load(open(OUT, encoding="utf-8")) or {}
+            prev = pj.get("rows", {}) or {}
+            prev_inst_date = pj.get("instDate")
+    except Exception:
+        prev = {}
+    if not inst_map and prev_inst_date:  # T86 整批失敗 → 沿用前次資料日標示
+        inst_date = prev_inst_date
+
     rows: dict[str, dict] = {}
     for t in sorted(universe):
-        inst = inst_map.get(t)
-        margin = margin_map.get(t)
+        old = prev.get(t) or {}
+        inst = inst_map[t] if t in inst_map else old.get("inst")
+        margin = margin_map[t] if t in margin_map else old.get("margin")
         if inst or margin:
             rows[t] = {"inst": inst, "margin": margin}
 

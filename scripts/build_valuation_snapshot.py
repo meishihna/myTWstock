@@ -68,10 +68,17 @@ def _num(x, nd: int = 2):
     return round(f, nd)
 
 
-def _get_json(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 twstock-valuation"})
-    with urllib.request.urlopen(req, timeout=90, context=_SSL) as r:
-        return json.loads(r.read().decode("utf-8"))
+def _get_json(url: str, retries: int = 3):
+    last: Exception | None = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 twstock-valuation"})
+            with urllib.request.urlopen(req, timeout=90, context=_SSL) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            last = e
+            time.sleep(2 * (i + 1))
+    raise last if last else RuntimeError("unreachable")
 
 
 # ---------------------------------------------------------------------------
@@ -226,14 +233,29 @@ def main() -> None:
         print(f"  [beta] FAILED: {e}")
         beta_map = {}
 
+    # 韌性:載入前次快照。某來源(如 TWSE OpenAPI 自 CI 連線整批失敗)時沿用前值而非清成 null,
+    # 避免「整批上市估值消失」。正常運作時該股本就在 per_map/beta_map,故用新值(含虧損股 pe=None)。
+    prev: dict[str, dict] = {}
+    try:
+        if os.path.exists(OUT):
+            prev = (json.load(open(OUT, encoding="utf-8")) or {}).get("rows", {}) or {}
+    except Exception:
+        prev = {}
+
     rows: dict[str, dict] = {}
     for t in universe:
-        pv = per_map.get(t) or {}
+        old = prev.get(t) or {}
+        pv = (
+            per_map[t]
+            if t in per_map  # 在 per_map = 來源正常取得
+            else {"pe": old.get("pe"), "pb": old.get("pb"), "yield": old.get("yield")}
+        )
+        beta = beta_map[t] if t in beta_map else old.get("beta")  # Yahoo 未涵蓋 → 沿用前值
         row = {
             "pe": pv.get("pe"),
             "pb": pv.get("pb"),
             "yield": pv.get("yield"),
-            "beta": beta_map.get(t),
+            "beta": beta,
         }
         if any(v is not None for v in row.values()):  # 全缺則不寫(報告頁 fallback 顯示 —)
             rows[t] = row
