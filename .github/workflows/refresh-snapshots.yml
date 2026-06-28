@@ -67,11 +67,16 @@ jobs:
           python scripts/build_valuation_snapshot.py
         continue-on-error: true
 
+      # 籌碼面快照:三大法人(TWSE T86)+ 融資融券(TWSE/TPEx)。純 urllib,無需額外套件。
+      - name: 籌碼面快照 (chips-index.json)
+        run: python scripts/build_chips_snapshot.py
+        continue-on-error: true
+
       - name: Commit & push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/public/data/market-focus.json web/public/data/top-movers.json web/public/data/today-themes.json web/public/data/heatmap-stats.json web/public/data/valuation-index.json || true
+          git add web/public/data/market-focus.json web/public/data/top-movers.json web/public/data/today-themes.json web/public/data/heatmap-stats.json web/public/data/valuation-index.json web/public/data/chips-index.json || true
           if git diff --staged --quiet; then
             echo "No snapshot changes."
           else

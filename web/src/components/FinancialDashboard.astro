@@ -21,16 +21,39 @@ import {
   MARGIN_LINE_DASHES,
   MARGIN_LINE_LABELS,
 } from "../lib/industryConfig";
+import type { ChipsRow } from "../lib/chipsSnapshot";
 
 interface Props {
   financialsJson: FinancialsJson;
   companyName: string;
   ticker: string;
   industryType?: IndustryType | string;
+  chips?: ChipsRow | null;
+  chipsDate?: string | null;
 }
 
-const { financialsJson, companyName, ticker, industryType } = Astro.props;
+const { financialsJson, companyName, ticker, industryType, chips, chipsDate } = Astro.props;
 const indCfg = getIndustryConfig(industryType);
+
+// ── 籌碼面分頁(三大法人最新一日 + 融資融券)──
+const chipsInst = chips?.inst ?? null;
+const chipsMargin = chips?.margin ?? null;
+const hasChips = Boolean(chipsInst || chipsMargin);
+const fmtLot = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("zh-TW");
+const fmtSignedLot = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(n) ? "—" : (n > 0 ? "+" : "") + n.toLocaleString("zh-TW");
+// 買賣超／增減:買超或增(正)＝紅、賣超或減(負)＝綠(紅漲綠跌)
+const netColorStyle = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(n) || n === 0 ? "" : n > 0 ? "color:#e24b4a" : "color:#1d9e75";
+const instCells = chipsInst
+  ? [
+      { label: "外資", v: chipsInst.foreign },
+      { label: "投信", v: chipsInst.trust },
+      { label: "自營商", v: chipsInst.dealer },
+      { label: "三大法人合計", v: chipsInst.net3 },
+    ]
+  : [];
 
 const CHART_W = 920;
 const CHART_H = 300;
@@ -880,6 +903,16 @@ const mRevYTickMarks =
     >
       {monthly ? `月營收（${monthly.periods.length}月）` : "月營收"}
     </button>
+    <button
+      type="button"
+      class="fin-dash__tab"
+      role="tab"
+      aria-selected="false"
+      data-fin-tab="chips"
+      disabled={!hasChips}
+    >
+      籌碼面
+    </button>
   </div>
 
   <div class="fin-dash__panel is-active" data-fin-panel="annual">
@@ -1696,6 +1729,51 @@ const mRevYTickMarks =
       </div>
     )
   }
+
+  <div class="fin-dash__panel" data-fin-panel="chips" hidden>
+    <div class="fin-dash__chart-grid fin-dash__chart-grid--annual-stack">
+      {chipsInst ? (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">
+            三大法人買賣超{chipsDate ? `（${chipsDate}）` : ""}（單位：張，買超紅／賣超綠）
+          </p>
+          <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
+            {instCells.map((c) => (
+              <div class="fin-dash__kpi-card">
+                <span class="fin-dash__kpi-label">{c.label}</span>
+                <span class="fin-dash__kpi-value" style={netColorStyle(c.v)}>
+                  {fmtSignedLot(c.v)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </figure>
+      ) : (
+        <p class="fin-dash__sl">三大法人：上櫃個股暫無全市場免費資料(待後續優化補上)。</p>
+      )}
+      {chipsMargin && (
+        <figure class="fin-dash__chart">
+          <p class="fin-dash__sl">融資融券餘額（單位：張）</p>
+          <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
+            <div class="fin-dash__kpi-card">
+              <span class="fin-dash__kpi-label">融資餘額</span>
+              <span class="fin-dash__kpi-value">{fmtLot(chipsMargin.bal)}</span>
+              <span class="fin-dash__kpi-delta" style={netColorStyle(chipsMargin.chg)}>
+                日增減 {fmtSignedLot(chipsMargin.chg)}
+              </span>
+            </div>
+            <div class="fin-dash__kpi-card">
+              <span class="fin-dash__kpi-label">融券餘額</span>
+              <span class="fin-dash__kpi-value">{fmtLot(chipsMargin.shortBal)}</span>
+              <span class="fin-dash__kpi-delta" style={netColorStyle(chipsMargin.shortChg)}>
+                日增減 {fmtSignedLot(chipsMargin.shortChg)}
+              </span>
+            </div>
+          </div>
+        </figure>
+      )}
+    </div>
+  </div>
 </section>
 </div>
 
