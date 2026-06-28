@@ -72,11 +72,16 @@ jobs:
         run: python scripts/build_chips_snapshot.py
         continue-on-error: true
 
+      # 籌碼面走勢:三大法人近30交易日(append)+ 大戶每週累積。純 urllib。
+      - name: 籌碼面走勢 (chips-history.json)
+        run: python scripts/build_chips_history.py
+        continue-on-error: true
+
       - name: Commit & push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/public/data/market-focus.json web/public/data/top-movers.json web/public/data/today-themes.json web/public/data/heatmap-stats.json web/public/data/valuation-index.json web/public/data/chips-index.json || true
+          git add web/public/data/market-focus.json web/public/data/top-movers.json web/public/data/today-themes.json web/public/data/heatmap-stats.json web/public/data/valuation-index.json web/public/data/chips-index.json web/public/data/chips-history.json || true
           if git diff --staged --quiet; then
             echo "No snapshot changes."
           else
