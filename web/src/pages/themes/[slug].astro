@@ -21,6 +21,7 @@ type MapTheme = {
   cagr?: string;
   marketSize?: string;
   indicators?: Indicator[];
+  narrative?: { title: string; bullets: string[]; text: string }[] | null;
   aggMcap: number;
   related: { label: string; slug: string | null }[];
   tiers: { u: MapCo[]; m: MapCo[]; d: MapCo[] };
@@ -56,7 +57,7 @@ if (!theme) {
   theme = {
     slug: t.slug, title: t.title, companyCount: t.companyCount,
     desc: t.desc || "", category: t.category || "", cagr: t.cagr || "",
-    marketSize: t.marketSize || "", indicators: t.indicators || [],
+    marketSize: t.marketSize || "", indicators: t.indicators || [], narrative: null,
     aggMcap: 0, related: [],
     tiers: { u: conv(t.tiers.upstream), m: conv(t.tiers.midstream), d: conv(t.tiers.downstream) },
   };
@@ -185,6 +186,21 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
             </div>
           ))}
         </div>
+      </section>
+    )}
+
+    {theme.narrative && theme.narrative.length > 0 && (
+      <section class="thov-narr" aria-label="題材分析">
+        {theme.narrative.map((s) => (
+          <div class="thov-narr-block">
+            <h2 class="theme-sec-h">{s.title}</h2>
+            {s.bullets.length > 0 ? (
+              <ul class="thov-narr-list">{s.bullets.map((b) => <li>{b}</li>)}</ul>
+            ) : (
+              <p class="thov-narr-p">{s.text}</p>
+            )}
+          </div>
+        ))}
       </section>
     )}
 
@@ -556,6 +572,11 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     /* 產業總覽卡 */
     .thov-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 1.1rem 1.25rem; margin-bottom: 1.2rem; }
     .thov-desc { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.7; }
+    .thov-narr { display: flex; flex-direction: column; gap: 0.4rem; }
+    .thov-narr-block { margin: 0; }
+    .thov-narr-p { margin: 0.2rem 0 0; color: var(--text-primary); font-size: 0.92rem; line-height: 1.75; }
+    .thov-narr-list { margin: 0.3rem 0 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.35rem; }
+    .thov-narr-list li { color: var(--text-primary); font-size: 0.9rem; line-height: 1.55; }
     .thov-nums { display: flex; flex-wrap: wrap; gap: 0.6rem 1.8rem; margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
     .thov-num { display: inline-flex; flex-direction: column; gap: 2px; }
     .thov-num-l { font-size: 0.72rem; color: var(--muted); }

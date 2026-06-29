@@ -29,6 +29,7 @@ const VALUATION = path.join(DATA, "valuation-index.json");
 const MOMENTUM = path.join(DATA, "momentum.json");
 const WIKIHUB = path.join(DATA, "wikilink-hub-top500.json");
 const OUT = path.join(DATA, "map-index.json");
+const NARRATIVES = path.join(WEB, "..", "themes", "narratives");
 
 const TIER_KEYS = { upstream: "u", midstream: "m", downstream: "d" };
 // 關聯度(供應鏈樞紐度)門檻:被多少份報告以 [[名稱]] 引用
@@ -36,6 +37,26 @@ const LINK_HIGH = 100;
 const LINK_MID = 30;
 
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+// 題材敘事:讀手寫的 themes/narratives/{slug}.md(build_themes.py 不會覆寫);無檔→null。
+// 每個 ## 段落 → { title, bullets[], text };bullets 來自 "- " 行,其餘併為 text。
+function readNarrative(slug) {
+  const p = path.join(NARRATIVES, `${slug}.md`);
+  if (!existsSync(p)) return null;
+  const secs = [];
+  let cur = null;
+  for (const raw of readFileSync(p, "utf8").split(/\r?\n/)) {
+    const h = raw.match(/^##\s+(.+?)\s*$/);
+    if (h) { cur = { title: h[1].trim(), bullets: [], text: "" }; secs.push(cur); continue; }
+    if (!cur) continue;
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith("- ")) cur.bullets.push(line.slice(2).trim());
+    else cur.text = cur.text ? `${cur.text} ${line}` : line;
+  }
+  const out = secs.filter((s) => s.bullets.length || s.text);
+  return out.length ? out : null;
+}
 
 function main() {
   if (!existsSync(THEMES)) {
@@ -145,6 +166,7 @@ function main() {
       cagr: t.cagr || "",
       marketSize: t.marketSize || "",
       indicators: t.indicators || [],
+      narrative: readNarrative(t.slug),
       aggMcap: Math.round(aggMcap),
       related,
       tiers,
