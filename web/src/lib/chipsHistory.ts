@@ -9,7 +9,16 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export interface ChipsHistory {
-  inst: { dates: string[]; net3: (number | null)[] } | null;
+  inst:
+    | {
+        dates: string[];
+        foreign: (number | null)[]; // 外資買賣超
+        trust: (number | null)[]; // 投信
+        dealer: (number | null)[]; // 自營
+        net3: (number | null)[]; // 三大法人合計
+      }
+    | null;
+  holdPct: (number | null)[] | null; // 外資持股比率(%),對齊 inst.dates
   holders: { dates: string[]; k1000: (number | null)[]; k400: (number | null)[] } | null;
 }
 
@@ -32,14 +41,23 @@ function load(): any {
 export function chipsHistoryForTicker(ticker: string): ChipsHistory | null {
   const j = load();
   if (!j) return null;
-  const instRow = j.inst?.rows?.[ticker];
+  const ir = j.inst?.rows?.[ticker];
   const inst =
-    instRow && j.inst?.dates ? { dates: j.inst.dates as string[], net3: instRow as (number | null)[] } : null;
+    ir && j.inst?.dates
+      ? {
+          dates: j.inst.dates as string[],
+          foreign: ir.f as (number | null)[],
+          trust: ir.t as (number | null)[],
+          dealer: ir.d as (number | null)[],
+          net3: ir.n as (number | null)[],
+        }
+      : null;
+  const holdPct = (j.foreignHold?.rows?.[ticker] as (number | null)[]) || null;
   const hRow = j.holders?.rows?.[ticker];
   const holders =
     hRow && j.holders?.dates
       ? { dates: j.holders.dates as string[], k1000: hRow.k1000, k400: hRow.k400 }
       : null;
   if (!inst && !holders) return null;
-  return { inst, holders };
+  return { inst, holdPct, holders };
 }

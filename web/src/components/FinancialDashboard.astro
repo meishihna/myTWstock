@@ -43,15 +43,24 @@ const chipsInst = chips?.inst ?? null;
 const chipsMargin = chips?.margin ?? null;
 const chipsHolders = chips?.holders ?? null;
 const chipsForeignHold = chips?.foreignHold ?? null;
-// 走勢圖最後一日的三大法人若與上方卡片同一交易日 → 改用卡片值(T86 盤後會修正,兩快照產生時點不同會對不上,統一以卡片為準)
+// 走勢圖最後一日的三大法人若與上方卡片同一交易日 → 四欄都改用卡片值(T86 盤後會修正,統一以卡片為準)
 let chipsHistoryAligned = chipsHistory;
-if (chipsHistory?.inst && chipsInst?.net3 != null && chipsDate) {
+if (chipsHistory?.inst && chipsInst && chipsDate && chipsHistory.inst.dates.length) {
   const ds = chipsHistory.inst.dates;
   const li = ds.length - 1;
-  if (li >= 0 && ds[li] === chipsDate.replace(/-/g, "")) {
-    const net3 = chipsHistory.inst.net3.slice();
-    net3[li] = chipsInst.net3;
-    chipsHistoryAligned = { ...chipsHistory, inst: { ...chipsHistory.inst, net3 } };
+  if (ds[li] === chipsDate.replace(/-/g, "")) {
+    const inst = {
+      ...chipsHistory.inst,
+      foreign: chipsHistory.inst.foreign.slice(),
+      trust: chipsHistory.inst.trust.slice(),
+      dealer: chipsHistory.inst.dealer.slice(),
+      net3: chipsHistory.inst.net3.slice(),
+    };
+    if (chipsInst.foreign != null) inst.foreign[li] = chipsInst.foreign;
+    if (chipsInst.trust != null) inst.trust[li] = chipsInst.trust;
+    if (chipsInst.dealer != null) inst.dealer[li] = chipsInst.dealer;
+    if (chipsInst.net3 != null) inst.net3[li] = chipsInst.net3;
+    chipsHistoryAligned = { ...chipsHistory, inst };
   }
 }
 const hasChips = Boolean(chipsInst || chipsMargin || chipsHolders);
@@ -74,10 +83,10 @@ const fmtPpt = (d: number | null) =>
   d == null ? null : `${d > 0 ? "+" : ""}${d.toFixed(2)}pp`;
 const instCells = chipsInst
   ? [
-      { label: "外資", v: chipsInst.foreign, hold: chipsForeignHold },
-      { label: "投信", v: chipsInst.trust, hold: null },
-      { label: "自營商", v: chipsInst.dealer, hold: null },
-      { label: "三大法人合計", v: chipsInst.net3, hold: null },
+      { label: "外資", v: chipsInst.foreign, hold: chipsForeignHold, role: "foreign" },
+      { label: "投信", v: chipsInst.trust, hold: null, role: "trust" },
+      { label: "自營商", v: chipsInst.dealer, hold: null, role: "dealer" },
+      { label: "三大法人合計", v: chipsInst.net3, hold: null, role: "net3" },
     ]
   : [];
 
@@ -1761,7 +1770,11 @@ const mRevYTickMarks =
       {chipsInst ? (
         <figure class="fin-dash__chart">
           <p class="fin-dash__sl">
-            三大法人買賣超{chipsDate ? `（${chipsDate}）` : ""}（單位：張，買超紅／賣超綠）
+            三大法人買賣超{chipsDate ? (
+              <>（<span data-chip-date>{chipsDate}</span>）</>
+            ) : (
+              ""
+            )}（單位：張，買超紅／賣超綠;滑動下方圖表可看各日)
           </p>
           <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
             {instCells.map((c) =>
@@ -1769,25 +1782,28 @@ const mRevYTickMarks =
                 <div class="fin-dash__kpi-card fin-dash__kpi-card--split">
                   <div class="chips-split-main">
                     <span class="fin-dash__kpi-label">{c.label}</span>
-                    <span class="fin-dash__kpi-value" style={netColorStyle(c.v)}>
+                    <span class="fin-dash__kpi-value" data-chip-role={c.role} style={netColorStyle(c.v)}>
                       {fmtSignedLot(c.v)}
                     </span>
                   </div>
                   <div class="chips-hold">
                     <span class="fin-dash__kpi-label">持股</span>
-                    <span class="chips-hold-pct">{c.hold.pct.toFixed(2)}%</span>
-                    {c.hold.chgPp != null && (
-                      <span class="chips-hold-chg" style={netColorStyle(c.hold.chgPp)}>
-                        {c.hold.chgPp > 0 ? "▲" : c.hold.chgPp < 0 ? "▼" : ""}{" "}
-                        {Math.abs(c.hold.chgPp).toFixed(2)}pp
-                      </span>
-                    )}
+                    <span class="chips-hold-pct" data-chip-hold>{c.hold.pct.toFixed(2)}%</span>
+                    <span
+                      class="chips-hold-chg"
+                      data-chip-holdchg
+                      style={c.hold.chgPp != null ? netColorStyle(c.hold.chgPp) : "display:none"}
+                    >
+                      {c.hold.chgPp != null
+                        ? `${c.hold.chgPp > 0 ? "▲" : c.hold.chgPp < 0 ? "▼" : ""} ${Math.abs(c.hold.chgPp).toFixed(2)}pp`
+                        : ""}
+                    </span>
                   </div>
                 </div>
               ) : (
                 <div class="fin-dash__kpi-card">
                   <span class="fin-dash__kpi-label">{c.label}</span>
-                  <span class="fin-dash__kpi-value" style={netColorStyle(c.v)}>
+                  <span class="fin-dash__kpi-value" data-chip-role={c.role} style={netColorStyle(c.v)}>
                     {fmtSignedLot(c.v)}
                   </span>
                 </div>
@@ -1930,7 +1946,7 @@ const mRevYTickMarks =
     let _tip;
     const getTip = () => { if (_tip) return _tip; _tip = document.createElement("div"); _tip.className = "ct-tip"; _tip.style.display = "none"; document.body.appendChild(_tip); return _tip; };
     const fmtDate = (y) => (y && y.length >= 8 ? y.slice(0, 4) + "/" + y.slice(4, 6) + "/" + y.slice(6, 8) : y);
-    function attachHover(el, model) {
+    function attachHover(el, model, hooks) {
       const svg = el.querySelector("svg"); if (!svg) return;
       const NS = "http://www.w3.org/2000/svg";
       const cross = document.createElementNS(NS, "line");
@@ -1954,12 +1970,39 @@ const mRevYTickMarks =
         tip.innerHTML = html; tip.style.display = "block";
         tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 170) + "px";
         tip.style.top = (e.clientY + 14) + "px";
+        if (hooks && hooks.onIndex) hooks.onIndex(i);
       });
-      el.addEventListener("mouseleave", () => { cross.style.display = "none"; tip.style.display = "none"; });
+      el.addEventListener("mouseleave", () => { cross.style.display = "none"; tip.style.display = "none"; if (hooks && hooks.onLeave) hooks.onLeave(); });
     }
     const fmtLots = (v) => (v > 0 ? "+" : "") + Math.round(v).toLocaleString() + " 張";
     const fmtPrice = (v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtPct = (v) => v.toFixed(2) + "%";
+
+    // ── hover 三大法人圖 → 上方四卡 + 外資持股 跟著顯示該日;移開復原最新日 ──
+    const ROLE = H.inst ? { foreign: H.inst.foreign, trust: H.inst.trust, dealer: H.inst.dealer, net3: H.inst.net3 } : {};
+    const fmtCard = (v) => (v == null || !isFinite(v) ? "—" : (v > 0 ? "+" : "") + Math.round(v).toLocaleString());
+    const dateDash = (y) => (y && y.length >= 8 ? y.slice(0, 4) + "-" + y.slice(4, 6) + "-" + y.slice(6, 8) : y);
+    const snap = [];
+    document.querySelectorAll("[data-chip-role],[data-chip-date],[data-chip-hold],[data-chip-holdchg]")
+      .forEach((el) => snap.push({ el, t: el.textContent, c: el.style.color, d: el.style.display }));
+    function setCards(i) {
+      for (const role in ROLE) {
+        const el = document.querySelector('[data-chip-role="' + role + '"]'); if (!el) continue;
+        const v = ROLE[role][i]; el.textContent = fmtCard(v);
+        el.style.color = (v == null || v === 0) ? "" : (v > 0 ? UP : DOWN);
+      }
+      const de = document.querySelector("[data-chip-date]"); if (de && H.inst) de.textContent = dateDash(H.inst.dates[i]);
+      const hp = H.holdPct ? H.holdPct[i] : null;
+      const he = document.querySelector("[data-chip-hold]"); if (he) he.textContent = (hp == null || !isFinite(hp)) ? "—" : hp.toFixed(2) + "%";
+      const ce = document.querySelector("[data-chip-holdchg]");
+      if (ce) {
+        const pv = (H.holdPct && i > 0) ? H.holdPct[i - 1] : null;
+        const ch = (hp != null && pv != null) ? hp - pv : null;
+        if (ch == null) { ce.style.display = "none"; }
+        else { ce.style.display = ""; ce.textContent = (ch > 0 ? "▲" : ch < 0 ? "▼" : "") + " " + Math.abs(ch).toFixed(2) + "pp"; ce.style.color = (ch > 0 ? UP : ch < 0 ? DOWN : ""); }
+      }
+    }
+    function restoreCards() { for (const s of snap) { s.el.textContent = s.t; s.el.style.color = s.c; s.el.style.display = s.d; } }
 
     function drawInst(el, dates, net3, pbd) {
       const n = dates.length, am = Math.max(1, ...net3.map((v) => (v == null ? 0 : Math.abs(v)))), zy = P.t + ph / 2, bw = Math.max(1.5, (pw / n) * 0.62);
@@ -1969,7 +2012,7 @@ const mRevYTickMarks =
       attachHover(el, { dates, n, series: [
         { label: "三大法人", signColor: true, values: net3, fmt: fmtLots },
         { label: "股價", color: GOLD, values: dates.map((d) => pbd[d] ?? null), fmt: fmtPrice },
-      ] });
+      ] }, { onIndex: setCards, onLeave: restoreCards });
     }
     function drawHolders(el, xdates, hdates, k1000, k400, pbd) {
       const n = xdates.length, idx = {}; xdates.forEach((d, i) => (idx[d] = i));
