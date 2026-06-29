@@ -63,6 +63,18 @@ if (chipsHistory?.inst && chipsInst && chipsDate && chipsHistory.inst.dates.leng
     chipsHistoryAligned = { ...chipsHistory, inst };
   }
 }
+// 外資持股以「目前顯示的那一天」為準(靜止=最新交易日;hover=該日)。
+// 最新交易日的持股常還沒公布(MI_QFIIS 落後買賣超約一個交易日)→ holdPct 末值為 null → 預設不顯示持股,
+// 待使用者 hover 往前到有資料的日子才顯示(由 setCards 切換)。
+const _hp = chipsHistoryAligned?.holdPct ?? null;
+const _hd = chipsHistoryAligned?.inst?.dates ?? null;
+const _hli = _hd && _hd.length ? _hd.length - 1 : -1;
+const latestHoldPct: number | null =
+  _hp && _hli >= 0 && _hp[_hli] != null && Number.isFinite(_hp[_hli] as number) ? (_hp[_hli] as number) : null;
+const latestHoldChg: number | null =
+  _hp && _hli > 0 && latestHoldPct != null && _hp[_hli - 1] != null && Number.isFinite(_hp[_hli - 1] as number)
+    ? latestHoldPct - (_hp[_hli - 1] as number)
+    : null;
 const hasChips = Boolean(chipsInst || chipsMargin || chipsHolders);
 const fmtLot = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("zh-TW");
@@ -1778,7 +1790,7 @@ const mRevYTickMarks =
           </p>
           <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
             {instCells.map((c) =>
-              c.hold && c.hold.pct != null ? (
+              c.role === "foreign" ? (
                 <div class="fin-dash__kpi-card fin-dash__kpi-card--split">
                   <div class="chips-split-main">
                     <span class="fin-dash__kpi-label">{c.label}</span>
@@ -1786,16 +1798,18 @@ const mRevYTickMarks =
                       {fmtSignedLot(c.v)}
                     </span>
                   </div>
-                  <div class="chips-hold">
+                  <div class="chips-hold" data-chip-holdblock style={latestHoldPct == null ? "display:none" : ""}>
                     <span class="fin-dash__kpi-label">持股</span>
-                    <span class="chips-hold-pct" data-chip-hold>{c.hold.pct.toFixed(2)}%</span>
+                    <span class="chips-hold-pct" data-chip-hold>
+                      {latestHoldPct != null ? `${latestHoldPct.toFixed(2)}%` : "—"}
+                    </span>
                     <span
                       class="chips-hold-chg"
                       data-chip-holdchg
-                      style={c.hold.chgPp != null ? netColorStyle(c.hold.chgPp) : "display:none"}
+                      style={latestHoldChg != null ? netColorStyle(latestHoldChg) : "display:none"}
                     >
-                      {c.hold.chgPp != null
-                        ? `${c.hold.chgPp > 0 ? "▲" : c.hold.chgPp < 0 ? "▼" : ""} ${Math.abs(c.hold.chgPp).toFixed(2)}pp`
+                      {latestHoldChg != null
+                        ? `${latestHoldChg > 0 ? "▲" : latestHoldChg < 0 ? "▼" : ""} ${Math.abs(latestHoldChg).toFixed(2)}pp`
                         : ""}
                     </span>
                   </div>
@@ -1983,7 +1997,7 @@ const mRevYTickMarks =
     const fmtCard = (v) => (v == null || !isFinite(v) ? "—" : (v > 0 ? "+" : "") + Math.round(v).toLocaleString());
     const dateDash = (y) => (y && y.length >= 8 ? y.slice(0, 4) + "-" + y.slice(4, 6) + "-" + y.slice(6, 8) : y);
     const snap = [];
-    document.querySelectorAll("[data-chip-role],[data-chip-date],[data-chip-hold],[data-chip-holdchg]")
+    document.querySelectorAll("[data-chip-role],[data-chip-date],[data-chip-hold],[data-chip-holdchg],[data-chip-holdblock]")
       .forEach((el) => snap.push({ el, t: el.textContent, c: el.style.color, d: el.style.display }));
     function setCards(i) {
       for (const role in ROLE) {
@@ -1992,14 +2006,23 @@ const mRevYTickMarks =
         el.style.color = (v == null || v === 0) ? "" : (v > 0 ? UP : DOWN);
       }
       const de = document.querySelector("[data-chip-date]"); if (de && H.inst) de.textContent = dateDash(H.inst.dates[i]);
+      // 持股:只在「該日有資料」時顯示;無資料(如最新交易日持股尚未公布)→ 整塊隱藏,不套用其他日的值
+      const hb = document.querySelector("[data-chip-holdblock]");
       const hp = H.holdPct ? H.holdPct[i] : null;
-      const he = document.querySelector("[data-chip-hold]"); if (he) he.textContent = (hp == null || !isFinite(hp)) ? "—" : hp.toFixed(2) + "%";
-      const ce = document.querySelector("[data-chip-holdchg]");
-      if (ce) {
-        const pv = (H.holdPct && i > 0) ? H.holdPct[i - 1] : null;
-        const ch = (hp != null && pv != null) ? hp - pv : null;
-        if (ch == null) { ce.style.display = "none"; }
-        else { ce.style.display = ""; ce.textContent = (ch > 0 ? "▲" : ch < 0 ? "▼" : "") + " " + Math.abs(ch).toFixed(2) + "pp"; ce.style.color = (ch > 0 ? UP : ch < 0 ? DOWN : ""); }
+      if (hb) {
+        if (hp == null || !isFinite(hp)) {
+          hb.style.display = "none";
+        } else {
+          hb.style.display = "";
+          const he = hb.querySelector("[data-chip-hold]"); if (he) he.textContent = hp.toFixed(2) + "%";
+          const ce = hb.querySelector("[data-chip-holdchg]");
+          if (ce) {
+            const pv = (H.holdPct && i > 0) ? H.holdPct[i - 1] : null;
+            const ch = (pv != null && isFinite(pv)) ? hp - pv : null;
+            if (ch == null) { ce.style.display = "none"; }
+            else { ce.style.display = ""; ce.textContent = (ch > 0 ? "▲" : ch < 0 ? "▼" : "") + " " + Math.abs(ch).toFixed(2) + "pp"; ce.style.color = (ch > 0 ? UP : ch < 0 ? DOWN : ""); }
+          }
+        }
       }
     }
     function restoreCards() { for (const s of snap) { s.el.textContent = s.t; s.el.style.color = s.c; s.el.style.display = s.d; } }
