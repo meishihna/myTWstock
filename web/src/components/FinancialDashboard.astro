@@ -43,6 +43,17 @@ const chipsInst = chips?.inst ?? null;
 const chipsMargin = chips?.margin ?? null;
 const chipsHolders = chips?.holders ?? null;
 const chipsForeignHold = chips?.foreignHold ?? null;
+// 走勢圖最後一日的三大法人若與上方卡片同一交易日 → 改用卡片值(T86 盤後會修正,兩快照產生時點不同會對不上,統一以卡片為準)
+let chipsHistoryAligned = chipsHistory;
+if (chipsHistory?.inst && chipsInst?.net3 != null && chipsDate) {
+  const ds = chipsHistory.inst.dates;
+  const li = ds.length - 1;
+  if (li >= 0 && ds[li] === chipsDate.replace(/-/g, "")) {
+    const net3 = chipsHistory.inst.net3.slice();
+    net3[li] = chipsInst.net3;
+    chipsHistoryAligned = { ...chipsHistory, inst: { ...chipsHistory.inst, net3 } };
+  }
+}
 const hasChips = Boolean(chipsInst || chipsMargin || chipsHolders);
 const fmtLot = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("zh-TW");
@@ -1854,7 +1865,7 @@ const mRevYTickMarks =
         </figure>
       )}
       {chipsHistory && (chipsHistory.inst || chipsHistory.holders) && (
-        <script type="application/json" data-chips-history set:html={JSON.stringify({ ticker, ...chipsHistory })} />
+        <script type="application/json" data-chips-history set:html={JSON.stringify({ ticker, ...chipsHistoryAligned })} />
       )}
     </div>
   </div>
