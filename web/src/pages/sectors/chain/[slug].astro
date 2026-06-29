@@ -59,12 +59,6 @@ function momTag(n: number) {
   const a = Math.abs(n);
   return { label: a === 1 ? `營收${dir}` : `連${a}月${dir}`, cls: n > 0 ? "up" : "down" };
 }
-function fmtMc(mc: number | null) {
-  if (mc == null) return "—";
-  if (mc >= 1_000_000) return (mc / 1_000_000).toFixed(2) + "兆";
-  if (mc >= 100) return (mc / 100).toFixed(0) + "億";
-  return mc + "百萬";
-}
 const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
 ---
 
@@ -162,7 +156,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
                       <span class="sc-tk">{c.t}</span>
                     </div>
                     <div class="sc-sector">{c.s}{c.status === "challenge" ? " · 成長挑戰" : ""}</div>
-                    <div class="sc-meta">市值 {fmtMc(c.mc)}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</div>
+                    <div class="sc-meta">EPS {c.eps != null ? `${c.eps} 元` : "—"}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</div>
                     <div class="sc-card2-foot">
                       <span class="sc-mom">{mt ? mt.label : ""}</span>
                       {c.revYoy != null && (
@@ -277,6 +271,8 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
         const shown = grp.classList.toggle("show");
         btn.classList.toggle("sel", shown);
         refresh();
+        // 點選顯示 → 自動捲動到該節點的成分股(scroll-margin-top 已預留 sticky nav 高度)
+        if (shown) grp.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
   }

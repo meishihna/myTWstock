@@ -19,6 +19,7 @@ const IND_DIR = path.join(REPO, "industries");
 const DATA = path.join(WEB, "public", "data");
 const REPORTS = path.join(DATA, "reports-index.json");
 const SCREENER = path.join(DATA, "screener-index.json");
+const VALUATION = path.join(DATA, "valuation-index.json");
 const MOMENTUM = path.join(DATA, "momentum.json");
 const OUT = path.join(DATA, "industries-index.json");
 
@@ -81,8 +82,14 @@ function main() {
   const fin = {};
   if (existsSync(SCREENER)) {
     for (const r of (JSON.parse(readFileSync(SCREENER, "utf8")).rows) || []) {
-      fin[r.t] = { mc: num(r.mc), pe: num(r.pe), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
+      fin[r.t] = { mc: num(r.mc), pe: num(r.pe), eps: num(r.eps), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
     }
+  }
+  // 本益比改以 valuation-index(TWSE/TPEx 官方、每日)為主、screener(yfinance)為輔 → 覆蓋率大增,且與報告頁同源
+  const valPe = {};
+  if (existsSync(VALUATION)) {
+    const vr = JSON.parse(readFileSync(VALUATION, "utf8")).rows || {};
+    for (const t of Object.keys(vr)) { const p = num(vr[t]?.pe); if (p != null) valPe[t] = p; }
   }
   const momByTicker = existsSync(MOMENTUM) ? (JSON.parse(readFileSync(MOMENTUM, "utf8")).mom || {}) : {};
 
@@ -103,7 +110,8 @@ function main() {
           t: c.ticker, n: c.name, s: c.sector,
           ss: byTicker[c.ticker]?.sectorSlug || "",
           mc, subcat: c.subcat || "",
-          pe: f.pe ?? null,
+          pe: valPe[c.ticker] ?? f.pe ?? null,
+          eps: f.eps ?? null,
           revYoy: f.revYoy ?? null,
           mom: momByTicker[c.ticker] || 0,
           status: challenge ? "challenge" : "",
