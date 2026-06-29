@@ -42,6 +42,7 @@ const indCfg = getIndustryConfig(industryType);
 const chipsInst = chips?.inst ?? null;
 const chipsMargin = chips?.margin ?? null;
 const chipsHolders = chips?.holders ?? null;
+const chipsForeignHold = chips?.foreignHold ?? null;
 const hasChips = Boolean(chipsInst || chipsMargin || chipsHolders);
 const fmtLot = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("zh-TW");
@@ -62,10 +63,10 @@ const fmtPpt = (d: number | null) =>
   d == null ? null : `${d > 0 ? "+" : ""}${d.toFixed(2)}pp`;
 const instCells = chipsInst
   ? [
-      { label: "外資", v: chipsInst.foreign },
-      { label: "投信", v: chipsInst.trust },
-      { label: "自營商", v: chipsInst.dealer },
-      { label: "三大法人合計", v: chipsInst.net3 },
+      { label: "外資", v: chipsInst.foreign, hold: chipsForeignHold },
+      { label: "投信", v: chipsInst.trust, hold: null },
+      { label: "自營商", v: chipsInst.dealer, hold: null },
+      { label: "三大法人合計", v: chipsInst.net3, hold: null },
     ]
   : [];
 
@@ -1752,14 +1753,35 @@ const mRevYTickMarks =
             三大法人買賣超{chipsDate ? `（${chipsDate}）` : ""}（單位：張，買超紅／賣超綠）
           </p>
           <div class="fin-dash__kpi-row fin-dash__kpi-row--4">
-            {instCells.map((c) => (
-              <div class="fin-dash__kpi-card">
-                <span class="fin-dash__kpi-label">{c.label}</span>
-                <span class="fin-dash__kpi-value" style={netColorStyle(c.v)}>
-                  {fmtSignedLot(c.v)}
-                </span>
-              </div>
-            ))}
+            {instCells.map((c) =>
+              c.hold && c.hold.pct != null ? (
+                <div class="fin-dash__kpi-card fin-dash__kpi-card--split">
+                  <div class="chips-split-main">
+                    <span class="fin-dash__kpi-label">{c.label}</span>
+                    <span class="fin-dash__kpi-value" style={netColorStyle(c.v)}>
+                      {fmtSignedLot(c.v)}
+                    </span>
+                  </div>
+                  <div class="chips-hold">
+                    <span class="fin-dash__kpi-label">持股</span>
+                    <span class="chips-hold-pct">{c.hold.pct.toFixed(2)}%</span>
+                    {c.hold.chgPp != null && (
+                      <span class="chips-hold-chg" style={netColorStyle(c.hold.chgPp)}>
+                        {c.hold.chgPp > 0 ? "▲" : c.hold.chgPp < 0 ? "▼" : ""}{" "}
+                        {Math.abs(c.hold.chgPp).toFixed(2)}pp
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div class="fin-dash__kpi-card">
+                  <span class="fin-dash__kpi-label">{c.label}</span>
+                  <span class="fin-dash__kpi-value" style={netColorStyle(c.v)}>
+                    {fmtSignedLot(c.v)}
+                  </span>
+                </div>
+              ),
+            )}
           </div>
         </figure>
       ) : (

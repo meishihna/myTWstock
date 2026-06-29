@@ -30,10 +30,15 @@ export interface ChipsHolders {
   k1000: ChipsHoldersLevel; // 千張(≥1000張,分級 15)
   k400: ChipsHoldersLevel;  // 400張(≥400張,分級 12~15)
 }
+export interface ChipsForeignHold {
+  pct: number | null;     // 外資持股比率%(全體外資及陸資)
+  chgPp: number | null;   // 日增減(pp);首日或缺前值為 null
+}
 export interface ChipsRow {
   inst: ChipsInst | null;
   margin: ChipsMargin | null;
   holders: ChipsHolders | null;
+  foreignHold: ChipsForeignHold | null;
 }
 
 let cache: { rows: Record<string, ChipsRow>; instDate: string | null } | null | undefined;

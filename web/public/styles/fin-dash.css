@@ -167,6 +167,37 @@
   font-size: 0.72rem;
 }
 
+/* 外資卡:左買賣超／右外資持股比率(寬卡左右分欄) */
+[data-fin-panel="chips"] .fin-dash__kpi-card--split {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+[data-fin-panel="chips"] .chips-split-main {
+  min-width: 0;
+}
+[data-fin-panel="chips"] .chips-hold {
+  flex: none;
+  text-align: right;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  padding-left: 12px;
+}
+[data-fin-panel="chips"] .chips-hold-pct {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #ededed;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+[data-fin-panel="chips"] .chips-hold-chg {
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 籌碼面走勢圖(各序列各自縮放套疊;股價金線) */
 .chips-trend {
   width: 100%;

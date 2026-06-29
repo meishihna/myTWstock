@@ -46,6 +46,7 @@ T86 = "https://www.twse.com.tw/rwd/zh/fund/T86?date={d}&selectType=ALL&response=
 TWSE_MARGIN = "https://openapi.twse.com.tw/v1/exchangeReport/MI_MARGN"
 TPEX_MARGIN = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance"
 TDCC = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"  # 集保戶股權分散表(每週、含上市+上櫃)
+MI_QFIIS = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS?date={d}&selectType=ALLBUT0999&response=json"  # 外資持股(上市)
 
 # 公開政府端點、只讀;憑證鏈在部分環境驗證失敗 → 不驗證。
 _SSL = ssl.create_default_context()
@@ -225,6 +226,48 @@ def build_margin(universe: set[str]) -> dict[str, dict]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# 外資持股比率(上市,TWSE MI_QFIIS;取最近兩個交易日相減算日增減 pp)
+# ---------------------------------------------------------------------------
+def _qfiis_day(dt: str) -> dict[str, float] | None:
+    try:
+        d = _get_json(MI_QFIIS.format(d=dt))
+    except Exception:
+        return None
+    if d.get("stat") != "OK" or not d.get("data"):
+        return None
+    out: dict[str, float] = {}
+    for r in d["data"]:
+        if len(r) > 7:
+            v = _f(r[7])  # 全體外資及陸資持股比率
+            if v is not None:
+                out[str(r[0]).strip()] = v
+    return out or None
+
+
+def build_foreign_hold(universe: set[str]) -> dict[str, dict]:
+    days: list[dict[str, float]] = []
+    back = 0
+    while back < 10 and len(days) < 2:
+        dt = (date.today() - timedelta(days=back)).strftime("%Y%m%d")
+        back += 1
+        day = _qfiis_day(dt)
+        if day:
+            days.append(day)
+    if not days:
+        print("  [foreign] MI_QFIIS no data")
+        return {}
+    today, prev = days[0], (days[1] if len(days) > 1 else {})
+    out: dict[str, dict] = {}
+    for code, pct in today.items():
+        if code not in universe:
+            continue
+        p = prev.get(code)
+        out[code] = {"pct": round(pct, 2), "chgPp": round(pct - p, 2) if p is not None else None}
+    print(f"  [foreign] {len(out)} 上市 外資持股")
+    return out
+
+
 def main() -> None:
     setup_stdout()
     tickers, sector, desc = parse_scope_args(sys.argv[1:])
@@ -238,6 +281,7 @@ def main() -> None:
     inst_map, inst_date = build_inst_twse(universe)
     margin_map = build_margin(universe)
     holders_map = build_holders(universe)
+    foreign_map = build_foreign_hold(universe)
 
     # 韌性:某來源(如 T86 自 CI 連線)失敗時沿用前值,避免整批上市三大法人/資券消失。
     prev: dict[str, dict] = {}
@@ -269,8 +313,9 @@ def main() -> None:
             holders = new_h
         else:
             holders = old_h
-        if inst or margin or holders:
-            rows[t] = {"inst": inst, "margin": margin, "holders": holders}
+        fh = foreign_map[t] if t in foreign_map else old.get("foreignHold")  # 失敗沿用前值
+        if inst or margin or holders or fh:
+            rows[t] = {"inst": inst, "margin": margin, "holders": holders, "foreignHold": fh}
 
     payload = {
         "generatedAt": datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
