@@ -7,7 +7,6 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 export interface ValuationSnapshotRow {
   pe?: number | null;
@@ -22,10 +21,8 @@ function load(): Record<string, ValuationSnapshotRow> | null {
   if (cache !== undefined) return cache;
   cache = null;
   try {
-    const file = path.join(
-      path.dirname(fileURLToPath(import.meta.url)),
-      "../../public/data/valuation-index.json",
-    );
+    // 以 process.cwd()(=web/)為錨;build 後 import.meta.url 會指向 dist/ 而錯位(與報告頁一致)。
+    const file = path.join(process.cwd(), "public", "data", "valuation-index.json");
     if (existsSync(file)) {
       const j = JSON.parse(readFileSync(file, "utf8"));
       cache = (j && j.rows) || {};
