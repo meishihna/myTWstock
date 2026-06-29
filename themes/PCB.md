@@ -2,7 +2,7 @@
 
 > 電子產品訊號互連基礎，涵蓋硬板、軟板、HDI 與載板
 
-**涵蓋公司數:** 74
+**涵蓋公司數:** 36
 
 **分類:** 基板材料
 
@@ -12,89 +12,51 @@
 
 **關鍵指標:** 技術核心=HDI / 載板 / 軟板 | 升級驅動=AI 載板+車用 | 主流材料=銅箔 / 玻纖布 | 產業地位=電子互連基礎
 
-**相關主題:** [[ABF 載板]] (18) | [[銅箔]] (33) | [[連接器]] (21) | [[AI 伺服器]] (279)
+**相關主題:** [[ABF 載板]] (18) | [[銅箔]] (33) | [[連接器]] (21) | [[AI 伺服器]] (292)
 
 ---
 
-## 上游 (48)
+## 上游 (18)
 
-- **2482 連宇** (Business Equipment & Supplies) [PCB]
-- **5258 虹堡** (Business Equipment & Supplies) [PCB]
-- **2425 承啟** (Computer Hardware) [PCB]
-- **4974 亞泰** (Electronic Components) [PCB]
-- **5248 景傳** (Electronic Components) [PCB]
-- **5474 聰泰** (Electronic Components) [PCB]
-- **6167 久正** (Electronic Components) [PCB]
-- **6203 海韻電** (Electronic Components) [PCB]
-- **2423 固緯** (Scientific & Technical Instruments) [PCB]
-- **8183 精星** (Electronic Components) [PCB 供應]
-- **3628 盈正** (Electrical Equipment & Parts) [PCB 板]
-- **4588 玖鼎電力** (Electrical Equipment & Parts) [PCB 板]
-- **4916 事欣科** (Computer Hardware) [PCB/PCBA]
-- **6923 中台** (Waste Management) [PCB產業]
-- **8390 金益鼎** (Waste Management) [PCB產業]
-- **6150 撼訊** (Electronics & Computer Distribution) [印刷電路板]
-- **2439 美律** (Consumer Electronics) [基板]
-- **3684 榮昌** (Electronic Components) [射頻電路板]
-- **3306 鼎天** (Scientific & Technical Instruments) [攝像感測器]
-- **5490 同亨** (Business Equipment & Supplies) [機構件]
-- **3229 晟鈦** (Electronic Components) [銅箔基板 (CCL)]
-- **3024 憶聲** (Consumer Electronics) [電子元件]
-- **3296 勝德** (Consumer Electronics) [電子元件]
-- **3465 進泰電子** (Consumer Electronics) [電子元件]
-- **5225 東科-KY** (Consumer Electronics) [電子元件]
-- **6275 元山** (Consumer Electronics) [電子元件]
-- **3002 歐格** (Electrical Equipment & Parts) [電子元件]
-- **5356 協益** (Electronic Components) [電子元件]
-- **1593 祺驊** (Leisure) [電子元件]
-- **1736 喬山** (Leisure) [電子元件]
-- **4609 唐鋒** (Consumer Electronics) [電子控制板]
-- **1456 怡華** (Real Estate Services) [電子材料]
-- **9955 佳龍** (Pollution & Treatment Controls) [電子製造]
-- **2354 鴻準** (Electronics & Computer Distribution) [電子零件]
-- **4549 桓達** (Scientific & Technical Instruments) [電子零組件]
-- **6161 捷波** (Computer Hardware) [電路板]
-- **6599 普達系統** (Computer Hardware) [電路板]
-- **6737 秀育** (Computer Hardware) [電路板]
-- **2424 隴華** (Consumer Electronics) [電路板]
-- **2488 漢平** (Consumer Electronics) [電路板]
-- **3541 西柏** (Consumer Electronics) [電路板]
-- **3669 圓展** (Consumer Electronics) [電路板]
-- **4915 致伸** (Consumer Electronics) [電路板]
-- **5489 彩富** (Consumer Electronics) [電路板]
-- **6225 天瀚** (Consumer Electronics) [電路板]
-- **6743 安普新** (Consumer Electronics) [電路板]
-- **6784 天凱科技** (Consumer Electronics) [電路板]
-- **3617 碩天** (Electrical Equipment & Parts) [電路板]
+- **3413 京鼎** (Semiconductor Equipment & Materials) [PCB 設備(鑽孔 / 曝光 / 檢測)]
+- **3563 牧德** (Semiconductor Equipment & Materials) [PCB 設備(鑽孔 / 曝光 / 檢測)]
+- **6125 廣運** (Specialty Industrial Machinery) [PCB 設備(鑽孔 / 曝光 / 檢測)]
+- **6438 迅得** (Specialty Industrial Machinery) [PCB 設備(鑽孔 / 曝光 / 檢測)]
+- **1802 台玻** (Building Materials) [玻纖布 / 玻纖紗]
+- **6196 帆宣** (Electronic Components) [玻纖布 / 玻纖紗]
+- **1605 華新** (Steel) [玻纖布 / 玻纖紗]
+- **4989 榮科** (Copper) [銅箔]
+- **8358 金居** (Electronic Components) [銅箔]
+- **2406 國碩** (Solar) [銅箔]
+- **2316 楠梓電** (Electronic Components) [銅箔基板(CCL)]
+- **2383 台光電** (Electronic Components) [銅箔基板(CCL)]
+- **5469 瀚宇博** (Electronic Components) [銅箔基板(CCL)]
+- **6213 聯茂** (Electronic Components) [銅箔基板(CCL)]
+- **6274 台燿** (Electronic Components) [銅箔基板(CCL)]
+- **5381 合正** (Electronic Components) [鑽孔耗材 / 針具]
+- **8074 鉅橡** (Electronic Components) [鑽孔耗材 / 針具]
+- **8021 尖點** (Tools & Accessories) [鑽孔耗材 / 針具]
 
-## 中游 (16)
+## 中游 (15)
 
-- **6156 松上** (Electronic Components) [PCB]
-- **5381 合正** (Electronic Components) [PCB 鑽孔墊板]
-- **5498 凱崴** (Tools & Accessories) [凱崴電子]
-- **6108 競國** (Electronic Components) [利基型PCB]
-- **5439 高技** (Electronic Components) [厚銅板]
-- **5464 霖宏** (Electronic Components) [多層 PCB]
-- **8213 志超** (Electronic Components) [多層板製造]
-- **8021 尖點** (Tools & Accessories) [尖點科技]
-- **1595 川寶** (Specialty Industrial Machinery) [川寶]
-- **1528 恩德** (Specialty Industrial Machinery) [恩德]
-- **8074 鉅橡** (Electronic Components) [鑽孔墊板]
-- **3115 富榮綱** (Electronic Components) [電子零組件貿易]
-- **6538 倉和** (Electronic Components) [非太陽能網版]
-- **6234 高僑** (Tools & Accessories) [高僑自動化]
-- **8155 博智** (Electronic Components) [高層多層板]
-- **4526 東台** (Specialty Industrial Machinery)
+- **2368 金像電** (Electronic Components) [HDI 板]
+- **4958 臻鼎-KY** (Electronic Components) [HDI 板]
+- **3037 欣興** (Electronic Components) [IC 載板(ABF / BT)]
+- **8046 南電** (Electronic Components) [IC 載板(ABF / BT)]
+- **3189 景碩** (Semiconductor Equipment & Materials) [IC 載板(ABF / BT)]
+- **6552 易華電** (Semiconductors) [IC 載板(ABF / BT)]
+- **1303 南亞** (Specialty Chemicals) [IC 載板(ABF / BT)]
+- **3617 碩天** (Electrical Equipment & Parts) [硬板 / 多層板]
+- **3044 健鼎** (Electronic Components) [硬板 / 多層板]
+- **6108 競國** (Electronic Components) [硬板 / 多層板]
+- **8155 博智** (Electronic Components) [硬板 / 多層板]
+- **8213 志超** (Electronic Components) [硬板 / 多層板]
+- **4915 致伸** (Consumer Electronics) [軟板(FPC)]
+- **2402 毅嘉** (Electronic Components) [軟板(FPC)]
+- **6269 台郡** (Electronic Components) [軟板(FPC)]
 
-## 下游 (10)
+## 下游 (3)
 
-- **1802 台玻** (Building Materials) [AI 伺服器 / 5G]
-- **6894 衛司特** (Pollution & Treatment Controls) [PCB]
-- **4989 榮科** (Copper) [PCB 廠]
-- **6559 研晶** (Electrical Equipment & Parts) [UV固化與曝光]
-- **8291 尚茂** (Electronic Components) [多層板 PCB]
-- **4720 德淵** (Specialty Chemicals) [電子]
-- **1324 地球** (Business Equipment & Supplies) [電子製程]
-- **6944 兆聯實業** (Pollution & Treatment Controls) [面板/PCB]
-- **3631 晟楠** (Metal Fabrication)
-- **4561 健椿** (Metal Fabrication)
+- **6894 衛司特** (Pollution & Treatment Controls) [回收 / 廢液處理]
+- **6923 中台** (Waste Management) [回收 / 廢液處理]
+- **8390 金益鼎** (Waste Management) [回收 / 廢液處理]

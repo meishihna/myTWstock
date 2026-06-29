@@ -2,7 +2,7 @@
 
 > Ajinomoto Build-up Film 載板，高階 IC 封裝基板
 
-**涵蓋公司數:** 12
+**涵蓋公司數:** 6
 
 **分類:** 基板材料
 
@@ -10,27 +10,18 @@
 
 **關鍵指標:** 關鍵材料=味之素 ABF 膜 | 主要應用=HPC / AI 晶片載板 | 供需狀況=高階吃緊 | 台廠角色=欣興 / 南電 / 景碩
 
-**相關主題:** [[CoWoS]] (52) | [[AI 伺服器]] (279) | [[PCB]] (101)
+**相關主題:** [[CoWoS]] (54) | [[AI 伺服器]] (292) | [[PCB]] (102)
 
 ---
 
-## 上游 (1)
+## 上游 (3)
 
-- **2330 台積電** (Semiconductors) [ABF 載板 (CoWoS 封裝基板)]
+- **8358 金居** (Electronic Components) [ABF 膜 / 樹脂 / 銅箔基板材料]
+- **1303 南亞** (Specialty Chemicals) [ABF 膜 / 樹脂 / 銅箔基板材料]
+- **4763 材料-KY** (Specialty Chemicals) [ABF 膜 / 樹脂 / 銅箔基板材料]
 
-## 中游 (4)
+## 中游 (3)
 
-- **8046 南電** (Electronic Components) [ABF 載板]
-- **3037 欣興** (Electronic Components) [ABF 載板 (#1 全球)]
-- **3189 景碩** (Semiconductor Equipment & Materials) [子公司]
-- **7795 長廣** (Specialty Industrial Machinery)
-
-## 下游 (7)
-
-- **8074 鉅橡** (Electronic Components) [ABF 載板廠]
-- **3114 好德** (Industrial Distribution) [ABF載板廠]
-- **8438 昶昕** (Chemicals) [先進封裝]
-- **1303 南亞** (Specialty Chemicals) [載板]
-- **3485 敘豐** (Specialty Industrial Machinery) [載板]
-- **6691 洋基工程** (Engineering & Construction) [載板/PCB]
-- **4577 達航科技** (Specialty Industrial Machinery) [載板廠]
+- **3037 欣興** (Electronic Components) [ABF 載板製造]
+- **8046 南電** (Electronic Components) [ABF 載板製造]
+- **3189 景碩** (Semiconductor Equipment & Materials) [ABF 載板製造]

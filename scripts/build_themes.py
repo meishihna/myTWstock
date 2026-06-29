@@ -152,6 +152,24 @@ THEME_DEFINITIONS = {
             {"label": "核心客戶", "value": "北美 CSP"},
             {"label": "產業地位", "value": "AI 算力基礎"},
         ],
+        "members": {
+            "upstream": {
+                "ASIC / 矽智財": ["3443", "3661"],
+                "介面 / 網通 IC": ["4966", "5269"],
+            },
+            "midstream": {
+                "整機組裝 / ODM": ["2317", "2382", "3231", "6669", "2356", "2376"],
+                "散熱": ["3017", "3324", "2421", "8996", "6651", "4760"],
+                "電源": ["2308", "2301", "6412", "6282", "6203"],
+                "PCB / 載板": ["2368", "3044", "3037", "8046", "2383"],
+                "連接器 / 機構件": ["3023", "2392", "3533", "2059", "7861"],
+                "被動 / 其他元件": ["2492", "2375", "6155", "3042", "3221"],
+                "光通訊": ["3363"],
+            },
+            "downstream": {
+                "通路 / 驗證": ["3036", "3048", "2459"],
+            },
+        },
     },
     "資料中心": {
         "name": "資料中心供應鏈",
@@ -1223,6 +1241,15 @@ THEME_DEFINITIONS = {
     },
 }
 
+# ── 合併人工策展成員(buzzword 題材的成員校正);覆寫自動推導 → 清單乾淨且確定性(不依賴 WIP 報告) ──
+try:
+    from _curated_members import CURATED as _CURATED
+    for _k, _m in _CURATED.items():
+        if _k in THEME_DEFINITIONS:
+            THEME_DEFINITIONS[_k]["members"] = _m
+except Exception as _e:  # 缺檔/語法錯不應讓整個 build 失敗
+    print(f"[warn] 無法載入 _curated_members.CURATED:{_e}")
+
 
 _TIER_ZH = {"上游": "upstream", "中游": "midstream", "下游": "downstream"}
 # 供應鏈段標題,如 **上游 (原料與設備):**(行首粗體、不以 - 開頭)
@@ -1333,8 +1360,21 @@ def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
     if members:
         meta = ticker_meta or {}
         entries = []
+        seen = set()  # 同題材內代號去重(首次出現的子分類為準)
         for tier in ("upstream", "midstream", "downstream"):
-            for tk in members.get(tier, []):
+            tm = members.get(tier)
+            if not tm:
+                continue
+            # 兩種格式:[tickers](無子分類) 或 {subcat: [tickers]}(含子分類,供大題材分群)
+            pairs = (
+                [(tk, sub) for sub, tks in tm.items() for tk in tks]
+                if isinstance(tm, dict)
+                else [(tk, "") for tk in tm]
+            )
+            for tk, sub in pairs:
+                if tk in seen:
+                    continue
+                seen.add(tk)
                 m = meta.get(tk)
                 if not m:
                     print(f"  [warn] {theme_tag}: 代號 {tk} 不在涵蓋範圍,略過")
@@ -1344,7 +1384,7 @@ def build_theme_page(theme_tag, theme_def, wl_map, ticker_meta=None):
                     "company": m["company"],
                     "sector": m["sector"],
                     "role": tier,
-                    "subcat": "",
+                    "subcat": sub,
                 })
         if not entries:
             return None
@@ -1493,8 +1533,12 @@ def main():
     ticker_meta = scan_ticker_meta()
     print(f"Found {len(wl_map)} unique wikilinks, {len(ticker_meta)} tickers.\n")
 
-    # Filter to requested theme or build all
-    if args and args[0] != "--list":
+    # Filter to requested theme(s) or build all
+    if "--curated" in args:
+        # 只重建有人工策展成員的 buzzword 題材(WIP-safe;不動其餘題材的 .md)
+        from _curated_members import CURATED as _C
+        themes_to_build = {k: THEME_DEFINITIONS[k] for k in _C if k in THEME_DEFINITIONS}
+    elif args and args[0] != "--list":
         themes_to_build = {args[0]: THEME_DEFINITIONS.get(args[0])}
         if not themes_to_build[args[0]]:
             print(f"Theme '{args[0]}' not in THEME_DEFINITIONS. Use --list to see available themes.")
@@ -1510,11 +1554,13 @@ def main():
             filepath = os.path.join(THEMES_DIR, f"{safe_name}.md")
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(page)
-            count = (
-                sum(len(v) for v in defn["members"].values())
-                if defn.get("members")
-                else len(wl_map.get(tag, []))
-            )
+            if defn.get("members"):
+                count = sum(
+                    sum(len(tks) for tks in tier.values()) if isinstance(tier, dict) else len(tier)
+                    for tier in defn["members"].values()
+                )
+            else:
+                count = len(wl_map.get(tag, []))
             themes_built[tag] = count
             print(f"  {tag}: {count} companies -> {safe_name}.md")
 

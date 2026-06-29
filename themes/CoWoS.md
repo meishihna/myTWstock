@@ -2,7 +2,7 @@
 
 > 台積電 Chip-on-Wafer-on-Substrate 2.5D 先進封裝技術，AI 晶片關鍵製程
 
-**涵蓋公司數:** 31
+**涵蓋公司數:** 25
 
 **分類:** 先進封測
 
@@ -12,46 +12,37 @@
 
 **關鍵指標:** 技術核心=2.5D / 3D 封裝 | 主流規格=CoWoS-S / -R / -L | 商轉節點=台積電量產 | 產業門檻=極高(製程·良率)
 
-**相關主題:** [[HBM]] (24) | [[2.5D 封裝]] (5) | [[3D 封裝]] (4) | [[ABF 載板]] (18) | [[矽中介層]] (1)
+**相關主題:** [[HBM]] (25) | [[2.5D 封裝]] (5) | [[3D 封裝]] (4) | [[ABF 載板]] (18) | [[矽中介層]] (1)
 
 ---
 
-## 上游 (1)
+## 上游 (19)
 
-- **3443 創意** (Semiconductors) [先進封裝]
+- **3037 欣興** (Electronic Components) [ABF 載板 / 封裝基板]
+- **8046 南電** (Electronic Components) [ABF 載板 / 封裝基板]
+- **3189 景碩** (Semiconductor Equipment & Materials) [ABF 載板 / 封裝基板]
+- **3535 晶彩科** (Computer Hardware) [AOI / 檢測設備]
+- **3455 由田** (Electronic Components) [AOI / 檢測設備]
+- **6706 惠特** (Specialty Industrial Machinery) [AOI / 檢測設備]
+- **3354 律勝** (Electronic Components) [CMP 研磨液 / 封裝材料]
+- **3645 達邁** (Electronic Components) [CMP 研磨液 / 封裝材料]
+- **5493 三聯** (Electronic Components) [CMP 研磨液 / 封裝材料]
+- **1717 長興** (Specialty Chemicals) [CMP 研磨液 / 封裝材料]
+- **3680 家登** (Semiconductors) [光罩盒 / 載具]
+- **6207 雷科** (Electronic Components) [封裝製程設備]
+- **6742 澤米** (Electronic Components) [封裝製程設備]
+- **3131 弘塑** (Semiconductor Equipment & Materials) [封裝製程設備]
+- **3413 京鼎** (Semiconductor Equipment & Materials) [封裝製程設備]
+- **6664 群翊** (Specialty Industrial Machinery) [封裝製程設備]
+- **3035 智原** (Semiconductor Equipment & Materials) [矽中介層 / IP / ASIC]
+- **3443 創意** (Semiconductors) [矽中介層 / IP / ASIC]
+- **3661 世芯-KY** (Semiconductors) [矽中介層 / IP / ASIC]
 
-## 中游 (12)
+## 中游 (6)
 
-- **3455 由田** (Electronic Components) [AOI 設備製造]
-- **5493 三聯** (Electronic Components) [CMP 研磨液]
-- **3037 欣興** (Electronic Components) [CoWoS 載板]
-- **3653 健策** (Electronic Components) [MCL]
-- **2330 台積電** (Semiconductors) [先進封裝]
-- **3535 晶彩科** (Computer Hardware) [半導體 AOI]
-- **6742 澤米** (Electronic Components) [半導體鍍膜]
-- **6207 雷科** (Electronic Components) [半導體雷射設備]
-- **1717 長興** (Specialty Chemicals) [長興]
-- **4510 高鋒** (Specialty Industrial Machinery)
-- **6664 群翊** (Specialty Industrial Machinery)
-- **6706 惠特** (Specialty Industrial Machinery)
-
-## 下游 (18)
-
-- **1721 三晃** (Chemicals) [先進封裝]
-- **3354 律勝** (Electronic Components) [先進封裝]
-- **8070 長華** (Electronics & Computer Distribution) [先進封裝]
-- **3167 大量** (Specialty Industrial Machinery) [先進封裝]
-- **3580 友威科** (Specialty Industrial Machinery) [先進封裝]
-- **6788 華景電** (Electrical Equipment & Parts) [先進封裝廠]
-- **2535 達欣工** (Engineering & Construction) [半導體]
-- **8374 羅昇** (Industrial Distribution) [半導體/光電]
-- **3645 達邁** (Electronic Components) [半導體封裝]
-- **4573 高明鐵** (Electronic Components) [半導體封裝設備]
-- **8046 南電** (Electronic Components) [封裝整合]
-- **3595 山太士** (Electronic Components) [晶圓代工]
-- **5536 聖暉** (Engineering & Construction) [晶圓代工]
-- **6139 亞翔** (Engineering & Construction) [晶圓代工]
-- **6691 洋基工程** (Engineering & Construction) [晶圓代工]
-- **6903 巨漢** (Engineering & Construction) [晶圓代工]
-- **3131 弘塑** (Semiconductor Equipment & Materials) [晶圓代工]
-- **4755 三福化** (Specialty Chemicals) [晶圓代工]
+- **3653 健策** (Electronic Components) [封測 / 異質整合]
+- **6271 同欣電** (Semiconductor Equipment & Materials) [封測 / 異質整合]
+- **2329 華泰** (Semiconductors) [晶圓代工 / 先進封裝]
+- **2330 台積電** (Semiconductors) [晶圓代工 / 先進封裝]
+- **3711 日月光投控** (Semiconductors) [晶圓代工 / 先進封裝]
+- **8150 南茂** (Semiconductors) [晶圓代工 / 先進封裝]
