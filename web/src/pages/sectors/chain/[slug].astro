@@ -151,20 +151,23 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
               {g.items.map((c: any) => {
                 const mt = momTag(c.mom);
                 return (
-                  <a class="sc-card2" href={`/report/${c.t}`}>
-                    <div class="sc-card2-top">
-                      <span class="sc-name">{c.n}{c.status === "lead" && <span class="sc-lead" title="產業龍頭">●</span>}</span>
-                      <span class="sc-tk">{c.t}</span>
-                    </div>
-                    <div class="sc-sector">{sectorZh(c.s)}{c.status === "challenge" ? " · 成長挑戰" : ""}</div>
-                    <div class="sc-meta">EPS {c.eps != null ? `${c.eps} 元` : "—"}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</div>
-                    <div class="sc-card2-foot">
-                      <span class="sc-mom">{mt ? mt.label : ""}</span>
-                      {c.revYoy != null && (
-                        <span class={`sc-yoy ${c.revYoy >= 0 ? "up" : "down"}`}>營收 {c.revYoy >= 0 ? "+" : ""}{c.revYoy}%</span>
-                      )}
-                    </div>
-                  </a>
+                  <article class="sc-card2">
+                    <button class="sc-fav" type="button" data-fav-tk={c.t} title="加入自選" aria-label={`加入自選 ${c.n}`}>☆</button>
+                    <a class="sc-card2-main" href={`/report/${c.t}`}>
+                      <div class="sc-card2-top">
+                        <span class="sc-name">{c.n}{c.status === "lead" && <span class="sc-lead" title="產業龍頭">●</span>}</span>
+                        <span class="sc-tk">{c.t}</span>
+                      </div>
+                      <div class="sc-sector">{sectorZh(c.s)}{c.status === "challenge" ? " · 成長挑戰" : ""}</div>
+                      <div class="sc-meta">EPS {c.eps != null ? `${c.eps} 元` : "—"}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</div>
+                      <div class="sc-card2-foot">
+                        <span class="sc-mom">{mt ? mt.label : ""}</span>
+                        {c.revYoy != null && (
+                          <span class={`sc-yoy ${c.revYoy >= 0 ? "up" : "down"}`}>營收 {c.revYoy >= 0 ? "+" : ""}{c.revYoy}%</span>
+                        )}
+                      </div>
+                    </a>
+                  </article>
                 );
               })}
             </div>
@@ -212,11 +215,15 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .sc-subn { font-size: 0.72rem; color: var(--text-secondary); }
   .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 7rem; }
-  .sc-card2 { display: flex; flex-direction: column; gap: 0.14rem; padding: 0.4rem 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; text-decoration: none; color: var(--text-primary); transition: border-color 0.15s; }
+  .sc-card2 { position: relative; display: flex; flex-direction: column; padding: 0.4rem 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; color: var(--text-primary); transition: border-color 0.15s; }
   .sc-card2:hover { border-color: var(--accent); }
-  .sc-card2-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.3rem; }
+  .sc-card2-main { display: flex; flex-direction: column; gap: 0.14rem; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
+  .sc-fav { position: absolute; top: 0.4rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--text-secondary); font-size: 0.9rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color 0.15s; }
+  .sc-fav:hover { color: var(--accent); }
+  .sc-fav.is-on { color: var(--accent); }
+  .sc-card2-top { display: flex; align-items: baseline; gap: 0.3rem; padding-right: 1.1rem; }
   .sc-name { font-weight: 700; font-size: 0.92rem; }
-  .sc-tk { font-size: 0.72rem; color: var(--text-secondary); }
+  .sc-tk { font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; color: var(--accent); flex: 0 0 auto; }
   .sc-sector { font-size: 0.7rem; color: var(--text-secondary); }
   .sc-lead { color: var(--accent); font-size: 0.5rem; vertical-align: middle; margin-left: 4px; }
   .sc-meta { font-size: 0.72rem; color: var(--text-secondary); }
@@ -253,6 +260,22 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .ind-legend .lg-end.dn { margin-right: 5px; }
   .ind-legend .lg-end.up { margin-left: 5px; }
 </style>
+
+<script>
+  // 收藏 ☆(個股,沿用 /自選 watchlist)
+  import { getWatchlist, toggleWatch } from "../../../lib/watchlist";
+  const faved = new Set(getWatchlist());
+  document.querySelectorAll<HTMLButtonElement>(".sc-fav").forEach((b) => {
+    const tk = b.getAttribute("data-fav-tk") || "";
+    if (faved.has(tk)) { b.textContent = "★"; b.classList.add("is-on"); }
+    b.addEventListener("click", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const on = toggleWatch(tk);
+      b.textContent = on ? "★" : "☆";
+      b.classList.toggle("is-on", on);
+    });
+  });
+</script>
 
 <script>
   // 框圖節點 = 切換鍵:點選顯示該節點成分股(可複選,再點取消);預設不顯示。
