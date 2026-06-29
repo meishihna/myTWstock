@@ -1085,7 +1085,9 @@ const mRevYTickMarks =
                 ) : null
               )}
               {annEpsBars.xLabels.map((lab, i) => {
-                const xi = PAD.l + ((CHART_W - PAD.l - PAD.r) * i) / Math.max(1, annEpsBars.xLabels.length - 1);
+                // 柱狀圖:標籤對齊「柱心」(band 置中),非線圖的 i/(n-1) 點定位
+                const slot = (CHART_W - PAD.l - PAD.r) / annEpsBars.xLabels.length;
+                const xi = PAD.l + slot * i + slot / 2;
                 return (
                   <text class="fin-dash__xtick" x={xi} y={CHART_H - 18} text-anchor="middle">
                     {lab}
