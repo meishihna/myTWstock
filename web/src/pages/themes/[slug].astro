@@ -8,7 +8,7 @@ import path from "node:path";
 
 type MapCo = {
   t: string; n: string; s: string; ss: string; mc: number | null;
-  subcat?: string; revYoy?: number | null; mom?: number;
+  subcat?: string; eps?: number | null; pe?: number | null; revYoy?: number | null; mom?: number;
   link?: string; status?: string;
 };
 type Indicator = { label: string; value: string };
@@ -256,17 +256,19 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
                         <article class="sc-card2" data-t={c.t}>
                           <button class="sc-fav" type="button" data-fav-tk={c.t} title={THEMES_PAGE.fav} aria-label={`${THEMES_PAGE.fav} ${c.n}`}>☆</button>
                           <a class="sc-card2-main" href={`/report/${c.t}`}>
-                            <span class="sc-nm-row"><span class="sc-nm">{c.n}</span><span class="sc-tk">{c.t}</span></span>
+                            <span class="sc-nm-row">
+                              <span class="sc-nm">{c.n}</span>
+                              <span class="sc-tk">{c.t}</span>
+                              {st ? <span class={`sc-status ${st.cls} sc-status-inline`}>{st.label}</span> : null}
+                            </span>
                             <span class="sc-sec">{sectorZh(c.s)}</span>
+                            <span class="sc-meta">EPS {c.eps != null ? `${c.eps} 元` : "—"}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</span>
                           </a>
-                          {(st || ll) && (
-                            <div class="sc-badges">
-                              {st ? <span class={`sc-status ${st.cls}`}>{st.label}</span> : null}
-                              {ll ? <span class="sc-link">{ll}</span> : null}
-                            </div>
-                          )}
                           <div class="sc-card2-foot">
-                            <div class="sc-tags">{mt ? <span class={`sc-tag ${mt.cls}`}>{mt.label}</span> : null}</div>
+                            <div class="sc-foot-left">
+                              {ll ? <span class="sc-link">{ll}</span> : <span class="sc-foot-top" aria-hidden="true"></span>}
+                              <div class="sc-tags">{mt ? <span class={`sc-tag ${mt.cls}`}>{mt.label}</span> : null}</div>
+                            </div>
                             <span class="sc-q" data-px><span class="sc-dash">—</span></span>
                           </div>
                         </article>
@@ -608,13 +610,13 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.62rem 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .sc-nm-row { display: flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
+    .sc-nm-row { display: flex; align-items: baseline; gap: 0.3rem; min-width: 0; padding-right: 1.2rem; }
     .sc-nm { font-size: 0.95rem; font-weight: 600; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sc-tk { font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; color: var(--accent); flex: 0 0 auto; }
     .sc-sec { font-size: 0.73rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sc-q { display: flex; flex-direction: column; align-items: flex-end; gap: 0; flex: 0 0 auto; text-align: right; }
-    .sc-price { font-size: 0.85rem; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-    .sc-chg { font-size: 0.78rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .sc-price { font-size: 1.1rem; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--text); }
+    .sc-chg { font-size: 0.68rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
     .sc-chg.up { color: var(--up); }
     .sc-chg.down { color: var(--down); }
     .sc-chg.flat { color: var(--muted); }
@@ -647,14 +649,18 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-fav { position: absolute; top: 0.45rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--muted); font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out); }
     .sc-fav:hover { color: var(--accent); transform: scale(1.12); }
     .sc-fav.is-on { color: var(--accent); }
-    .sc-card2-main { display: flex; flex-direction: column; gap: 2px; text-decoration: none; padding-right: 1.2rem; }
+    .sc-card2-main { display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
+    .sc-meta { font-size: 0.66rem; color: var(--text-secondary); white-space: nowrap; }
     .sc-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .sc-status { font-size: 0.64rem; padding: 0 6px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
     .sc-status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
     .sc-status.lead { color: var(--accent); background: var(--accent-soft); }
+    .sc-status-inline { flex: 0 0 auto; white-space: nowrap; align-self: center; font-size: 0.58rem; padding: 0 4px; }
+    .sc-status-inline::before { display: none; }
     .sc-status.challenge { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
     .sc-link { font-size: 0.64rem; padding: 0 6px; border-radius: 999px; color: var(--text-secondary); border: 1px solid var(--border); }
-    .sc-card2-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem; margin-top: auto; }
+    .sc-card2-foot { display: flex; align-items: stretch; justify-content: space-between; gap: 0.5rem; margin-top: auto; }
+    .sc-foot-left { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; min-width: 0; }
     .sc-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
     .sc-tag { font-size: 0.68rem; font-weight: 600; }
     .sc-tag.up { color: var(--up); }

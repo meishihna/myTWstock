@@ -25,6 +25,7 @@ const WEB = path.join(__dirname, "..");
 const DATA = path.join(WEB, "public", "data");
 const THEMES = path.join(DATA, "themes-index.json");
 const SCREENER = path.join(DATA, "screener-index.json");
+const VALUATION = path.join(DATA, "valuation-index.json");
 const MOMENTUM = path.join(DATA, "momentum.json");
 const WIKIHUB = path.join(DATA, "wikilink-hub-top500.json");
 const OUT = path.join(DATA, "map-index.json");
@@ -47,10 +48,16 @@ function main() {
   const fin = {};
   if (existsSync(SCREENER)) {
     for (const r of (JSON.parse(readFileSync(SCREENER, "utf8")).rows) || []) {
-      fin[r.t] = { mc: num(r.mc), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
+      fin[r.t] = { mc: num(r.mc), pe: num(r.pe), eps: num(r.eps), revYoy: num(r.revYoy), roe: num(r.roe), nm: num(r.nm) };
     }
   } else {
     console.warn("[map] screener-index.json missing — tiles will lack market caps");
+  }
+  // 本益比優先用 valuation-index(TWSE/TPEx 官方、每日),screener(yfinance)為輔 → 與報告頁/產業頁同源
+  const valPe = {};
+  if (existsSync(VALUATION)) {
+    const vr = JSON.parse(readFileSync(VALUATION, "utf8")).rows || {};
+    for (const k of Object.keys(vr)) { const p = num(vr[k]?.pe); if (p != null) valPe[k] = p; }
   }
 
   // 連三月營收年增:ticker -> true(build-momentum.mjs)
@@ -96,6 +103,8 @@ function main() {
           ss: c.sectorSlug || "",
           mc,
           subcat: c.subcat || "",
+          eps: f.eps ?? null,
+          pe: valPe[c.ticker] ?? f.pe ?? null,
           revYoy: f.revYoy ?? null,
           mom: momByTicker[c.ticker] || 0,
           link: linkLevel(c.name),
