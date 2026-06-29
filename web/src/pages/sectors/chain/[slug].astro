@@ -4,6 +4,7 @@
 import Layout from "../../../layouts/Layout.astro";
 import Bi from "../../../components/Bi.astro";
 import { SITE } from "../../../lib/ui";
+import { sectorZh } from "../../../lib/sector-i18n";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -155,7 +156,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
                       <span class="sc-name">{c.n}{c.status === "lead" && <span class="sc-lead" title="產業龍頭">●</span>}</span>
                       <span class="sc-tk">{c.t}</span>
                     </div>
-                    <div class="sc-sector">{c.s}{c.status === "challenge" ? " · 成長挑戰" : ""}</div>
+                    <div class="sc-sector">{sectorZh(c.s)}{c.status === "challenge" ? " · 成長挑戰" : ""}</div>
                     <div class="sc-meta">EPS {c.eps != null ? `${c.eps} 元` : "—"}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</div>
                     <div class="sc-card2-foot">
                       <span class="sc-mom">{mt ? mt.label : ""}</span>
