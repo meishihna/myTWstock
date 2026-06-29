@@ -1193,9 +1193,8 @@ a:focus-visible {
 }
 
 .biz-card:hover {
-  border-color: rgba(29, 158, 117, 0.35);
   box-shadow:
-    0 0 0 1px rgba(29, 158, 117, 0.12) inset,
+    0 0 0 1px rgba(var(--ink), 0.03) inset,
     0 22px 56px rgba(0, 0, 0, 0.55);
 }
 
