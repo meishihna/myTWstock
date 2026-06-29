@@ -46,6 +46,8 @@ def fetch_inst_day(dt: str, universe: set[str]) -> dict[str, int] | None:
         return None
     if d.get("stat") != "OK" or not d.get("data"):
         return None
+    if str(d.get("date") or "") != dt:  # 假日查詢可能回前一交易日 → 跳過,避免幽靈日期(如端午節 06/19)
+        return None
     out: dict[str, int] = {}
     for r in d["data"]:
         if len(r) < 19:

@@ -893,7 +893,7 @@ const mRevYTickMarks =
 
   <div class="fin-dash__tabs" role="tablist">
     <button type="button" class="fin-dash__tab is-active" role="tab" aria-selected="true" data-fin-tab="annual">
-      年報（近{DASHBOARD_ANNUAL_MAX_PERIODS}年）
+      年報
     </button>
     <button
       type="button"
@@ -903,9 +903,7 @@ const mRevYTickMarks =
       data-fin-tab="quarterly"
       disabled={!quarterly}
     >
-      {quarterly
-        ? `季報（${quarterly.periods.length}季）`
-        : `季報（近${DASHBOARD_QUARTERLY_MAX_PERIODS}季）`}
+      季報
     </button>
     <button
       type="button"
@@ -915,7 +913,7 @@ const mRevYTickMarks =
       data-fin-tab="monthly"
       disabled={!monthly}
     >
-      {monthly ? `月營收（${monthly.periods.length}月）` : "月營收"}
+      月營收
     </button>
     <button
       type="button"
@@ -1767,7 +1765,6 @@ const mRevYTickMarks =
       )}
       {chipsHistory?.inst && (
         <figure class="fin-dash__chart">
-          <p class="fin-dash__sl">三大法人合計買賣超 vs 股價（近 120 交易日；買超紅／賣超綠，股價金線）</p>
           <div class="chips-trend" data-chips-trend="inst" />
         </figure>
       )}
@@ -1829,7 +1826,6 @@ const mRevYTickMarks =
       )}
       {chipsHistory?.holders && (
         <figure class="fin-dash__chart">
-          <p class="fin-dash__sl">大戶持股 vs 股價（千張藍／400張紫／股價金；大戶為週資料，累積中）</p>
           <div class="chips-trend" data-chips-trend="holders" />
         </figure>
       )}
