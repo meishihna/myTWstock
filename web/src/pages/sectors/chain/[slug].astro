@@ -295,8 +295,9 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
         const shown = grp.classList.toggle("show");
         btn.classList.toggle("sel", shown);
         refresh();
-        // 點選顯示 → 自動捲動到該節點的成分股(scroll-margin-top 已預留 sticky nav 高度)
-        if (shown) grp.scrollIntoView({ behavior: "smooth", block: "start" });
+        // 點選顯示 → 自動捲動到該節點的成分股(scroll-margin-top 已預留 sticky nav 高度)。
+        // 延到下一個動畫影格再捲:剛由 display:none→flex 的元素需先完成佈局,否則 scrollIntoView 取到舊位置而不捲。
+        if (shown) requestAnimationFrame(() => grp.scrollIntoView({ behavior: "smooth", block: "start" }));
       });
     });
   }

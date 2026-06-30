@@ -27,6 +27,7 @@ import Layout from "../layouts/Layout.astro";
 
   <script>
     import { getWatchlist, removeWatch } from "../lib/watchlist";
+    import { sectorZh } from "../lib/sector-i18n";
 
     type Row = Record<string, string | number | null>;
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -68,7 +69,7 @@ import Layout from "../layouts/Layout.astro";
             <a class="wl__item-head" href="/report/${t}">
               <span class="wl__tk">${t}</span>
               <span class="wl__name">${r.n ?? ""}</span>
-              <span class="wl__sector">${r.s ?? "—"}</span>
+              <span class="wl__sector">${r.s ? sectorZh(String(r.s)) : "—"}</span>
             </a>
             <dl class="wl__metrics">
               ${metric("市值(百萬)", fmtInt(r.mc))}
