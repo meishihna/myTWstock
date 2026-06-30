@@ -74,6 +74,20 @@ if (fs.existsSync(indPath)) {
   .ind-card-cat { font-size: 0.66rem; color: var(--text-secondary); background: var(--surface-elevated); padding: 0.05rem 0.4rem; border-radius: 6px; flex: 0 0 auto; }
   .ind-card-count { font-size: 0.78rem; color: var(--text-secondary); }
   .ind-card-go { font-size: 0.74rem; color: var(--accent); margin-top: 0.15rem; }
+
+  /* 細分類別卡片標題:中文第一行,英文移到第二行(去括號、縮小、淡化) */
+  .sector-card-title { display: block; }
+  .sector-card-title .bi-label { display: block; }
+  .sector-card-title .bi-zh { display: block; }
+  .sector-card-title .bi-paren { display: none; }
+  .sector-card-title .bi-en {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.74rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+  }
 </style>
 
 <script>
