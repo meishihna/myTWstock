@@ -235,11 +235,8 @@ export const THEMES_PAGE = {
 /** 視覺化地圖（/map）：題材熱力圖 + 產業地圖卡牆 */
 export const MAP_PAGE = {
   nav: "地圖",
-  title: bi("產業地圖", "Industry map"),
-  lead: bi(
-    "視覺綜覽題材與供應鏈：熱力圖看當日題材漲跌，產業地圖點進各題材的上中下游與成分股。",
-    "Visual overview of themes & supply chains — heatmap for today's moves, map to drill into each theme."
-  ),
+  title: "產業地圖",
+  lead: "視覺綜覽題材與供應鏈：熱力圖看當日題材漲跌，產業地圖點進各題材的上中下游與成分股。",
   tabHeatmap: "熱力圖",
   tabIndustry: "主題",
   heatmapHint: "磚塊大小＝題材成交額，顏色＝成交額加權漲跌（紅漲綠跌）。可切日／週／月;點題材進入供應鏈地圖。",
