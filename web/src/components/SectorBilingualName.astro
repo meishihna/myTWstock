@@ -1,5 +1,4 @@
 ---
-import Bi from "./Bi.astro";
 import { hasSectorTranslation, sectorZh } from "../lib/sector-i18n";
 
 interface Props {
@@ -7,12 +6,22 @@ interface Props {
   class?: string;
 }
 const { enName, class: className } = Astro.props;
+// 僅「細分類別卡片」保留英文(移到第二行、縮小);其餘(產業詳細頁標題/麵包屑)純繁中。
+const isCard = (className || "").includes("sector-card-title");
+const zh = hasSectorTranslation(enName) ? sectorZh(enName) : null;
 ---
 
 <span class:list={["sector-bi-name", className]}>
   {
-    hasSectorTranslation(enName) ? (
-      <Bi zh={sectorZh(enName)} en={enName} />
+    zh ? (
+      <>
+        <span class="bi-zh">{zh}</span>
+        {isCard && (
+          <span class="bi-en" lang="en">
+            {enName}
+          </span>
+        )}
+      </>
     ) : (
       <span lang="en" class="sector-en-fallback">
         {enName}

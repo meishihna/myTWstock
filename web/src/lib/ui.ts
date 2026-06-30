@@ -1,7 +1,7 @@
-/** 介面用：中文為主，括號內英文。 */
+/** 介面用：純繁體中文(原「中文（English）」並列已移除;保留 en 參數相容呼叫端)。 */
 
-export function bi(zh: string, en: string): string {
-  return `${zh}（${en}）`;
+export function bi(zh: string, _en?: string): string {
+  return zh;
 }
 
 export const SITE = {

@@ -1,14 +1,15 @@
 ---
 /**
- * 中文（English）並列，供標題與導覽使用。
+ * 介面標籤:純繁體中文(原「中文（English）」並列已改為僅中文;
+ * 保留 en 參數相容既有呼叫端)。
  */
 interface Props {
   zh: string;
-  en: string;
+  en?: string;
   class?: string;
 }
-const { zh, en, class: className } = Astro.props;
+const { zh, class: className } = Astro.props;
 ---
 <span class:list={["bi-label", className]}>
-  <span class="bi-zh">{zh}</span><span class="bi-paren" aria-hidden="true">（</span><span class="bi-en" lang="en">{en}</span><span class="bi-paren" aria-hidden="true">）</span>
+  <span class="bi-zh">{zh}</span>
 </span>
