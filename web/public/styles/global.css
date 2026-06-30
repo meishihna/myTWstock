@@ -1952,9 +1952,30 @@ a:focus-visible {
   max-width: 100%;
 }
 
-/* 勿攔截 sticky；捲動僅發生在 .fin-table-scroll 內 */
+/* 寬財報表(金額＋占比多欄)在窄螢幕需水平捲動,否則右側欄位溢出/截斷且無法捲動查看。
+   比照 .fin-table-scroll:slot 自身水平捲動、表格保留自然寬度、首欄(科目)sticky 固定。 */
 .fin-table-view-slot {
-  overflow: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+.report-body .fin-table-view-slot > table {
+  width: max-content;
+  min-width: 100%;
+}
+.report-body .fin-table-view-slot table th:first-child,
+.report-body .fin-table-view-slot table td:first-child {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.report-body .fin-table-view-slot table thead th:first-child {
+  z-index: 4;
+  background: var(--surface-elevated);
+}
+.report-body .fin-table-view-slot table tbody th:first-child {
+  background: var(--surface);
 }
 
 .fin-table-toolbar {
