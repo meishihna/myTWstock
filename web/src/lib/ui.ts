@@ -35,7 +35,7 @@ export const HOME = {
   searchLabel: bi("搜尋代號或公司名", "Search ticker or company"),
   searchPlaceholder: "2330、台積電 / TSMC…",
   sectorList: bi("產業列表", "Sectors"),
-  filesUnit: bi("檔", "reports"),
+  filesUnit: "檔",
   noResults: bi("沒有符合的項目", "No matches"),
   indexLoading: bi("正在載入公司索引…", "Loading company index…"),
   indexError: bi("無法載入搜尋索引，請重新整理頁面。", "Could not load search index. Refresh the page."),
