@@ -30,6 +30,7 @@ const MOMENTUM = path.join(DATA, "momentum.json");
 const WIKIHUB = path.join(DATA, "wikilink-hub-top500.json");
 const OUT = path.join(DATA, "map-index.json");
 const NARRATIVES = path.join(WEB, "..", "themes", "narratives");
+const XREF = path.join(DATA, "theme-xref.json");
 
 const TIER_KEYS = { upstream: "u", midstream: "m", downstream: "d" };
 // 關聯度(供應鏈樞紐度)門檻:被多少份報告以 [[名稱]] 引用
@@ -175,6 +176,60 @@ function main() {
 
   // 依成分股市值合計由大到小(熱力圖與卡牆預設排序)
   out.sort((a, b) => (b.aggMcap ?? 0) - (a.aggMcap ?? 0));
+
+  // ===== ④ 跨題材交叉索引(個股↔題材、題材重疊、相關主題雙向化)=====
+  const byTicker = {}; // 代號 -> [{slug,title}]
+  for (const th of out) {
+    const seen = new Set();
+    for (const sk of ["u", "m", "d"]) for (const c of th.tiers[sk]) {
+      if (seen.has(c.t)) continue;
+      seen.add(c.t);
+      (byTicker[c.t] ||= []).push({ slug: th.slug, title: th.title });
+    }
+  }
+  const mset = {}; // slug -> Set(代號)
+  for (const th of out) {
+    const s = new Set();
+    for (const sk of ["u", "m", "d"]) for (const c of th.tiers[sk]) s.add(c.t);
+    mset[th.slug] = s;
+  }
+  const sharedCount = (a, b) => {
+    const A = mset[a], B = mset[b];
+    if (!A || !B) return 0;
+    const [s, l] = A.size < B.size ? [A, B] : [B, A];
+    let n = 0; for (const t of s) if (l.has(t)) n++;
+    return n;
+  };
+  const titleBySlug = {};
+  for (const th of out) titleBySlug[th.slug] = th.title;
+  // ② 每個成員「也在幾個其他題材」
+  for (const th of out) for (const sk of ["u", "m", "d"]) for (const c of th.tiers[sk]) {
+    c.xt = Math.max(0, (byTicker[c.t]?.length || 1) - 1);
+  }
+  // ① 相關主題:加共同檔數 + 雙向補進(別的題材列到我、我卻沒列它)
+  const reverse = {};
+  for (const th of out) for (const r of th.related || []) if (r.slug) (reverse[r.slug] ||= new Set()).add(th.slug);
+  for (const th of out) {
+    const have = new Set((th.related || []).filter((r) => r.slug).map((r) => r.slug));
+    for (const r of th.related) r.n = r.slug ? sharedCount(th.slug, r.slug) : 0;
+    for (const fromSlug of reverse[th.slug] || []) {
+      if (!have.has(fromSlug)) th.related.push({ label: titleBySlug[fromSlug], slug: fromSlug, n: sharedCount(th.slug, fromSlug) });
+    }
+    th.related.sort((a, b) => (b.n || 0) - (a.n || 0));
+  }
+  // ③ 題材重疊:共同成分股最多的其他題材(排除已列在相關主題者)
+  for (const th of out) {
+    const relSet = new Set((th.related || []).filter((r) => r.slug).map((r) => r.slug));
+    const scores = [];
+    for (const o of out) {
+      if (o.slug === th.slug || relSet.has(o.slug)) continue;
+      const n = sharedCount(th.slug, o.slug);
+      if (n > 0) scores.push({ slug: o.slug, title: o.title, n });
+    }
+    scores.sort((a, b) => b.n - a.n);
+    th.overlap = scores.slice(0, 6);
+  }
+  writeFileSync(XREF, JSON.stringify({ generatedAt: new Date().toISOString(), byTicker }), "utf8");
 
   mkdirSync(DATA, { recursive: true });
   const payload = JSON.stringify({ generatedAt: new Date().toISOString(), themes: out });

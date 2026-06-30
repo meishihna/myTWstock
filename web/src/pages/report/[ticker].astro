@@ -52,6 +52,7 @@ import { showFinancialDashboard } from "../../lib/financialDashboard";
 import { valuationSnapshotRow } from "../../lib/valuationSnapshot";
 import { chipsSnapshotRow, chipsInstDate } from "../../lib/chipsSnapshot";
 import { chipsHistoryForTicker } from "../../lib/chipsHistory";
+import { themesForTicker } from "../../lib/themeXref";
 import {
   readRevenueMixForTicker,
   revenueStructureForRelationTab,
@@ -280,6 +281,7 @@ const valuation: ValuationParsed = valSnapRow
 
 // 籌碼面快照(三大法人最新一日 + 融資融券),供財務儀表板「籌碼面」分頁
 const chipsRow = chipsSnapshotRow(ticker!);
+const memberThemes = themesForTicker(ticker!); // ④ 所屬投資題材(/map 跨題材)
 const chipsDate = chipsInstDate();
 const chipsHistory = chipsHistoryForTicker(ticker!);
 
@@ -609,6 +611,19 @@ const reportLd = [
   <ValuationSection ticker={meta.ticker} valuation={valuation} />
 
   {
+    memberThemes.length > 0 && (
+      <section class="report-themes" aria-label="所屬投資題材">
+        <h2 class="report-themes-h">所屬投資題材</h2>
+        <div class="report-themes-chips">
+          {memberThemes.map((t) => (
+            <a class="report-theme-chip" href={`/themes/${encodeURIComponent(t.slug)}`}>{t.title}</a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
     finDataUnavailable && (
       <p class="report-fin-data-unavailable" role="status">
         本檔財務數據暫無法取得，可能因資料源尚未覆蓋或公司近期有重大變動。
@@ -900,4 +915,24 @@ const reportLd = [
   .report-watch:hover { color: var(--fg, #ececec); border-color: rgba(255, 255, 255, 0.35); }
   .report-watch.is-on { color: #f0b429; border-color: rgba(240, 180, 41, 0.5); }
   .report-watch__star { font-size: 1rem; line-height: 1; }
+
+  /* ④ 所屬投資題材 */
+  .report-themes { margin: 1.1rem 0 0.3rem; }
+  .report-themes-h {
+    font-size: 0.95rem; font-weight: 600; color: var(--fg, #ececec); margin: 0 0 0.55rem;
+  }
+  .report-themes-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .report-theme-chip {
+    display: inline-flex; align-items: center;
+    padding: 4px 11px; border-radius: 999px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.18));
+    background: var(--accent-soft, rgba(240, 180, 41, 0.1));
+    color: var(--accent, #f0b429);
+    font-size: 0.82rem; text-decoration: none; white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .report-theme-chip:hover {
+    border-color: var(--accent, #f0b429);
+    background: var(--accent-soft, rgba(240, 180, 41, 0.18));
+  }
 </style>

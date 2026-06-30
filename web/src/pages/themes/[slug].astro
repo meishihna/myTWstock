@@ -8,7 +8,7 @@ import path from "node:path";
 
 type MapCo = {
   t: string; n: string; s: string; ss: string; mc: number | null;
-  subcat?: string; eps?: number | null; pe?: number | null; revYoy?: number | null; mom?: number;
+  subcat?: string; eps?: number | null; pe?: number | null; revYoy?: number | null; mom?: number; xt?: number;
   link?: string; status?: string;
 };
 type Indicator = { label: string; value: string };
@@ -23,7 +23,8 @@ type MapTheme = {
   indicators?: Indicator[];
   narrative?: { title: string; bullets: string[]; text: string }[] | null;
   aggMcap: number;
-  related: { label: string; slug: string | null }[];
+  related: { label: string; slug: string | null; n?: number }[];
+  overlap?: { slug: string; title: string; n: number }[];
   tiers: { u: MapCo[]; m: MapCo[]; d: MapCo[] };
 };
 
@@ -58,7 +59,7 @@ if (!theme) {
     slug: t.slug, title: t.title, companyCount: t.companyCount,
     desc: t.desc || "", category: t.category || "", cagr: t.cagr || "",
     marketSize: t.marketSize || "", indicators: t.indicators || [], narrative: null,
-    aggMcap: 0, related: [],
+    aggMcap: 0, related: [], overlap: [],
     tiers: { u: conv(t.tiers.upstream), m: conv(t.tiers.midstream), d: conv(t.tiers.downstream) },
   };
 }
@@ -166,11 +167,19 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
         <span class="theme-related-label">{THEMES_PAGE.related}：</span>
         {theme.related.map((r) =>
           r.slug ? (
-            <a class="theme-rel-chip" href={`/themes/${encodeURIComponent(r.slug)}`}>{r.label}</a>
+            <a class="theme-rel-chip" href={`/themes/${encodeURIComponent(r.slug)}`}>{r.label}{r.n ? <span class="rel-n" title="共同成分股">{r.n}</span> : null}</a>
           ) : (
             <span class="theme-rel-chip is-plain">{r.label}</span>
           ),
         )}
+      </p>
+    )}
+    {theme.overlap && theme.overlap.length > 0 && (
+      <p class="theme-related">
+        <span class="theme-related-label">成員重疊：</span>
+        {theme.overlap.map((o) => (
+          <a class="theme-rel-chip" href={`/themes/${encodeURIComponent(o.slug)}`}>{o.title}<span class="rel-n" title="共同成分股">{o.n}</span></a>
+        ))}
       </p>
     )}
 
@@ -277,7 +286,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
                               <span class="sc-tk">{c.t}</span>
                               {st ? <span class={`sc-status ${st.cls} sc-status-inline`}>{st.label}</span> : null}
                             </span>
-                            <span class="sc-sec">{sectorZh(c.s)}</span>
+                            <span class="sc-sec">{sectorZh(c.s)}{c.xt ? ` · ${c.xt} 題材` : ""}</span>
                             <span class="sc-meta">EPS {c.eps != null ? `${c.eps} 元` : "—"}{c.pe != null && c.pe > 0 ? ` · 本益比 ${c.pe.toFixed(1)}` : ""}</span>
                           </a>
                           <div class="sc-card2-foot">
@@ -600,6 +609,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
 
     .theme-related { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; margin: 0.2rem 0 1.3rem; }
     .theme-related-label { color: var(--muted); font-size: 0.82rem; }
+    .rel-n { margin-left: 5px; padding: 0 5px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); font-size: 0.78em; font-weight: 500; font-variant-numeric: tabular-nums; }
     .theme-rel-chip { font-size: 0.78rem; line-height: 1.5; padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); transition: background var(--duration) var(--ease-out); }
     .theme-rel-chip:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
     .theme-rel-chip.is-plain { color: var(--muted); background: transparent; border-color: var(--border); }
