@@ -179,6 +179,8 @@ import Layout from "../layouts/Layout.astro";
               return `<td class="scr-td--n"><a href="/report/${r.t}">${r.n ?? ""}</a></td>`;
             if (c.k === "s") return `<td class="scr-td--s">${r.s ? sectorZh(String(r.s)) : "—"}</td>`;
             const v = num(r[c.k]);
+            if (c.k === "mc")
+              return `<td class="scr-td--num"${r.me ? ' title="市值為估算(本益比×淨利)"' : ""}>${v == null ? "—" : (r.me ? "~" : "") + c.fmt!(v)}</td>`;
             if (c.k === "revYoy") {
               if (v == null) return `<td class="scr-td--num">—</td>`;
               const cls = v > 0 ? "is-pos" : v < 0 ? "is-neg" : "";

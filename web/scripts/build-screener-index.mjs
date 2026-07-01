@@ -98,13 +98,27 @@ function main() {
       if (prev) revYoy = Math.round((cur / prev - 1) * 1000) / 10;
     }
 
+    const peV = num(vi.pe) ?? num(val["P/E (TTM)"]);
+    const revV = rev ? rev.value : null;
+    const nmV = nm ? nm.value : null;
+    // 市值:優先真實(financials_store);缺則以 本益比 × 淨利(=營收×淨利率)近似,標記 me:1(估算)。
+    // pe=股價/EPS=市值/淨利 → 市值≈pe×淨利。僅在有正本益比與正淨利時推算(虧損無 pe)。
+    let mc = num(data.marketCap);
+    let mcEst;
+    // 極端本益比(如近零盈餘造成 pe 破千)時,官方 pe 與年度淨利基準不一致,估算會嚴重失真 → 只在 pe≤100 時估。
+    if (mc == null && peV != null && peV > 0 && peV <= 100 && revV != null && nmV != null && nmV > 0) {
+      mc = Math.round((peV * revV * nmV) / 100);
+      mcEst = 1;
+    }
+
     rows.push({
       t: ticker,
       n: meta.name,
       s: meta.sector,
       it: data.industryType || "general",
-      mc: num(data.marketCap),
-      pe: num(vi.pe) ?? num(val["P/E (TTM)"]),
+      mc,
+      me: mcEst,
+      pe: peV,
       fpe: num(val["Forward P/E"]),
       ps: num(val["P/S (TTM)"]),
       pb: num(vi.pb) ?? num(val["P/B"]),
