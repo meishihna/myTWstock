@@ -20,12 +20,22 @@ from utils import REPORTS_DIR, TASK_FILE, get_batch_tickers, setup_stdout
 
 MIN_WIKILINKS = 8
 
+# 強泛稱詞(幾乎不會是真實公司名的一部分)→ 以子字串比對
 GENERIC_WIKILINK_MARKERS = [
     "大廠", "供應商", "客戶", "廠商", "原廠", "經銷商",
-    "製造商", "業者", "企業", "公司", "代理商", "品牌商",
+    "製造商", "業者", "代理商", "品牌商",
     "營運商", "貿易商", "通路商", "零售商", "承包商",
     "開發商", "服務商", "整合商",
 ]
+
+# 「企業／公司」常是真實公司名的尾字(統一企業、和潤企業、台塑企業…),不可用子字串比對;
+# 僅在 wikilink 恰為下列泛稱詞時才算泛稱。
+GENERIC_EXACT = {
+    "企業", "公司", "母公司", "子公司", "關係企業", "集團企業", "相關企業",
+    "上市公司", "上櫃公司", "大型企業", "中小企業", "跨國企業", "國際企業",
+    "跨國公司", "國際公司", "民營企業", "國營企業", "外商公司", "控股公司",
+    "科技公司", "投資公司", "同業",
+}
 
 PLACEHOLDER_STRINGS = [
     "待 AI 補充",
@@ -38,8 +48,10 @@ PLACEHOLDER_STRINGS = [
 REQUIRED_METADATA = ["板塊:", "產業:", "市值:", "企業價值:"]
 REQUIRED_SECTIONS = ["## 業務簡介", "## 供應鏈位置", "## 主要客戶及供應商", "## 財務概況"]
 
+# 允許中文全名後括號內的官方英文名(如「（Pacific Construction Co., Ltd.）」);
+# 移除 Inc./Ltd. 這類名稱字尾以免誤判官方英文名,僅保留英文「業務描述」殘留句的偵測。
 ENGLISH_INDICATORS = [
-    "Business Description", "Inc.", "Ltd.", "manufactures",
+    "Business Description", "manufactures",
     "provides", "is a company", "headquartered", "was founded",
     "specializes in", "engages in", "operates through",
 ]
@@ -52,6 +64,9 @@ def extract_wikilinks(content):
 def find_generic_wikilinks(wikilinks):
     generic = []
     for wl in wikilinks:
+        if wl in GENERIC_EXACT:
+            generic.append(wl)
+            continue
         for marker in GENERIC_WIKILINK_MARKERS:
             if marker in wl:
                 generic.append(wl)
