@@ -20,6 +20,7 @@ const IDX = path.join(WEB, "public", "data", "reports-index.json");
 const FIN_STORE_DIR = path.join(REPO_ROOT, "data", "financials_store");
 const FIN_PUBLIC_DIR = path.join(WEB, "public", "data", "financials");
 const OUT = path.join(WEB, "public", "data", "screener-index.json");
+const VAL_IDX = path.join(WEB, "public", "data", "valuation-index.json");
 
 function readFin(ticker) {
   const storePath = path.join(FIN_STORE_DIR, `${ticker}.json`);
@@ -58,6 +59,18 @@ function main() {
     return;
   }
   const byTicker = (JSON.parse(readFileSync(IDX, "utf8")).byTicker) || {};
+
+  // 官方 TWSE/TPEx 估值(valuation-index:pe/pb/殖利率/beta,涵蓋最廣 ~1733 檔)。
+  // financials_store 的 yfinance 估值對台股中小型覆蓋差 → 以官方為優先、yfinance 為輔。
+  let valIndex = {};
+  if (existsSync(VAL_IDX)) {
+    try {
+      valIndex = JSON.parse(readFileSync(VAL_IDX, "utf8")).rows || {};
+    } catch {
+      /* ignore */
+    }
+  }
+
   const rows = [];
 
   for (const ticker of Object.keys(byTicker)) {
@@ -67,6 +80,7 @@ function main() {
     const ann = data.annual;
     if (!ann?.periods || !ann.series) continue;
     const val = data.valuation || {};
+    const vi = valIndex[ticker] || {}; // 官方估值(優先)
     const rev = latest(ann.periods, ann.series, "Revenue");
     const gm = latest(ann.periods, ann.series, "Gross Margin (%)");
     const om = latest(ann.periods, ann.series, "Operating Margin (%)");
@@ -90,13 +104,13 @@ function main() {
       s: meta.sector,
       it: data.industryType || "general",
       mc: num(data.marketCap),
-      pe: num(val["P/E (TTM)"]),
+      pe: num(vi.pe) ?? num(val["P/E (TTM)"]),
       fpe: num(val["Forward P/E"]),
       ps: num(val["P/S (TTM)"]),
-      pb: num(val["P/B"]),
+      pb: num(vi.pb) ?? num(val["P/B"]),
       ev: num(val["EV/EBITDA"]),
       roe: num(val["ROE"]),
-      beta: num(val["Beta"]),
+      beta: num(vi.beta) ?? num(val["Beta"]),
       de: num(val["Debt/Equity"]),
       rev: rev ? rev.value : null,
       gm: gm ? gm.value : null,
