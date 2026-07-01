@@ -12,14 +12,20 @@ const { ticker } = Astro.props;
 // 走勢圖（含區間選擇與互動 OHLCV）由前端 Lightweight Charts 讀 /api/bars 繪製。
 const priceData = await getPrice(ticker);
 
-const nClose = priceData?.close.length ?? 0;
-const headlineClose =
-  nClose >= 1 && priceData ? priceData.close[nClose - 1]! : null;
+// 大價格用 latest(regularMarketPrice):盤中＝最新成交價,收盤後＝當日收盤價。
+// 漲跌以 latest 對「前一交易日收盤」計算——前收取 close[] 倒數第二根(最後一根為最新交易日),
+// 落在實際成交區間、與走勢圖一致;不用 meta.previousClose(偶發異常值,曾出現超出漲跌停的錯誤前收)。
+const headlinePrice = priceData?.latest ?? null;
+const closeArr = priceData?.close ?? [];
 const prevSessionClose =
-  nClose >= 2 && priceData ? priceData.close[nClose - 2]! : null;
+  closeArr.length >= 2
+    ? closeArr[closeArr.length - 2]!
+    : closeArr.length === 1
+      ? closeArr[0]!
+      : null;
 const dayChange =
-  headlineClose != null && prevSessionClose != null
-    ? Math.round((headlineClose - prevSessionClose) * 100) / 100
+  headlinePrice != null && prevSessionClose != null
+    ? Math.round((headlinePrice - prevSessionClose) * 100) / 100
     : null;
 const dayChangePct =
   dayChange != null && prevSessionClose != null && prevSessionClose !== 0
@@ -90,9 +96,7 @@ const defaultMonths = 6;
             <div class="quote-price-with-chg">
               <div class="quote-price-block">
                 <div class="quote-price">
-                  {headlineClose != null
-                    ? fmtPrice(headlineClose)
-                    : fmtPrice(priceData.latest)}
+                  {headlinePrice != null ? fmtPrice(headlinePrice) : "—"}
                 </div>
               </div>
               <div class="quote-change-block quote-change-block--next-price">
