@@ -323,6 +323,104 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
   return merged;
 }
 
+/** 自選股小卡用:當日盤中分時走勢 + 最新報價 + 市場狀態(盤中/收盤) */
+export interface MiniQuote {
+  /** 當日 5 分收盤序列(去 null),供 sparkline */
+  points: number[];
+  /** 最新價:盤中＝最新成交,收盤後＝當日收盤(Yahoo regularMarketPrice) */
+  latest: number;
+  /** 前一交易日收盤 */
+  prevClose: number;
+  change: number;
+  changePct: number;
+  /** Yahoo marketState:REGULAR＝盤中;其餘(CLOSED/POST…)＝收盤 */
+  state: string;
+  /** regularMarketTime ISO */
+  time: string | null;
+}
+
+const miniCache = new Map<string, { data: MiniQuote | null; ts: number }>();
+
+/** 盤中分時(5 分 K,range=1d)＋最新報價;5 分鐘記憶體快取。 */
+export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
+  if (!/^\d{4}$/.test(ticker)) return null;
+  const now = Date.now();
+  const hit = miniCache.get(ticker);
+  if (hit && now - hit.ts < TTL_MS) return hit.data;
+
+  for (const suffix of [".TW", ".TWO"] as const) {
+    try {
+      const symbol = `${ticker}${suffix}`;
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TWstock/1.0)" },
+      });
+      if (!res.ok) continue;
+      const json = (await res.json()) as YahooChartJson;
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+      const meta = (result.meta || {}) as Record<string, unknown>;
+      const rawClose = result.indicators?.quote?.[0]?.close || [];
+
+      const points: number[] = [];
+      for (const v of rawClose) {
+        if (v != null && Number.isFinite(Number(v))) {
+          points.push(Math.round(Number(v) * 100) / 100);
+        }
+      }
+
+      const prevClose =
+        Math.round(
+          Number(
+            (meta.chartPreviousClose as number) ??
+              (meta.previousClose as number) ??
+              0,
+          ) * 100,
+        ) / 100;
+      const latestRaw =
+        (meta.regularMarketPrice as number) ??
+        (points.length ? points[points.length - 1]! : prevClose);
+      const latest = Math.round(Number(latestRaw) * 100) / 100;
+      if (!Number.isFinite(latest) || latest <= 0) continue;
+
+      let change = prevClose > 0 ? Math.round((latest - prevClose) * 100) / 100 : 0;
+      let changePct = prevClose > 0 ? Math.round((change / prevClose) * 10000) / 100 : 0;
+      // 前收異常(遠超台股 ±10% 漲跌停 → 明顯壞值,如曾見的錯誤前收)→ 視為無效,只顯示價、不顯示假漲跌
+      if (prevClose <= 0 || Math.abs(changePct) > 20) {
+        change = 0;
+        changePct = 0;
+      }
+
+      // chart API meta 無 marketState(那是 quote API 欄位);改用 currentTradingPeriod.regular
+      // 的盤中時段 [start,end] 與伺服器現在時間判斷:落在時段內＝盤中,否則＝收盤。
+      const reg = (
+        meta.currentTradingPeriod as { regular?: { start?: number; end?: number } } | undefined
+      )?.regular;
+      const nowSec = Date.now() / 1000;
+      const state =
+        reg && typeof reg.start === "number" && typeof reg.end === "number" && nowSec >= reg.start && nowSec < reg.end
+          ? "REGULAR"
+          : "CLOSED";
+
+      const data: MiniQuote = {
+        points,
+        latest,
+        prevClose,
+        change,
+        changePct,
+        state,
+        time: marketTimeToIso(meta),
+      };
+      miniCache.set(ticker, { data, ts: now });
+      return data;
+    } catch {
+      continue;
+    }
+  }
+  miniCache.set(ticker, { data: null, ts: now });
+  return null;
+}
+
 export interface Bar {
   /** YYYY-MM-DD */
   time: string;
