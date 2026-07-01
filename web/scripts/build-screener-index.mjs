@@ -99,6 +99,7 @@ function main() {
     }
 
     const peV = num(vi.pe) ?? num(val["P/E (TTM)"]);
+    const pbV = num(vi.pb) ?? num(val["P/B"]);
     const revV = rev ? rev.value : null;
     const nmV = nm ? nm.value : null;
     // 市值:優先真實(financials_store);缺則以 本益比 × 淨利(=營收×淨利率)近似,標記 me:1(估算)。
@@ -120,10 +121,20 @@ function main() {
       me: mcEst,
       pe: peV,
       fpe: num(val["Forward P/E"]),
-      ps: num(val["P/S (TTM)"]),
-      pb: num(vi.pb) ?? num(val["P/B"]),
+      // P/S 缺則以 市值/營收 補(市值為估算時 P/S 亦為估算)
+      ps:
+        num(val["P/S (TTM)"]) ??
+        (mc != null && revV != null && revV > 0
+          ? Math.round((mc / revV) * 100) / 100
+          : null),
+      pb: pbV,
       ev: num(val["EV/EBITDA"]),
-      roe: num(val["ROE"]),
+      // ROE 缺則以 P/B÷P/E 補(恆等式:ROE=EPS/每股淨值=pb/pe;需正 pe、pb)
+      roe:
+        num(val["ROE"]) ??
+        (peV != null && peV > 0 && pbV != null && pbV > 0
+          ? Math.round((pbV / peV) * 1000) / 10
+          : null),
       beta: num(vi.beta) ?? num(val["Beta"]),
       de: num(val["Debt/Equity"]),
       rev: rev ? rev.value : null,
