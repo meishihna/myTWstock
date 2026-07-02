@@ -19,6 +19,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 完整歷史,供 push 撞車時 rebase 使用
 
       - uses: actions/setup-python@v5
         with:
@@ -39,7 +41,16 @@ jobs:
           git add Pilot_Reports || true
           if git diff --staged --quiet; then
             echo "No changes."
-          else
-            git commit -m "chore: refresh valuation tables (automated)"
-            git push
+            exit 0
           fi
+          git commit -m "chore: refresh valuation tables (automated)"
+          # 遠端可能被其他排程／手動 push 推進 → rebase 後再推,最多重試 5 次(不強推)
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "pushed on attempt $i"; exit 0
+            fi
+            echo "push rejected; fetch + rebase onto origin/main (attempt $i)…"
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; echo "rebase conflict, abort"; exit 1; }
+          done
+          echo "push still failing after retries"; exit 1
