@@ -63,18 +63,38 @@ if (chipsHistory?.inst && chipsInst && chipsDate && chipsHistory.inst.dates.leng
     chipsHistoryAligned = { ...chipsHistory, inst };
   }
 }
-// 外資持股以「目前顯示的那一天」為準(靜止=最新交易日;hover=該日)。
-// 最新交易日的持股常還沒公布(MI_QFIIS 落後買賣超約一個交易日)→ holdPct 末值為 null → 預設不顯示持股,
-// 待使用者 hover 往前到有資料的日子才顯示(由 setCards 切換)。
+// 外資持股(MI_QFIIS)常落後買賣超約一個交易日 → 最新那格常為 null。
+// 靜態卡片改取「最近一個有值」的持股(顯示最新可得值,而非因落後顯示 —);hover 仍以該日為準。
 const _hp = chipsHistoryAligned?.holdPct ?? null;
 const _hd = chipsHistoryAligned?.inst?.dates ?? null;
-const _hli = _hd && _hd.length ? _hd.length - 1 : -1;
-const latestHoldPct: number | null =
-  _hp && _hli >= 0 && _hp[_hli] != null && Number.isFinite(_hp[_hli] as number) ? (_hp[_hli] as number) : null;
+const _finiteAt = (i: number): boolean =>
+  !!_hp && _hp[i] != null && Number.isFinite(_hp[i] as number);
+let _hli = -1;
+if (_hp) {
+  for (let i = _hp.length - 1; i >= 0; i--) {
+    if (_finiteAt(i)) {
+      _hli = i;
+      break;
+    }
+  }
+}
+const latestHoldPct: number | null = _hli >= 0 ? (_hp![_hli] as number) : null;
+// 持股「截至」日期(YYYYMMDD→MM/DD);若非最新交易日,供 tooltip 標示
+const _hldRaw = _hli >= 0 && _hd && _hd[_hli] ? _hd[_hli] : null;
+const latestHoldDate: string | null =
+  _hldRaw && _hldRaw.length >= 8 ? `${_hldRaw.slice(4, 6)}/${_hldRaw.slice(6, 8)}` : null;
+// 增減:與「該值之前最近一個有值」比較
+let _hprev: number | null = null;
+if (_hp && _hli > 0) {
+  for (let i = _hli - 1; i >= 0; i--) {
+    if (_finiteAt(i)) {
+      _hprev = _hp[i] as number;
+      break;
+    }
+  }
+}
 const latestHoldChg: number | null =
-  _hp && _hli > 0 && latestHoldPct != null && _hp[_hli - 1] != null && Number.isFinite(_hp[_hli - 1] as number)
-    ? latestHoldPct - (_hp[_hli - 1] as number)
-    : null;
+  latestHoldPct != null && _hprev != null ? latestHoldPct - _hprev : null;
 const hasChips = Boolean(chipsInst || chipsMargin || chipsHolders);
 const fmtLot = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("zh-TW");
@@ -1822,7 +1842,12 @@ const mRevYTickMarks =
                       {fmtSignedLot(c.v)}
                     </span>
                   </div>
-                  <div class="chips-hold" data-chip-holdblock style={latestHoldPct == null ? "display:none" : ""}>
+                  <div
+                    class="chips-hold"
+                    data-chip-holdblock
+                    style={latestHoldPct == null ? "display:none" : ""}
+                    title={latestHoldDate ? `外資持股截至 ${latestHoldDate}` : undefined}
+                  >
                     <span class="fin-dash__kpi-label">持股</span>
                     <span class="chips-hold-pct" data-chip-hold>
                       {latestHoldPct != null ? `${latestHoldPct.toFixed(2)}%` : "—"}
