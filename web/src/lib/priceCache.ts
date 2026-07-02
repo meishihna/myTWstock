@@ -377,6 +377,12 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
       const segEnd = reg?.end;
       const hasSeg =
         typeof segStart === "number" && typeof segEnd === "number" && segEnd > segStart;
+      // 收盤後 currentTradingPeriod.regular 會指向「下一個」(未來)交易時段,當日 K 棒時間全在其之前,
+      // 依它定位會把每個點的 (ts-segStart)/range 壓成負值→clamp 0→所有 x=0(線塌成一條)。
+      // 僅當 K 棒確實落在此時段內(盤中)才用時間定位;否則 xs 留空→前端等距(完整線)。
+      const lastTs = rawTs.length ? rawTs[rawTs.length - 1] : null;
+      const segValid =
+        hasSeg && typeof lastTs === "number" && lastTs >= (segStart as number);
 
       const points: number[] = [];
       const xs: number[] = [];
@@ -384,7 +390,7 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
         const v = rawClose[i];
         if (v == null || !Number.isFinite(Number(v))) continue;
         points.push(Math.round(Number(v) * 100) / 100);
-        if (hasSeg && typeof rawTs[i] === "number") {
+        if (segValid && typeof rawTs[i] === "number") {
           let f = (rawTs[i]! - segStart!) / (segEnd! - segStart!);
           f = f < 0 ? 0 : f > 1 ? 1 : f;
           xs.push(Math.round(f * 1000) / 1000);
