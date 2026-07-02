@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T12:28:17Z",
+  "generatedAt": "2026-07-02T02:08:12Z",
   "institutional": {
     "date": "2026-07-01",
     "rows": [
@@ -37,18 +37,18 @@
     "totalNet": 539.2
   },
   "margin": {
-    "date": "2026-06-30",
+    "date": "2026-07-01",
     "margin": {
-      "today": 9435456,
-      "change": 49348
+      "today": 9414925,
+      "change": -20530
     },
     "short": {
-      "today": 194887,
-      "change": -10400
+      "today": 196392,
+      "change": 1505
     },
     "marginMoney": {
-      "today": 6117.0,
-      "change": 174.2
+      "today": 6095.0,
+      "change": -21.5
     }
   }
 }
