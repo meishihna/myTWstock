@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "HDMI/HDBaseT延伸分配",
+        "pct": 45
+      },
+      {
+        "name": "電視牆/矩陣切換",
+        "pct": 25
+      },
+      {
+        "name": "AV over IP解決方案",
+        "pct": 20
+      },
+      {
+        "name": "直播採集/KVM",
+        "pct": 10
+      }
+    ],
+    "geo": "歐美外銷約80%，台灣及亞洲約20%"
+  }
+}

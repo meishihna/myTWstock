@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "餐旅業務",
+        "pct": 53
+      },
+      {
+        "name": "陸上貨櫃運輸",
+        "pct": 47
+      }
+    ],
+    "geo": null
+  }
+}

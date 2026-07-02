@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "晶圓測試板",
+        "pct": 67
+      },
+      {
+        "name": "IC測試載板",
+        "pct": 22
+      },
+      {
+        "name": "技術服務及其他",
+        "pct": 11
+      }
+    ],
+    "geo": "美系客戶訂單為主（NVIDIA、AMD、Qualcomm、Apple），台灣出貨佔大宗；設有美國、日本、中國服務據點"
+  }
+}

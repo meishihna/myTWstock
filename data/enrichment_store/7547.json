@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "GenAI Admin Portal",
+        "pct": 49
+      },
+      {
+        "name": "SmartRobot客服AI",
+        "pct": 35
+      },
+      {
+        "name": "SmartWork知識管理",
+        "pct": 16
+      }
+    ],
+    "geo": "台灣約65%、日本約35%（2024年日本貢獻1.18億元）"
+  }
+}

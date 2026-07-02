@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "電商（PAZZO主）",
+        "pct": 73
+      },
+      {
+        "name": "UR Living實體",
+        "pct": 25
+      },
+      {
+        "name": "其他",
+        "pct": 2
+      }
+    ],
+    "geo": "台灣 100%（全部內銷）"
+  }
+}

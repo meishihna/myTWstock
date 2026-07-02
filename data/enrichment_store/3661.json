@@ -1,16 +1,20 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "AI/HPC ASIC設計",
-        "pct": 80
+        "name": "AI/HPC晶片",
+        "pct": 83
       },
       {
-        "name": "網路/其他ASIC",
-        "pct": 20
+        "name": "消費性電子",
+        "pct": 12
+      },
+      {
+        "name": "利基網通",
+        "pct": 5
       }
     ],
-    "geo": null
+    "geo": "北美 78%、日本 8%、亞太 8%、中國及其他 6%"
   }
 }

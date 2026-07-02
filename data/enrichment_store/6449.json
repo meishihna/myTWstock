@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DIP捲繞型直插",
+        "pct": 37
+      },
+      {
+        "name": "V-Chip捲繞貼片",
+        "pct": 29
+      },
+      {
+        "name": "CAP晶片型",
+        "pct": 30
+      },
+      {
+        "name": "Hybrid車規型",
+        "pct": 4
+      }
+    ],
+    "geo": "中國計費約91%（反映ODM出貨地），台灣約4%，其他約5%"
+  }
+}

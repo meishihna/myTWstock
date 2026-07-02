@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "Sony CIS",
+        "pct": 72
+      },
+      {
+        "name": "Sharp面板模組",
+        "pct": 18
+      },
+      {
+        "name": "光通訊模組",
+        "pct": 7
+      },
+      {
+        "name": "其他",
+        "pct": 3
+      }
+    ],
+    "geo": "大中華區約63%，台灣及其他亞太約37%"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "面板PMIC",
+        "pct": 40
+      },
+      {
+        "name": "筆電PMIC",
+        "pct": 28
+      },
+      {
+        "name": "伺服器Computing",
+        "pct": 22
+      },
+      {
+        "name": "馬達驅動IC",
+        "pct": 10
+      }
+    ],
+    "geo": "台灣及亞太地區為主"
+  }
+}

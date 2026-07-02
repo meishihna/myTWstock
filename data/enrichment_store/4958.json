@@ -1,24 +1,24 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "FPC軟板",
-        "pct": 55
+        "name": "行動通訊",
+        "pct": 59
       },
       {
-        "name": "SLP類載板",
-        "pct": 25
+        "name": "電腦消費",
+        "pct": 29
       },
       {
-        "name": "HDI硬板",
-        "pct": 15
+        "name": "IC 載板",
+        "pct": 7
       },
       {
-        "name": "其他",
+        "name": "伺服器車用",
         "pct": 5
       }
     ],
-    "geo": null
+    "geo": "美國約77%（含Apple訂單），中國約13%，台灣約5%，其他約5%"
   }
 }

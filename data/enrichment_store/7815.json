@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "CPC懸臂探針卡",
+        "pct": 92
+      },
+      {
+        "name": "VPC/MEMS探針卡",
+        "pct": 5
+      },
+      {
+        "name": "維修服務",
+        "pct": 3
+      }
+    ],
+    "geo": "台灣為主，中國大陸顯示驅動IC廠商為次要市場"
+  }
+}

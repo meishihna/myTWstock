@@ -3,18 +3,26 @@
     "year": "2024",
     "segments": [
       {
-        "name": "高速連接器/CPU Socket",
-        "pct": 75
+        "name": "伺服器CPU插槽",
+        "pct": 43
       },
       {
-        "name": "板對板連接器",
-        "pct": 15
+        "name": "PC/NB主機板插槽",
+        "pct": 32
+      },
+      {
+        "name": "高速傳輸線材",
+        "pct": 12
+      },
+      {
+        "name": "汽車工業應用",
+        "pct": 8
       },
       {
         "name": "其他",
-        "pct": 10
+        "pct": 5
       }
     ],
-    "geo": null
+    "geo": "全球市場，以北美（Intel/AMD平台客戶）、台灣（ODM廠）為主要市場，中國大陸及歐洲次之"
   }
 }

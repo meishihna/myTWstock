@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "ADI類比混訊IC",
+        "pct": 58
+      },
+      {
+        "name": "FPGA元件",
+        "pct": 27
+      },
+      {
+        "name": "Qorvo射頻元件",
+        "pct": 9
+      },
+      {
+        "name": "其他代理線",
+        "pct": 6
+      }
+    ],
+    "geo": "台灣約82%，東南亞及日本約18%"
+  }
+}

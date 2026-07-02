@@ -1,0 +1,32 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "工業電腦PCB",
+        "pct": 23
+      },
+      {
+        "name": "網通資安PCB",
+        "pct": 13
+      },
+      {
+        "name": "消費電子PCB",
+        "pct": 11
+      },
+      {
+        "name": "AI伺服器PCB",
+        "pct": 8
+      },
+      {
+        "name": "DOSUN光電",
+        "pct": 20
+      },
+      {
+        "name": "其他PCB",
+        "pct": 25
+      }
+    ],
+    "geo": "台灣及亞洲約 70%，歐美（DOSUN 自行車）約 30%"
+  }
+}

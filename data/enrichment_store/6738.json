@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "Apollo 人資平台訂閱",
+        "pct": 70
+      },
+      {
+        "name": "STAYFUN 福利平台",
+        "pct": 20
+      },
+      {
+        "name": "導入顧問服務",
+        "pct": 10
+      }
+    ],
+    "geo": "台灣為主，越南市場拓展中"
+  }
+}

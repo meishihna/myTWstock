@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "AIoT DDIC",
+        "pct": 40
+      },
+      {
+        "name": "車用DDIC",
+        "pct": 30
+      },
+      {
+        "name": "感測器",
+        "pct": 20
+      },
+      {
+        "name": "其他IC產品",
+        "pct": 10
+      }
+    ],
+    "geo": "台灣、中國大陸為主要市場，全球AIoT及車用客戶分佈廣泛"
+  }
+}

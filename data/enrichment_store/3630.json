@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "NB 鏡頭",
+        "pct": 45
+      },
+      {
+        "name": "屏下指紋鏡頭",
+        "pct": 23
+      },
+      {
+        "name": "手機 RGB 鏡頭",
+        "pct": 17
+      },
+      {
+        "name": "Cover Window",
+        "pct": 8
+      },
+      {
+        "name": "IoT/其他",
+        "pct": 7
+      }
+    ],
+    "geo": "出口約99%（中國大陸及全球NB供應鏈），台灣內銷約1%"
+  }
+}

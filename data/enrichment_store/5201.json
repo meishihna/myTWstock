@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "金融系統授權維護",
+        "pct": 55
+      },
+      {
+        "name": "系統整合硬軟體代理",
+        "pct": 25
+      },
+      {
+        "name": "MultiCharts代理",
+        "pct": 13
+      },
+      {
+        "name": "FinTech App訂閱",
+        "pct": 7
+      }
+    ],
+    "geo": "台灣本地（100%）"
+  }
+}

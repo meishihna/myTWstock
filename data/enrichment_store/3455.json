@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "IC基板AOI",
+        "pct": 62
+      },
+      {
+        "name": "LCD面板AOI",
+        "pct": 22
+      },
+      {
+        "name": "半導體封裝AOI",
+        "pct": 12
+      },
+      {
+        "name": "其他",
+        "pct": 4
+      }
+    ],
+    "geo": "台灣及亞洲為主要市場；中國面板及 PCB 廠佔重要比例"
+  }
+}

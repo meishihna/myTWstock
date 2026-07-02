@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "建案銷售認列",
+        "pct": 70
+      },
+      {
+        "name": "CITYLINK商場",
+        "pct": 18
+      },
+      {
+        "name": "轉投資收益",
+        "pct": 12
+      }
+    ],
+    "geo": "台灣約 100%"
+  }
+}

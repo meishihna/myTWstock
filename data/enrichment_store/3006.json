@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "DDR SDRAM",
+        "pct": 45
+      },
+      {
+        "name": "SLC NAND Flash",
+        "pct": 25
+      },
+      {
+        "name": "NOR Flash/MCP",
+        "pct": 15
+      },
+      {
+        "name": "Mobile DRAM",
+        "pct": 8
+      },
+      {
+        "name": "非記憶體",
+        "pct": 7
+      }
+    ],
+    "geo": "台灣 38%，亞洲（主要為中國）61%，其他 1%"
+  }
+}

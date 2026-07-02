@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "B-Power電瓶系統",
+        "pct": 97
+      },
+      {
+        "name": "EzCon控制系統",
+        "pct": 3
+      }
+    ],
+    "geo": "亞太地區 98%，台灣內銷 2%"
+  }
+}

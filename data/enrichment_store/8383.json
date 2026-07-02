@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "精密科技事業",
+        "pct": 51
+      },
+      {
+        "name": "廠務工程事業",
+        "pct": 38
+      },
+      {
+        "name": "機械事業",
+        "pct": 10
+      },
+      {
+        "name": "水資源事業",
+        "pct": 1
+      }
+    ],
+    "geo": "以台灣為主要收入基地；精密科技客戶分布美國（Applied Materials、Lam Research）、荷蘭（ASML）；製鞋機械出口越南、印尼等東南亞市場"
+  }
+}

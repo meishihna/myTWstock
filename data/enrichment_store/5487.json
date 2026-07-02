@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "電容式觸控IC",
+        "pct": 60
+      },
+      {
+        "name": "健康量測IC",
+        "pct": 22
+      },
+      {
+        "name": "MCU微控制器",
+        "pct": 9
+      },
+      {
+        "name": "LED驅動/PIR",
+        "pct": 9
+      }
+    ],
+    "geo": "中國大陸及香港約95%，台灣約5%"
+  }
+}

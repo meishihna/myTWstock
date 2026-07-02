@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "IC封測",
+        "pct": 57
+      },
+      {
+        "name": "EMS代工",
+        "pct": 43
+      }
+    ],
+    "geo": "主要服務台灣及全球記憶體廠；EMS 終端市場以北美（Supermicro）為主"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "BIOS授權金",
+        "pct": 60
+      },
+      {
+        "name": "NRE設計服務",
+        "pct": 25
+      },
+      {
+        "name": "伺服器OpenBMC",
+        "pct": 15
+      }
+    ],
+    "geo": "以海外授權收入為主（全球筆電及伺服器品牌廠）"
+  }
+}

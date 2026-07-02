@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "貴金屬材料",
+        "pct": 80
+      },
+      {
+        "name": "VAS加值服務",
+        "pct": 20
+      }
+    ],
+    "geo": null
+  }
+}

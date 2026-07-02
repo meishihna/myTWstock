@@ -3,18 +3,22 @@
     "year": "2024",
     "segments": [
       {
-        "name": "NOR Flash",
-        "pct": 55
+        "name": "邏輯IC/DRAM",
+        "pct": 39
       },
       {
-        "name": "DRAM",
+        "name": "NOR Flash",
         "pct": 35
       },
       {
-        "name": "NAND Flash",
-        "pct": 10
+        "name": "客製化記憶體CMS",
+        "pct": 24
+      },
+      {
+        "name": "其他",
+        "pct": 2
       }
     ],
-    "geo": null
+    "geo": "亞洲93%（中國大陸為最大子市場，未單獨揭露）、歐洲4%、美洲3%"
   }
 }

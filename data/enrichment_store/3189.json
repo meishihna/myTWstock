@@ -1,20 +1,16 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "IC封裝載板",
-        "pct": 65
+        "name": "ABF/BT載板",
+        "pct": 78
       },
       {
-        "name": "HDI多層板",
-        "pct": 25
-      },
-      {
-        "name": "其他",
-        "pct": 10
+        "name": "光學(隱形眼鏡)",
+        "pct": 22
       }
     ],
-    "geo": null
+    "geo": "台灣本地生產為主，客戶以北美及亞洲IC大廠為核心；海外蘇州廠支援部分訂單"
   }
 }

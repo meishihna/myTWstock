@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "2.4GHz無線IC",
+        "pct": 49
+      },
+      {
+        "name": "Sub-GHz無線",
+        "pct": 43
+      },
+      {
+        "name": "5.8GHz及LNB",
+        "pct": 8
+      }
+    ],
+    "geo": "香港/中國約41%、韓國/歐洲/新加坡等約40%、台灣約19%"
+  }
+}

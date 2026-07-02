@@ -3,18 +3,22 @@
     "year": "2024",
     "segments": [
       {
-        "name": "記憶體封測",
-        "pct": 50
+        "name": "DRAM封測",
+        "pct": 55
       },
       {
-        "name": "邏輯IC封測",
-        "pct": 40
+        "name": "NAND Flash封測",
+        "pct": 25
       },
       {
-        "name": "其他",
-        "pct": 10
+        "name": "邏輯IC及先進封裝",
+        "pct": 15
+      },
+      {
+        "name": "其他服務",
+        "pct": 5
       }
     ],
-    "geo": null
+    "geo": "全球市場，主要客戶來自美國（Micron）、日本（Kioxia）及韓國（SK Hynix）"
   }
 }

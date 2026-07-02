@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "消費電子表面處理",
+        "pct": 85
+      },
+      {
+        "name": "新能源研發收入",
+        "pct": 15
+      }
+    ],
+    "geo": "台灣及亞洲市場為主；北美市場透過Solar AI Industries合作開發中"
+  }
+}

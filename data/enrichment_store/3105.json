@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "基礎建設PA",
+        "pct": 38
+      },
+      {
+        "name": "手機PA",
+        "pct": 27
+      },
+      {
+        "name": "光學感測",
+        "pct": 21
+      },
+      {
+        "name": "Wi-Fi PA",
+        "pct": 14
+      }
+    ],
+    "geo": "北美客戶（Broadcom、Qorvo、Skyworks、Qualcomm、Lumentum）合計超過 70%；亞洲（台灣、日本、韓國）約 20%；歐洲約 10%"
+  }
+}

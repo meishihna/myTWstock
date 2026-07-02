@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "AI IP 授權",
+        "pct": 60
+      },
+      {
+        "name": "Edge ASIC 晶片",
+        "pct": 40
+      }
+    ],
+    "geo": "以日本、北美及台灣客戶為主，拓展中國及東南亞市場"
+  }
+}

@@ -3,11 +3,11 @@
     "year": "2024",
     "segments": [
       {
-        "name": "Turnkey 量產服務",
+        "name": "Turnkey量產",
         "pct": 64
       },
       {
-        "name": "NRE 設計服務",
+        "name": "NRE設計服務",
         "pct": 34
       },
       {
@@ -15,6 +15,6 @@
         "pct": 2
       }
     ],
-    "geo": null
+    "geo": "北美雲端服務供應商逾六成，亞洲次之"
   }
 }

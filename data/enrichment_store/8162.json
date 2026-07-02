@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "半導體測試",
+        "pct": 73
+      },
+      {
+        "name": "晶圓薄化",
+        "pct": 19
+      },
+      {
+        "name": "半導體封裝",
+        "pct": 8
+      }
+    ],
+    "geo": "以台灣為主，客戶涵蓋歐美 IDM 廠（Infineon、Navitas）及台灣本土功率元件廠"
+  }
+}

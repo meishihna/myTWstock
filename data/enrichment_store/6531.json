@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "IoTRAM記憶體",
+        "pct": 65
+      },
+      {
+        "name": "S-SiCap矽電容",
+        "pct": 25
+      },
+      {
+        "name": "VHM及其他",
+        "pct": 10
+      }
+    ],
+    "geo": "北美（AI/HPC 客戶）與亞太（IoT 穿戴客戶）為主要市場"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "汽車零件",
+        "pct": 56
+      },
+      {
+        "name": "工業光通訊",
+        "pct": 28
+      },
+      {
+        "name": "醫療零件",
+        "pct": 9
+      },
+      {
+        "name": "3C電子",
+        "pct": 7
+      }
+    ],
+    "geo": "泰國製造；客戶遍布歐洲（Continental 為主）、日本（Denso）、美國（Fabrinet/MKS/Seagate）及亞洲；China+1 受惠廠"
+  }
+}

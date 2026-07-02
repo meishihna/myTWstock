@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DRAM記憶體",
+        "pct": 87
+      },
+      {
+        "name": "NOR Flash",
+        "pct": 12
+      },
+      {
+        "name": "保健品/其他",
+        "pct": 1
+      }
+    ],
+    "geo": "台灣本島為主，約佔90%以上"
+  }
+}

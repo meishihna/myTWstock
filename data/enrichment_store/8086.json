@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "手機PA",
+        "pct": 55
+      },
+      {
+        "name": "WiFi PA",
+        "pct": 35
+      },
+      {
+        "name": "VCSEL光通訊",
+        "pct": 7
+      },
+      {
+        "name": "其他",
+        "pct": 3
+      }
+    ],
+    "geo": "北美（Skyworks為主）及亞太地區"
+  }
+}

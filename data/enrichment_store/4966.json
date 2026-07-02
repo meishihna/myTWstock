@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "高速傳輸介面",
+        "pct": 52
+      },
+      {
+        "name": "eDP T-CON",
+        "pct": 36
+      },
+      {
+        "name": "Source Driver",
+        "pct": 8
+      },
+      {
+        "name": "觸控控制器",
+        "pct": 4
+      }
+    ],
+    "geo": "美元計價為主；北美 (Apple、Dell、HP) 為最大市場，亞太次之"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DRAM模組",
+        "pct": 62
+      },
+      {
+        "name": "SSD固態硬碟",
+        "pct": 26
+      },
+      {
+        "name": "記憶卡及USB",
+        "pct": 5
+      },
+      {
+        "name": "HDD及其他",
+        "pct": 7
+      }
+    ],
+    "geo": "亞洲 53%，美洲 42%，歐洲 4%"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "AI運算",
+        "pct": 61
+      },
+      {
+        "name": "網路基礎架構",
+        "pct": 20
+      },
+      {
+        "name": "雲端服務",
+        "pct": 14
+      },
+      {
+        "name": "資安",
+        "pct": 5
+      }
+    ],
+    "geo": "台灣約 72%，美國（Brainstorm）及南非（Corex）海外合計約 28%"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "技術授權服務",
+        "pct": 60
+      },
+      {
+        "name": "生技其他",
+        "pct": 40
+      }
+    ],
+    "geo": null
+  }
+}

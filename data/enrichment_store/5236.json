@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "Webcam ISP",
+        "pct": 65
+      },
+      {
+        "name": "HID控制器",
+        "pct": 25
+      },
+      {
+        "name": "其他IC",
+        "pct": 10
+      }
+    ],
+    "geo": "主要收入來自中國大陸組裝廠及全球NB品牌供應鏈；地理收入未正式揭露"
+  }
+}

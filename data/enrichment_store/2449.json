@@ -1,20 +1,24 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "IC最終測試",
-        "pct": 70
+        "name": "成品測試",
+        "pct": 58
       },
       {
-        "name": "晶圓測試/KGD",
-        "pct": 25
+        "name": "晶圓測試",
+        "pct": 30
       },
       {
-        "name": "其他",
-        "pct": 5
+        "name": "預燒老化測試",
+        "pct": 9
+      },
+      {
+        "name": "封裝及其他",
+        "pct": 3
       }
     ],
-    "geo": null
+    "geo": "台灣本島為主要服務基地，客戶來自全球，以美系（NVIDIA、Broadcom、Google、Qualcomm 等）及台系 IC 設計廠為主"
   }
 }

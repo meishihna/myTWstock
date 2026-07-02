@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "Type-C Hub及PD",
+        "pct": 48
+      },
+      {
+        "name": "傳統USB Hub",
+        "pct": 27
+      },
+      {
+        "name": "儲存控制",
+        "pct": 14
+      },
+      {
+        "name": "PCIe Re-driver",
+        "pct": 9
+      },
+      {
+        "name": "其他",
+        "pct": 2
+      }
+    ],
+    "geo": "亞太（台灣、日本、中國）為主，北美及歐洲品牌客戶間接佔重要比重"
+  }
+}

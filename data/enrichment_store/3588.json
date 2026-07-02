@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "PWM控制器IC",
+        "pct": 55
+      },
+      {
+        "name": "USB-PD協議IC",
+        "pct": 25
+      },
+      {
+        "name": "同步整流IC",
+        "pct": 20
+      }
+    ],
+    "geo": "台灣電源供應器ODM廠為主要通路，終端市場以大陸手機及全球筆電為主"
+  }
+}

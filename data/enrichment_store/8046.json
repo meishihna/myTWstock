@@ -1,16 +1,20 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "ABF高密度載板",
-        "pct": 65
+        "name": "ABF載板",
+        "pct": 60
       },
       {
-        "name": "高階HDI多層板",
-        "pct": 35
+        "name": "BT載板",
+        "pct": 22
+      },
+      {
+        "name": "HDI高密度板",
+        "pct": 18
       }
     ],
-    "geo": null
+    "geo": "美國客戶約55%，台灣/亞洲約30%，歐洲約15%"
   }
 }

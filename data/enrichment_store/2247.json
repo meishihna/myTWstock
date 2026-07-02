@@ -1,16 +1,24 @@
 {
   "revenue_mix": {
-    "year": "2025",
+    "year": "2024",
     "segments": [
       {
-        "name": "BMW（含MINI）",
-        "pct": 60
+        "name": "BMW新車",
+        "pct": 55
       },
       {
-        "name": "Porsche",
-        "pct": 40
+        "name": "Porsche新車",
+        "pct": 30
+      },
+      {
+        "name": "售後服務",
+        "pct": 10
+      },
+      {
+        "name": "MINI及其他",
+        "pct": 5
       }
     ],
-    "geo": "台灣約 100%"
+    "geo": "台灣100%（全台六都均設服務據點）"
   }
 }

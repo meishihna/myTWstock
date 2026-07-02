@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "先進封裝/CoWoS",
+        "pct": 35
+      },
+      {
+        "name": "IC載板/ABF載板",
+        "pct": 30
+      },
+      {
+        "name": "玻璃基板/FOPLP",
+        "pct": 20
+      },
+      {
+        "name": "傳統PCB設備",
+        "pct": 15
+      }
+    ],
+    "geo": "台灣約50%，海外(日本/歐洲/美國)約50%"
+  }
+}

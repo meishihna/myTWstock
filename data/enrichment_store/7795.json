@@ -1,0 +1,16 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "真空壓膜設備",
+        "pct": 94
+      },
+      {
+        "name": "膜材與服務",
+        "pct": 6
+      }
+    ],
+    "geo": "日本（透過 Nikko-Materials 子公司）約80%，台灣及其他亞洲約20%"
+  }
+}

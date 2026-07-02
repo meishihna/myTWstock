@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "Datacom",
+        "pct": 78
+      },
+      {
+        "name": "Telecom電信",
+        "pct": 17
+      },
+      {
+        "name": "工業及醫療",
+        "pct": 5
+      }
+    ],
+    "geo": "全球銷售，亞洲光模組廠為主要客群，北美CSP直接採購快速成長"
+  }
+}

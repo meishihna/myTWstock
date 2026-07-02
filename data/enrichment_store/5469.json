@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "NB/PC PCB",
+        "pct": 36
+      },
+      {
+        "name": "AI伺服器/網通",
+        "pct": 36
+      },
+      {
+        "name": "LCD與其他",
+        "pct": 19
+      },
+      {
+        "name": "車用與遊戲機",
+        "pct": 9
+      }
+    ],
+    "geo": "台灣廠專攻高階伺服器，江陰廠供應NB/PC，馬來西亞廠（Lincstech）擴產中；客戶以北美品牌/ODM廠為主"
+  }
+}

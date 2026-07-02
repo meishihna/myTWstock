@@ -3,18 +3,26 @@
     "year": "2024",
     "segments": [
       {
-        "name": "ABF高密度載板",
-        "pct": 55
+        "name": "ABF載板",
+        "pct": 50
       },
       {
-        "name": "HDI高密度板",
-        "pct": 30
+        "name": "HDI板",
+        "pct": 21
       },
       {
-        "name": "一般多層板",
-        "pct": 15
+        "name": "傳統PCB",
+        "pct": 12
+      },
+      {
+        "name": "BT載板",
+        "pct": 13
+      },
+      {
+        "name": "軟板",
+        "pct": 4
       }
     ],
-    "geo": null
+    "geo": "亞洲 60%、美洲 25%、歐洲 10%、其他 5%"
   }
 }

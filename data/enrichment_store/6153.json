@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "一般FPC",
+        "pct": 50
+      },
+      {
+        "name": "LCP天線軟板",
+        "pct": 28
+      },
+      {
+        "name": "折疊手機FPC",
+        "pct": 12
+      },
+      {
+        "name": "AI/機器人FPC",
+        "pct": 10
+      }
+    ],
+    "geo": "外銷約75%（Apple/美系主導，中國次之），台灣內銷約25%"
+  }
+}

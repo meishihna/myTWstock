@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "背光模組",
+        "pct": 77
+      },
+      {
+        "name": "車用Mini LED",
+        "pct": 15
+      },
+      {
+        "name": "VCSEL感測",
+        "pct": 5
+      },
+      {
+        "name": "其他",
+        "pct": 3
+      }
+    ],
+    "geo": "亞洲（台灣、日本、韓國）五至六成，歐美次之"
+  }
+}

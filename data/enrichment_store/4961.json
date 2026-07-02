@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "Mobile IC(EPD/ESL)",
+        "pct": 34
+      },
+      {
+        "name": "其他半導體",
+        "pct": 30
+      },
+      {
+        "name": "顯示驅動IC",
+        "pct": 24
+      },
+      {
+        "name": "電源管理IC",
+        "pct": 12
+      }
+    ],
+    "geo": "台灣與大陸市場為主，透過深圳天德鈺子公司服務中國客戶"
+  }
+}

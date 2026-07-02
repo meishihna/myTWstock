@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "車載電子FPC",
+        "pct": 37
+      },
+      {
+        "name": "TV-link FPC",
+        "pct": 33
+      },
+      {
+        "name": "LCD/OLED模組",
+        "pct": 14
+      },
+      {
+        "name": "燈條LBK",
+        "pct": 10
+      },
+      {
+        "name": "消費電子",
+        "pct": 6
+      }
+    ],
+    "geo": "中國（揚州）約78%、台灣約22%"
+  }
+}

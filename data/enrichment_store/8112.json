@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "DRAM記憶體",
+        "pct": 45
+      },
+      {
+        "name": "NAND Flash/SSD",
+        "pct": 28
+      },
+      {
+        "name": "顯示驅動IC等非記憶體",
+        "pct": 27
+      }
+    ],
+    "geo": "中國大陸約70%，台灣及美國市場持續成長，另有歐洲及東南亞"
+  }
+}

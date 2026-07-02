@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "通訊與AI伺服器",
+        "pct": 65
+      },
+      {
+        "name": "航太與國防",
+        "pct": 28
+      },
+      {
+        "name": "其他",
+        "pct": 7
+      }
+    ],
+    "geo": "泰國本體約 77%，法國 Agiliteam 約 23%"
+  }
+}

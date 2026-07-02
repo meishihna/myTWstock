@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "木桿頭",
+        "pct": 55
+      },
+      {
+        "name": "鐵桿頭",
+        "pct": 38
+      },
+      {
+        "name": "藝術鑄品",
+        "pct": 7
+      }
+    ],
+    "geo": "日系客戶約50%（[[Honma]]、[[Bridgestone Golf]]、[[Mizuno]]），美系及歐系客戶合計約50%"
+  }
+}

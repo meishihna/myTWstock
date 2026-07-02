@@ -1,0 +1,28 @@
+{
+  "revenue_mix": {
+    "year": "2025",
+    "segments": [
+      {
+        "name": "DDR5 SO-DIMM插槽",
+        "pct": 36
+      },
+      {
+        "name": "M.2連接器",
+        "pct": 27
+      },
+      {
+        "name": "Long-DIMM伺服器插槽",
+        "pct": 11
+      },
+      {
+        "name": "USB Type-C",
+        "pct": 10
+      },
+      {
+        "name": "精密沖壓件",
+        "pct": 16
+      }
+    ],
+    "geo": "中國大陸出貨約60~65%（中國製造筆電），美洲及歐洲客戶約35~40%"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "MCU",
+        "pct": 65
+      },
+      {
+        "name": "MPU/工業 SoC",
+        "pct": 33
+      },
+      {
+        "name": "ASIC 定製服務",
+        "pct": 2
+      }
+    ],
+    "geo": "台灣 41%、亞洲（主要中國大陸）58%、其他市場 1%"
+  }
+}

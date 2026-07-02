@@ -1,0 +1,24 @@
+{
+  "revenue_mix": {
+    "year": "2024",
+    "segments": [
+      {
+        "name": "PVD設備",
+        "pct": 70
+      },
+      {
+        "name": "ALD設備",
+        "pct": 15
+      },
+      {
+        "name": "Bonder/De-Bonder",
+        "pct": 10
+      },
+      {
+        "name": "維修服務",
+        "pct": 5
+      }
+    ],
+    "geo": "台灣及中國大陸為主，2024年新增歐洲市場"
+  }
+}

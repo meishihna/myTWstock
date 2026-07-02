@@ -4,13 +4,17 @@
     "segments": [
       {
         "name": "NOR Flash",
-        "pct": 85
+        "pct": 59
       },
       {
-        "name": "其他記憶體/代工",
-        "pct": 15
+        "name": "ROM",
+        "pct": 22
+      },
+      {
+        "name": "NAND/eMMC",
+        "pct": 19
       }
     ],
-    "geo": null
+    "geo": "全球出貨；日本（任天堂）、歐美車廠、亞太通訊廠為主要市場"
   }
 }

@@ -1,16 +1,24 @@
 {
   "revenue_mix": {
-    "year": "2024",
+    "year": "2025",
     "segments": [
       {
-        "name": "DDR4/DDR5 DRAM",
-        "pct": 85
+        "name": "DDR4/LPDDR4",
+        "pct": 75
       },
       {
-        "name": "利基型DRAM",
-        "pct": 15
+        "name": "DDR5",
+        "pct": 10
+      },
+      {
+        "name": "SSD及其他",
+        "pct": 10
+      },
+      {
+        "name": "UWIO客製記憶體",
+        "pct": 5
       }
     ],
-    "geo": null
+    "geo": "非中國地區客戶占比約 80%；台灣、美洲、歐洲、亞洲均有布局"
   }
 }
