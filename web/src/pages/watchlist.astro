@@ -50,13 +50,15 @@ import Layout from "../layouts/Layout.astro";
 
     interface Mini {
       points: number[];
+      /** 與 points 對齊的 X 比例(0..1),依當日盤中時段時間定位;缺則等距 */
+      xs?: number[];
       latest: number;
       change: number;
       changePct: number;
       state: string;
       time: string | null;
     }
-    function sparkSvg(points: number[], up: boolean): string {
+    function sparkSvg(points: number[], xs: number[] | undefined, up: boolean): string {
       if (!points || points.length < 2) return "";
       const W = 92,
         H = 26,
@@ -68,14 +70,17 @@ import Layout from "../layouts/Layout.astro";
         if (v > mx) mx = v;
       }
       const range = mx - mn || 1;
-      const xa = (i: number) => ((i / (n - 1)) * W).toFixed(1);
+      // 有 xs(依當日時間定位)→ 盤中線只走到現在的位置;否則退回等距填滿整寬。
+      const useXs = Array.isArray(xs) && xs.length === n;
+      const xa = (i: number) => ((useXs ? xs![i]! : i / (n - 1)) * W).toFixed(1);
       const ya = (v: number) => (H - 1 - ((v - mn) / range) * (H - 2)).toFixed(1);
       let line = "";
       for (let i = 0; i < n; i++) line += (i ? " " : "") + xa(i) + "," + ya(points[i]!);
+      const lastX = xa(n - 1); // 填色與線只延伸到最後一個點(盤中＝現在)
       const col = up ? "#e24b4a" : "#1d9e75";
       return (
         `<svg class="wl__spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">` +
-        `<polygon points="${line} ${W},${H} 0,${H}" fill="${col}" fill-opacity="0.12"></polygon>` +
+        `<polygon points="${line} ${lastX},${H} 0,${H}" fill="${col}" fill-opacity="0.12"></polygon>` +
         `<polyline points="${line}" fill="none" stroke="${col}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>`
       );
     }
@@ -114,7 +119,7 @@ import Layout from "../layouts/Layout.astro";
       const state = open
         ? `<span class="wl__quote-state is-open"><i></i>盤中${q.time ? " · " + hhmm(q.time) : ""}</span>`
         : `<span class="wl__quote-state">收盤${q.time ? " · " + mmdd(q.time) : ""}</span>`;
-      el.innerHTML = `${sparkSvg(q.points, q.change >= 0)}<span class="wl__quote-price">${q.latest.toFixed(2)}</span>${chg}${state}`;
+      el.innerHTML = `${sparkSvg(q.points, q.xs, q.change >= 0)}<span class="wl__quote-price">${q.latest.toFixed(2)}</span>${chg}${state}`;
     }
     function hydrateQuotes(): void {
       const blocks = Array.from(

@@ -327,6 +327,12 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
 export interface MiniQuote {
   /** 當日 5 分收盤序列(去 null),供 sparkline */
   points: number[];
+  /**
+   * 與 points 對齊的 X 座標比例(0..1):依每點時間在當日盤中時段[09:00,13:30]的位置計算。
+   * 盤中資料只到現在 → 線只走到對應比例;收盤後接近 1 → 幾乎填滿整寬。
+   * 時段或時間戳缺失時為空陣列(前端退回等距)。
+   */
+  xs: number[];
   /** 最新價:盤中＝最新成交,收盤後＝當日收盤(Yahoo regularMarketPrice) */
   latest: number;
   /** 前一交易日收盤 */
@@ -361,13 +367,31 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
       if (!result) continue;
       const meta = (result.meta || {}) as Record<string, unknown>;
       const rawClose = result.indicators?.quote?.[0]?.close || [];
+      const rawTs = (result as { timestamp?: number[] }).timestamp || [];
+
+      // 盤中時段[start,end](TWSE 約 09:00–13:30):用於把每個點依「當日時間位置」定 X 座標。
+      const reg = (
+        meta.currentTradingPeriod as { regular?: { start?: number; end?: number } } | undefined
+      )?.regular;
+      const segStart = reg?.start;
+      const segEnd = reg?.end;
+      const hasSeg =
+        typeof segStart === "number" && typeof segEnd === "number" && segEnd > segStart;
 
       const points: number[] = [];
-      for (const v of rawClose) {
-        if (v != null && Number.isFinite(Number(v))) {
-          points.push(Math.round(Number(v) * 100) / 100);
+      const xs: number[] = [];
+      for (let i = 0; i < rawClose.length; i++) {
+        const v = rawClose[i];
+        if (v == null || !Number.isFinite(Number(v))) continue;
+        points.push(Math.round(Number(v) * 100) / 100);
+        if (hasSeg && typeof rawTs[i] === "number") {
+          let f = (rawTs[i]! - segStart!) / (segEnd! - segStart!);
+          f = f < 0 ? 0 : f > 1 ? 1 : f;
+          xs.push(Math.round(f * 1000) / 1000);
         }
       }
+      // 時段或時間戳缺失 → 無法時間定位,清空 xs(前端退回等距)
+      if (xs.length !== points.length) xs.length = 0;
 
       const prevClose =
         Math.round(
@@ -391,19 +415,16 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
         changePct = 0;
       }
 
-      // chart API meta 無 marketState(那是 quote API 欄位);改用 currentTradingPeriod.regular
-      // 的盤中時段 [start,end] 與伺服器現在時間判斷:落在時段內＝盤中,否則＝收盤。
-      const reg = (
-        meta.currentTradingPeriod as { regular?: { start?: number; end?: number } } | undefined
-      )?.regular;
+      // 盤中判斷:現在時間落在 regular 時段內＝盤中,否則＝收盤。
       const nowSec = Date.now() / 1000;
       const state =
-        reg && typeof reg.start === "number" && typeof reg.end === "number" && nowSec >= reg.start && nowSec < reg.end
+        hasSeg && nowSec >= segStart! && nowSec < segEnd!
           ? "REGULAR"
           : "CLOSED";
 
       const data: MiniQuote = {
         points,
+        xs,
         latest,
         prevClose,
         change,
