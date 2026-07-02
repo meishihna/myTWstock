@@ -10,6 +10,7 @@ import ValuationSection from "../../components/ValuationSection.astro";
 import BusinessIntroCard from "../../components/BusinessIntroCard.astro";
 import FinancialDashboard from "../../components/FinancialDashboard.astro";
 import { normalizeIndustryTypeForDashboard } from "../../lib/industryConfig";
+import { sectorZh } from "../../lib/sector-i18n";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -527,7 +528,7 @@ const reportLd = [
     <span class="bc-sep"> / </span>
     <a href="/sectors"><Bi zh="產業" en="Industries" /></a>
     <span class="bc-sep"> / </span>
-    <a href={`/sectors/${meta.sectorSlug}`}>{meta.sector}</a>
+    <a href={`/sectors/${meta.sectorSlug}`}>{sectorZh(meta.sector)}</a>
     <span class="bc-sep"> / </span>
     <span>{meta.ticker}</span>
   </div>
@@ -548,8 +549,8 @@ const reportLd = [
             </span>
           )
         }
-        <span class="report-sector-pill">{meta.sector}</span>
-        <span class="report-sector-en" lang="en">GICS-style industry</span>
+        <span class="report-sector-pill">{sectorZh(meta.sector)}</span>
+        <span class="report-sector-en">GICS 產業分類</span>
       </p>
     </div>
     <button class="report-watch" data-watch-ticker={meta.ticker} type="button" aria-pressed="false" title="加入／移除自選股">

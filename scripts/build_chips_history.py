@@ -123,11 +123,16 @@ def build_foreign_history(universe: set[str], inst_dates: list[str], prev: dict)
     for t, arr in prev_rows.items():
         merged[t] = {prev_dates[i]: arr[i] for i in range(min(len(arr), len(prev_dates))) if arr[i] is not None}
 
-    have = set(prev_dates)
+    # 只略過「已有非空持股值」的日期;先前為 null(MI_QFIIS 當時尚未發布)的近日要重抓回補。
+    # MI_QFIIS 為 T+1 且常晚間才發布,某交易日進 inst.dates 時持股率多半尚無 → 記 null;
+    # 若仍以 prev_dates 為略過集,該日永遠不會被回補。改以「已有資料的日期」為準。
+    have: set[str] = set()
+    for dmap in merged.values():
+        have.update(dmap.keys())
     fetched = 0
     for dt in inst_dates:
         if dt in have:
-            continue  # 舊日期 → 沿用前值
+            continue  # 已有資料 → 沿用前值;新日期或先前為 null → 重新抓取
         day = bcs._qfiis_day(dt)  # {code: pct}
         if day:
             fetched += 1

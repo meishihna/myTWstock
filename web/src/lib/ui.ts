@@ -1,7 +1,7 @@
-/** 介面用：中文為主，括號內英文。 */
+/** 介面用：純繁體中文(原「中文（English）」並列已移除;保留 en 參數相容呼叫端)。 */
 
-export function bi(zh: string, en: string): string {
-  return `${zh}（${en}）`;
+export function bi(zh: string, _en?: string): string {
+  return zh;
 }
 
 export const SITE = {
@@ -35,7 +35,7 @@ export const HOME = {
   searchLabel: bi("搜尋代號或公司名", "Search ticker or company"),
   searchPlaceholder: "2330、台積電 / TSMC…",
   sectorList: bi("產業列表", "Sectors"),
-  filesUnit: bi("檔", "reports"),
+  filesUnit: "檔",
   noResults: bi("沒有符合的項目", "No matches"),
   indexLoading: bi("正在載入公司索引…", "Loading company index…"),
   indexError: bi("無法載入搜尋索引，請重新整理頁面。", "Could not load search index. Refresh the page."),
@@ -235,11 +235,8 @@ export const THEMES_PAGE = {
 /** 視覺化地圖（/map）：題材熱力圖 + 產業地圖卡牆 */
 export const MAP_PAGE = {
   nav: "地圖",
-  title: bi("產業地圖", "Industry map"),
-  lead: bi(
-    "視覺綜覽題材與供應鏈：熱力圖看當日題材漲跌，產業地圖點進各題材的上中下游與成分股。",
-    "Visual overview of themes & supply chains — heatmap for today's moves, map to drill into each theme."
-  ),
+  title: "產業地圖",
+  lead: "視覺綜覽題材與供應鏈：熱力圖看當日題材漲跌，產業地圖點進各題材的上中下游與成分股。",
   tabHeatmap: "熱力圖",
   tabIndustry: "主題",
   heatmapHint: "磚塊大小＝題材成交額，顏色＝成交額加權漲跌（紅漲綠跌）。可切日／週／月;點題材進入供應鏈地圖。",

@@ -6,7 +6,7 @@ import Layout from "../layouts/Layout.astro";
   <main class="cmp">
     <header class="cmp__head">
       <div>
-        <h1 class="cmp__h1">個股比較 <span class="cmp__en">Compare</span></h1>
+        <h1 class="cmp__h1">個股比較</h1>
         <p class="cmp__intro">並排比較估值、獲利、成長與風險。每列 <span class="cmp__legend">◆ 較優值</span> 以金色標示;網址 <code>?tickers=2330,2317</code> 可分享。</p>
       </div>
     </header>
@@ -59,7 +59,7 @@ import Layout from "../layouts/Layout.astro";
         { k: "eps", label: "EPS(元)", dir: "hi", fmt: f2 },
       ]},
       { h: "成長 Growth", items: [
-        { k: "revYoy", label: "營收YoY%", dir: "hi", fmt: f1 },
+        { k: "revYoy", label: "年營收YoY%", dir: "hi", fmt: f1 },
       ]},
       { h: "風險 Risk", items: [
         { k: "beta", label: "Beta", dir: "", fmt: f2 },
@@ -125,7 +125,9 @@ import Layout from "../layouts/Layout.astro";
             const v = num(index[t]?.[m.k]);
             const on = best.has(t);
             const mark = on ? `<span class="cmp__mk">◆</span>` : "";
-            return `<td class="cmp__v${on ? " is-best" : ""}">${v == null ? "—" : mark + m.fmt(v)}</td>`;
+            const est = m.k === "mc" && index[t]?.me ? "~" : "";
+            const tt = est ? ` title="市值為估算(本益比×淨利)"` : "";
+            return `<td class="cmp__v${on ? " is-best" : ""}"${tt}>${v == null ? "—" : mark + est + m.fmt(v)}</td>`;
           }).join("");
           return `<tr><th class="cmp__rlabel">${m.label}</th>${tds}</tr>`;
         }).join("");

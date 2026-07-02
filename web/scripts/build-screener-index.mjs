@@ -20,6 +20,7 @@ const IDX = path.join(WEB, "public", "data", "reports-index.json");
 const FIN_STORE_DIR = path.join(REPO_ROOT, "data", "financials_store");
 const FIN_PUBLIC_DIR = path.join(WEB, "public", "data", "financials");
 const OUT = path.join(WEB, "public", "data", "screener-index.json");
+const VAL_IDX = path.join(WEB, "public", "data", "valuation-index.json");
 
 function readFin(ticker) {
   const storePath = path.join(FIN_STORE_DIR, `${ticker}.json`);
@@ -58,6 +59,18 @@ function main() {
     return;
   }
   const byTicker = (JSON.parse(readFileSync(IDX, "utf8")).byTicker) || {};
+
+  // 官方 TWSE/TPEx 估值(valuation-index:pe/pb/殖利率/beta,涵蓋最廣 ~1733 檔)。
+  // financials_store 的 yfinance 估值對台股中小型覆蓋差 → 以官方為優先、yfinance 為輔。
+  let valIndex = {};
+  if (existsSync(VAL_IDX)) {
+    try {
+      valIndex = JSON.parse(readFileSync(VAL_IDX, "utf8")).rows || {};
+    } catch {
+      /* ignore */
+    }
+  }
+
   const rows = [];
 
   for (const ticker of Object.keys(byTicker)) {
@@ -67,6 +80,7 @@ function main() {
     const ann = data.annual;
     if (!ann?.periods || !ann.series) continue;
     const val = data.valuation || {};
+    const vi = valIndex[ticker] || {}; // 官方估值(優先)
     const rev = latest(ann.periods, ann.series, "Revenue");
     const gm = latest(ann.periods, ann.series, "Gross Margin (%)");
     const om = latest(ann.periods, ann.series, "Operating Margin (%)");
@@ -84,19 +98,44 @@ function main() {
       if (prev) revYoy = Math.round((cur / prev - 1) * 1000) / 10;
     }
 
+    const peV = num(vi.pe) ?? num(val["P/E (TTM)"]);
+    const pbV = num(vi.pb) ?? num(val["P/B"]);
+    const revV = rev ? rev.value : null;
+    const nmV = nm ? nm.value : null;
+    // 市值:優先真實(financials_store);缺則以 本益比 × 淨利(=營收×淨利率)近似,標記 me:1(估算)。
+    // pe=股價/EPS=市值/淨利 → 市值≈pe×淨利。僅在有正本益比與正淨利時推算(虧損無 pe)。
+    let mc = num(data.marketCap);
+    let mcEst;
+    // 極端本益比(如近零盈餘造成 pe 破千)時,官方 pe 與年度淨利基準不一致,估算會嚴重失真 → 只在 pe≤100 時估。
+    if (mc == null && peV != null && peV > 0 && peV <= 100 && revV != null && nmV != null && nmV > 0) {
+      mc = Math.round((peV * revV * nmV) / 100);
+      mcEst = 1;
+    }
+
     rows.push({
       t: ticker,
       n: meta.name,
       s: meta.sector,
       it: data.industryType || "general",
-      mc: num(data.marketCap),
-      pe: num(val["P/E (TTM)"]),
+      mc,
+      me: mcEst,
+      pe: peV,
       fpe: num(val["Forward P/E"]),
-      ps: num(val["P/S (TTM)"]),
-      pb: num(val["P/B"]),
+      // P/S 缺則以 市值/營收 補(市值為估算時 P/S 亦為估算)
+      ps:
+        num(val["P/S (TTM)"]) ??
+        (mc != null && revV != null && revV > 0
+          ? Math.round((mc / revV) * 100) / 100
+          : null),
+      pb: pbV,
       ev: num(val["EV/EBITDA"]),
-      roe: num(val["ROE"]),
-      beta: num(val["Beta"]),
+      // ROE 缺則以 P/B÷P/E 補(恆等式:ROE=EPS/每股淨值=pb/pe;需正 pe、pb)
+      roe:
+        num(val["ROE"]) ??
+        (peV != null && peV > 0 && pbV != null && pbV > 0
+          ? Math.round((pbV / peV) * 1000) / 10
+          : null),
+      beta: num(vi.beta) ?? num(val["Beta"]),
       de: num(val["Debt/Equity"]),
       rev: rev ? rev.value : null,
       gm: gm ? gm.value : null,

@@ -41,8 +41,10 @@ const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.
           <li>
             <a href={`/report/${m.t}`}>
               <span class="tm-rank">{i + 1}</span>
-              <span class="tm-name">{m.n}</span>
-              <span class="tm-tk">{m.t}</span>
+              <span class="tm-id">
+                <span class="tm-name">{m.n}</span>
+                <span class="tm-tk">{m.t}</span>
+              </span>
               <span class="tm-price">{fmtP(m.price)}</span>
               <span class="tm-pct up">+{m.pct.toFixed(2)}%</span>
             </a>
@@ -55,8 +57,10 @@ const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.
           <li>
             <a href={`/report/${m.t}`}>
               <span class="tm-rank">{i + 1}</span>
-              <span class="tm-name">{m.n}</span>
-              <span class="tm-tk">{m.t}</span>
+              <span class="tm-id">
+                <span class="tm-name">{m.n}</span>
+                <span class="tm-tk">{m.t}</span>
+              </span>
               <span class="tm-price">{fmtP(m.price)}</span>
               <span class="tm-pct down">{m.pct.toFixed(2)}%</span>
             </a>
@@ -104,11 +108,12 @@ const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.
 
   .tm-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 1.8rem; }
   .tm-list li { break-inside: avoid; }
-  .tm-list a { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto auto auto; align-items: baseline; gap: 0.5rem; padding: 0.42rem 0; text-decoration: none; border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+  .tm-list a { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto auto; align-items: baseline; gap: 0.5rem; padding: 0.42rem 0; text-decoration: none; border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
   .tm-list li:first-child a { border-top: none; }
   .tm-rank { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--muted); text-align: right; }
+  .tm-id { display: flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
   .tm-name { color: var(--text); font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tm-tk { font-family: ui-monospace, monospace; font-size: 0.74rem; color: var(--accent); }
+  .tm-tk { flex: 0 0 auto; font-family: ui-monospace, monospace; font-size: 0.74rem; color: var(--accent); }
   .tm-price { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; font-size: 0.84rem; color: var(--text-secondary); text-align: right; }
   .tm-pct { font-variant-numeric: tabular-nums; font-size: 0.84rem; font-weight: 600; text-align: right; min-width: 4.6em; }
   .tm-pct.up { color: var(--up); }

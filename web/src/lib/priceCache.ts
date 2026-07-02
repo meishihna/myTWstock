@@ -323,6 +323,125 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
   return merged;
 }
 
+/** 自選股小卡用:當日盤中分時走勢 + 最新報價 + 市場狀態(盤中/收盤) */
+export interface MiniQuote {
+  /** 當日 5 分收盤序列(去 null),供 sparkline */
+  points: number[];
+  /**
+   * 與 points 對齊的 X 座標比例(0..1):依每點時間在當日盤中時段[09:00,13:30]的位置計算。
+   * 盤中資料只到現在 → 線只走到對應比例;收盤後接近 1 → 幾乎填滿整寬。
+   * 時段或時間戳缺失時為空陣列(前端退回等距)。
+   */
+  xs: number[];
+  /** 最新價:盤中＝最新成交,收盤後＝當日收盤(Yahoo regularMarketPrice) */
+  latest: number;
+  /** 前一交易日收盤 */
+  prevClose: number;
+  change: number;
+  changePct: number;
+  /** Yahoo marketState:REGULAR＝盤中;其餘(CLOSED/POST…)＝收盤 */
+  state: string;
+  /** regularMarketTime ISO */
+  time: string | null;
+}
+
+const miniCache = new Map<string, { data: MiniQuote | null; ts: number }>();
+
+/** 盤中分時(5 分 K,range=1d)＋最新報價;5 分鐘記憶體快取。 */
+export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
+  if (!/^\d{4}$/.test(ticker)) return null;
+  const now = Date.now();
+  const hit = miniCache.get(ticker);
+  if (hit && now - hit.ts < TTL_MS) return hit.data;
+
+  for (const suffix of [".TW", ".TWO"] as const) {
+    try {
+      const symbol = `${ticker}${suffix}`;
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TWstock/1.0)" },
+      });
+      if (!res.ok) continue;
+      const json = (await res.json()) as YahooChartJson;
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+      const meta = (result.meta || {}) as Record<string, unknown>;
+      const rawClose = result.indicators?.quote?.[0]?.close || [];
+      const rawTs = (result as { timestamp?: number[] }).timestamp || [];
+
+      // 盤中時段[start,end](TWSE 約 09:00–13:30):用於把每個點依「當日時間位置」定 X 座標。
+      const reg = (
+        meta.currentTradingPeriod as { regular?: { start?: number; end?: number } } | undefined
+      )?.regular;
+      const segStart = reg?.start;
+      const segEnd = reg?.end;
+      const hasSeg =
+        typeof segStart === "number" && typeof segEnd === "number" && segEnd > segStart;
+
+      const points: number[] = [];
+      const xs: number[] = [];
+      for (let i = 0; i < rawClose.length; i++) {
+        const v = rawClose[i];
+        if (v == null || !Number.isFinite(Number(v))) continue;
+        points.push(Math.round(Number(v) * 100) / 100);
+        if (hasSeg && typeof rawTs[i] === "number") {
+          let f = (rawTs[i]! - segStart!) / (segEnd! - segStart!);
+          f = f < 0 ? 0 : f > 1 ? 1 : f;
+          xs.push(Math.round(f * 1000) / 1000);
+        }
+      }
+      // 時段或時間戳缺失 → 無法時間定位,清空 xs(前端退回等距)
+      if (xs.length !== points.length) xs.length = 0;
+
+      const prevClose =
+        Math.round(
+          Number(
+            (meta.chartPreviousClose as number) ??
+              (meta.previousClose as number) ??
+              0,
+          ) * 100,
+        ) / 100;
+      const latestRaw =
+        (meta.regularMarketPrice as number) ??
+        (points.length ? points[points.length - 1]! : prevClose);
+      const latest = Math.round(Number(latestRaw) * 100) / 100;
+      if (!Number.isFinite(latest) || latest <= 0) continue;
+
+      let change = prevClose > 0 ? Math.round((latest - prevClose) * 100) / 100 : 0;
+      let changePct = prevClose > 0 ? Math.round((change / prevClose) * 10000) / 100 : 0;
+      // 前收異常(遠超台股 ±10% 漲跌停 → 明顯壞值,如曾見的錯誤前收)→ 視為無效,只顯示價、不顯示假漲跌
+      if (prevClose <= 0 || Math.abs(changePct) > 20) {
+        change = 0;
+        changePct = 0;
+      }
+
+      // 盤中判斷:現在時間落在 regular 時段內＝盤中,否則＝收盤。
+      const nowSec = Date.now() / 1000;
+      const state =
+        hasSeg && nowSec >= segStart! && nowSec < segEnd!
+          ? "REGULAR"
+          : "CLOSED";
+
+      const data: MiniQuote = {
+        points,
+        xs,
+        latest,
+        prevClose,
+        change,
+        changePct,
+        state,
+        time: marketTimeToIso(meta),
+      };
+      miniCache.set(ticker, { data, ts: now });
+      return data;
+    } catch {
+      continue;
+    }
+  }
+  miniCache.set(ticker, { data: null, ts: now });
+  return null;
+}
+
 export interface Bar {
   /** YYYY-MM-DD */
   time: string;

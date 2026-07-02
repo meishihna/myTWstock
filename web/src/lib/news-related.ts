@@ -330,6 +330,24 @@ function normalizeCompanyNameFromAnnouncement(raw: string): string {
     .trim();
 }
 
+/**
+ * 新聞正文「…（1234）」括號前若為連續中文，貪婪比對常把敘事碎片一起吃進
+ * （例：「相關產品主要流向泰山」「同樣也是油品公司的大統益」）。
+ * 以常見連接詞／動詞／助詞切段，取最後一段當公司簡稱；長度須 2–6 字，
+ * 否則回傳空字串（讓顯示回退到行情簡稱／代號，不顯示碎片）。
+ * 僅收窄「名稱」，代號本身仍會被解析為相關個股。
+ */
+const NEWS_NAME_SPLIT_RE =
+  /旗下|股東|客戶|供應商|子公司|母公司|廠商|業者|同業|龍頭|對手|夥伴|[其之的向往為及與或等流也讓使約逾較並而但就給含供把被將對從]/;
+export function cleanNewsParenName(raw: string): string {
+  const s = (raw || "").trim();
+  if (!s) return "";
+  const parts = s.split(NEWS_NAME_SPLIT_RE).filter(Boolean);
+  const last = parts.length ? parts[parts.length - 1] : "";
+  if (last.length < 2 || last.length > 6) return "";
+  return last;
+}
+
 /** 括號前誤判為公司簡稱（新聞體「耀穎（7772）」除外） */
 const NEWS_PAREN_NAME_BLOCKLIST = new Set<string>([
   "本公司",
@@ -456,13 +474,16 @@ function extractExplicitLabeledMeta(text: string): {
     const zhRaw = (m[1] || "").trim();
     const t = m[2];
     if (!/^\d{4}$/.test(t) || !zhRaw) continue;
-    if (NEWS_PAREN_NAME_BLOCKLIST.has(zhRaw)) continue;
     if (/公司名稱|主旨|說明[:：]/.test(zhRaw)) continue;
     if (isLikelyYearInParenNoise(t, zhRaw)) continue;
+    // 收窄名稱：切掉括號前被一起吃進的敘事碎片，取乾淨簡稱
+    const zhName = cleanNewsParenName(zhRaw);
+    if (!zhName) continue;
+    if (NEWS_PAREN_NAME_BLOCKLIST.has(zhName)) continue;
     if (seen.has(t)) continue;
     seen.add(t);
     tickers.push(t);
-    displayZhByTicker[t] = zhRaw;
+    displayZhByTicker[t] = zhName;
   }
 
   const tailPatterns: RegExp[] = [

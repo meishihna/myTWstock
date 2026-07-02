@@ -167,34 +167,37 @@
   font-size: 0.72rem;
 }
 
-/* 外資卡:左買賣超／右外資持股比率(寬卡左右分欄) */
+/* 外資卡:上=買賣超(與其他三卡相同的直式),下=外資持股比率小字副行。
+   4 欄 grid 下每卡僅約 ¼ 寬,故不採左右分欄(會擠壓),改為底部副行。 */
 [data-fin-panel="chips"] .fin-dash__kpi-card--split {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
 }
 [data-fin-panel="chips"] .chips-split-main {
-  min-width: 0;
+  /* 讓「外資」標籤與買賣超數字直接成為卡片欄位,呈現同其他卡 */
+  display: contents;
 }
 [data-fin-panel="chips"] .chips-hold {
-  flex: none;
-  text-align: right;
-  border-left: 1px solid rgba(255, 255, 255, 0.09);
-  padding-left: 12px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 1px 6px;
+  margin-top: auto;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+[data-fin-panel="chips"] .chips-hold .fin-dash__kpi-label {
+  font-size: 0.68rem;
 }
 [data-fin-panel="chips"] .chips-hold-pct {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 500;
+  font-size: 0.98rem;
+  font-weight: 600;
   color: #ededed;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 [data-fin-panel="chips"] .chips-hold-chg {
-  display: block;
-  font-size: 0.72rem;
-  margin-top: 3px;
+  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
 }
 
