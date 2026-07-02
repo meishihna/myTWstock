@@ -136,6 +136,16 @@ function lineChartSvg(
   includeZero = true,
   opts?: { fillFirstSeriesArea?: boolean }
 ) {
+  // %-圖防呆:比率(利潤率/YoY/占比)÷近零營收會爆成 -238 萬% 之類,污染 Y 軸與折線。
+  // 單位為 % 時,|值| > 1000% 視為基期失真 → 以 null 略過(不畫點、不納入軸範圍)。
+  if (unit === "%") {
+    specs = specs.map((s) => ({
+      ...s,
+      values: s.values.map((v) =>
+        v == null || !Number.isFinite(v) || Math.abs(v) > 1000 ? null : v,
+      ),
+    }));
+  }
   const seriesList = specs.map((s) => ({ values: s.values }));
   const geo = computeLineGeometry(
     xLabels,
@@ -432,6 +442,13 @@ function stackedExpensePctSvg(
     const pa = s != null && Number.isFinite(s) ? (s / r) * 100 : 0;
     const pb = d != null && Number.isFinite(d) ? (d / r) * 100 : 0;
     const pc = g != null && Number.isFinite(g) ? (g / r) * 100 : 0;
+    // 防呆:營收近零(正值)時費用率會爆(如 1 萬%),總費用率 > 1000% 視為失真 → 該期略過
+    if (pa + pb + pc > 1000) {
+      segA.push(null);
+      segB.push(null);
+      segC.push(null);
+      continue;
+    }
     segA.push(pa);
     segB.push(pb);
     segC.push(pc);
@@ -817,6 +834,13 @@ let monthlyKpis: MonthlyKpi[] = [];
 
 if (monthly) {
   const mLabels = monthly.periods.map((p) => p.slice(2).replace("-", "/"));
+  // 月營收 YoY 防呆:建設股某些月營收近零、金融/證券月營收可為負,YoY 會除以近零/負數而爆掉
+  // (曾見 16 萬%)。|YoY| > 1000% 視為基期失真 → 當作無資料(KPI 顯示 —、折線圖留空)。
+  const YOY_CAP = 1000;
+  const saneYoy = (v: number | null | undefined): number | null =>
+    v == null || !Number.isFinite(v) || Math.abs(v) > YOY_CAP ? null : v;
+  const mYoy = (monthly.yoy || []).map(saneYoy);
+  const mCumYoy = (monthly.cumYoy || []).map(saneYoy);
   mRevBars = barChartMillion(mLabels, monthly.revenue, "月營收（Monthly revenue）", "#E24B4A", {
     stroke: "#E24B4A",
     fillOpacity: 0.5,
@@ -824,14 +848,14 @@ if (monthly) {
   });
   mRevBars.bars = mRevBars.bars.map((b, i) => {
     if (!b) return b;
-    const yv = monthly.yoy[i];
+    const yv = mYoy[i];
     const neg = yv != null && Number.isFinite(yv) && yv < 0;
     return { ...b, fill: neg ? "#1D9E75" : "#E24B4A", stroke: neg ? "#1D9E75" : "#E24B4A" };
   });
-  if (monthly.yoy.some((v) => v != null && Number.isFinite(v))) {
+  if (mYoy.some((v) => v != null && Number.isFinite(v))) {
     mYoyLine = lineChartSvg(
       mLabels,
-      [{ name: "月營收 YoY", values: monthly.yoy, color: "#BA7517" }],
+      [{ name: "月營收 YoY", values: mYoy, color: "#BA7517" }],
       "%",
       "月營收年增率 YoY",
       true
@@ -842,20 +866,20 @@ if (monthly) {
     v == null || !Number.isFinite(v) ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
   const trendOf = (v: number | null | undefined): "up" | "down" | undefined =>
     v == null || !Number.isFinite(v) ? undefined : v >= 0 ? "up" : "down";
-  const r3 = monthly.yoy.slice(-3).filter((v): v is number => v != null && Number.isFinite(v));
+  const r3 = mYoy.slice(-3).filter((v): v is number => v != null && Number.isFinite(v));
   const avg3 = r3.length ? r3.reduce((a, b) => a + b, 0) / r3.length : null;
   monthlyKpis = [
     {
       label: `最新月營收（${monthly.periods[li]}）`,
       value: monthly.revenue[li] != null ? `${fmtM(monthly.revenue[li]!)} M` : "—",
-      delta: monthly.yoy[li] != null ? `YoY ${fmtPct(monthly.yoy[li])}` : undefined,
-      trend: trendOf(monthly.yoy[li]),
+      delta: mYoy[li] != null ? `YoY ${fmtPct(mYoy[li])}` : undefined,
+      trend: trendOf(mYoy[li]),
     },
     {
       label: "今年累計營收",
       value: monthly.cum[li] != null ? `${fmtM(monthly.cum[li]!)} M` : "—",
-      delta: monthly.cumYoy[li] != null ? `累計YoY ${fmtPct(monthly.cumYoy[li])}` : undefined,
-      trend: trendOf(monthly.cumYoy[li]),
+      delta: mCumYoy[li] != null ? `累計YoY ${fmtPct(mCumYoy[li])}` : undefined,
+      trend: trendOf(mCumYoy[li]),
     },
     {
       label: "近 3 月平均 YoY",

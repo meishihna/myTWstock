@@ -39,10 +39,10 @@ import Layout from "../layouts/Layout.astro";
       `<div class="wl__m"><dt>${label}</dt><dd class="${cls}">${val}</dd></div>`;
     const yoyMetric = (v: unknown) => {
       const n = num(v);
-      if (n == null) return metric("營收 YoY%", "—");
+      if (n == null) return metric("年營收 YoY%", "—");
       const cls = n > 0 ? "is-pos" : n < 0 ? "is-neg" : "";
       const arrow = n > 0 ? "▲" : n < 0 ? "▼" : "";
-      return metric("營收 YoY%", `${arrow}${Math.abs(n).toFixed(1)}`, "wl__chg " + cls);
+      return metric("年營收 YoY%", `${arrow}${Math.abs(n).toFixed(1)}`, "wl__chg " + cls);
     };
 
     const $ = (id: string) => document.getElementById(id);

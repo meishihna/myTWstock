@@ -22,7 +22,7 @@ import Layout from "../layouts/Layout.astro";
       <label class="scr-flab">P/E ≤ <input id="scr-pe" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
       <label class="scr-flab">ROE% ≥ <input id="scr-roe" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
       <label class="scr-flab">毛利率% ≥ <input id="scr-gm" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
-      <label class="scr-flab">營收YoY% ≥ <input id="scr-yoy" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
+      <label class="scr-flab">年營收YoY% ≥ <input id="scr-yoy" class="scr-num" type="number" step="any" inputmode="decimal" /></label>
       <button id="scr-reset" class="scr-reset" type="button">重設</button>
       <span id="scr-count" class="scr-count" role="status"></span>
     </div>
@@ -52,7 +52,7 @@ import Layout from "../layouts/Layout.astro";
       { k: "gm", label: "毛利率%", num: true, fmt: (v) => v.toFixed(1) },
       { k: "nm", label: "淨利率%", num: true, fmt: (v) => v.toFixed(1) },
       { k: "eps", label: "EPS", num: true, fmt: (v) => v.toFixed(2) },
-      { k: "revYoy", label: "營收YoY%", num: true, fmt: (v) => v.toFixed(1) },
+      { k: "revYoy", label: "年營收YoY%", num: true, fmt: (v) => v.toFixed(1) },
     ];
     const MAX_SHOW = 500;
 
