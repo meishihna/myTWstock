@@ -153,15 +153,50 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
       });
     }
 
+    // 前端關鍵字搜尋:載入一次靜態索引(CDN,線上可用),於瀏覽器內比對。
+    // (原本打 /api/discover 在請求時讀 Pilot_Reports/*.md,Vercel serverless 讀不到 → 線上失效)
+    var searchRows = null;
+    function loadIndex() {
+      if (searchRows) return Promise.resolve(searchRows);
+      return fetch("/data/search-index.json")
+        .then(function (r) {
+          if (!r.ok) throw new Error("idx");
+          return r.json();
+        })
+        .then(function (j) {
+          searchRows = j.rows || [];
+          return searchRows;
+        });
+    }
+    function clientSearch(rows, q) {
+      var ql = q.toLowerCase();
+      var results = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var text = r.x || "";
+        var pos = text.indexOf(q);
+        if (pos < 0) pos = text.toLowerCase().indexOf(ql);
+        if (pos < 0) continue;
+        var start = Math.max(0, pos - 50);
+        var excerpt =
+          (start > 0 ? "…" : "") +
+          text.slice(start, start + 180).replace(/\s+/g, " ").trim() +
+          (start + 180 < text.length ? "…" : "");
+        results.push({ ticker: r.t, name: r.n, sector: r.s, sectorSlug: r.ss, excerpt: excerpt });
+        if (results.length >= 150) break;
+      }
+      results.sort(function (a, b) {
+        return a.ticker.localeCompare(b.ticker);
+      });
+      return { query: q, count: results.length, results: results };
+    }
     function run(q) {
       status.textContent = DISCOVER_PAGE.searching;
       list.hidden = true;
-      fetch("/api/discover?q=" + encodeURIComponent(q))
-        .then(function (r) {
-          if (!r.ok) throw new Error("bad");
-          return r.json();
+      loadIndex()
+        .then(function (rows) {
+          render(clientSearch(rows, q));
         })
-        .then(render)
         .catch(function () {
           status.textContent = DISCOVER_PAGE.apiError;
           list.hidden = true;
