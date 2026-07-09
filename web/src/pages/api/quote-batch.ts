@@ -26,6 +26,7 @@ function extractRow(o: Record<string, unknown>, symbol: string): QuoteBatchRow {
     changePct = Math.round(((price - prev) / prev) * 10000) / 100;
   }
 
+  const vol = o.regularMarketVolume as number | undefined;
   return {
     symbol,
     shortName: o.shortName as string | undefined,
@@ -33,6 +34,7 @@ function extractRow(o: Record<string, unknown>, symbol: string): QuoteBatchRow {
     price: typeof price === "number" ? price : null,
     previousClose: typeof prev === "number" ? prev : null,
     changePct,
+    volume: typeof vol === "number" && Number.isFinite(vol) ? vol : null,
   };
 }
 

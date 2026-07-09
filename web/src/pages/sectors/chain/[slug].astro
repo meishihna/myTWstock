@@ -309,10 +309,16 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   type Stat = { d: number[]; w: number[]; m: number[] };
   const stats: Record<string, Stat> = {};
   const pct: Record<string, number> = {}; // 即時延遲報價(quote-batch)的當日漲跌%
+  const px: Record<string, number> = {};  // 即時價
+  const vol: Record<string, number> = {}; // 即時累積成交量(股)
   let period: "d" | "w" | "m" = "d";
-  // 日線漲跌優先用即時延遲報價;週/月無即時對應,用 CI 快照
+  // 日線漲跌/成交額優先用即時延遲報價;週/月無即時對應,用 CI 快照
   const effChg = (t: string, s: Stat): number =>
     period === "d" && typeof pct[t] === "number" && isFinite(pct[t]) ? pct[t] : s[period][0];
+  const effTov = (t: string, s: Stat): number =>
+    period === "d" && typeof px[t] === "number" && px[t] > 0 && typeof vol[t] === "number" && vol[t] > 0
+      ? (px[t] * vol[t]) / 1e8
+      : s[period][1];
   const hmCons: { t: string; n: string }[] = JSON.parse(document.getElementById("ind-hm-cons")?.textContent || "[]");
   const hmNodes: { node: string; tickers: string[] }[] = JSON.parse(document.getElementById("ind-hm-nodes")?.textContent || "[]");
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -320,7 +326,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   function renderStock() {
     const root = document.getElementById("ind-hm-stock"); if (!root) return;
     const all = hmCons
-      .map((c) => { const s = stats[c.t]; return s && s[period] ? { ...c, chg: effChg(c.t, s), tov: s[period][1], price: (s as Stat & { p?: number }).p ?? null } : null; })
+      .map((c) => { const s = stats[c.t]; return s && s[period] ? { ...c, chg: effChg(c.t, s), tov: effTov(c.t, s), price: (s as Stat & { p?: number }).p ?? null } : null; })
       .filter((c): c is { t: string; n: string; chg: number; tov: number; price: number | null } => !!c && c.tov > 0)
       .sort((a, b) => b.tov - a.tov);
     // 門檻:成交額 >= 最大值 1%(去碎尾巴),上限 50 檔;固定高度、由大到小排列
@@ -345,7 +351,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     for (const t of g.tickers) {
       if (seen.has(t)) continue; seen.add(t);
       const s = stats[t]; if (!s || !s[period]) continue;
-      const chg = effChg(t, s), tv = s[period][1];
+      const chg = effChg(t, s), tv = effTov(t, s);
       if (typeof tv === "number" && tv > 0) { tov += tv; if (typeof chg === "number" && isFinite(chg)) { wsum += tv; psum += tv * chg; } }
     }
     return { tov, chg: wsum > 0 ? psum / wsum : null };
@@ -388,7 +394,10 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
       if (!r || !r.quotes) continue;
       for (const k of Object.keys(r.quotes)) {
         const v = r.quotes[k];
-        if (v && typeof v.changePct === "number" && isFinite(v.changePct)) { pct[k] = v.changePct; any = true; }
+        if (!v) continue;
+        if (typeof v.changePct === "number" && isFinite(v.changePct)) { pct[k] = v.changePct; any = true; }
+        if (typeof v.price === "number" && isFinite(v.price)) { px[k] = v.price; any = true; }
+        if (typeof v.volume === "number" && isFinite(v.volume)) vol[k] = v.volume;
       }
     }
     if (any) renderAll();
