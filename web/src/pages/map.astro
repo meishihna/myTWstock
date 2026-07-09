@@ -197,7 +197,9 @@ export const prerender = true;
         if (seen.has(c.t)) continue; seen.add(c.t);
         const s = statsByTicker[c.t]; if (!s) continue;
         const arr = s[hmPeriod]; if (!arr) continue;
-        const chg = arr[0], tv = arr[1];
+        // 日線漲跌優先用即時延遲報價(quote-batch);週/月無即時對應,用 CI 快照
+        const live = hmPeriod === "d" && typeof pctByTicker[c.t] === "number" && isFinite(pctByTicker[c.t]) ? pctByTicker[c.t] : null;
+        const chg = live != null ? live : arr[0], tv = arr[1];
         if (typeof tv === "number" && tv > 0) {
           tov += tv;
           if (typeof chg === "number" && isFinite(chg)) { wsum += tv; psum += tv * chg; }
@@ -373,7 +375,7 @@ export const prerender = true;
     // 卡片 pct 徽章:即時報價(quote-batch),抓完重繪卡牆
     async function loadGallery() {
       const { any } = await loadQuotes();
-      if (any) renderThemes();
+      if (any) { renderThemes(); renderHeatmap(); } // 即時報價到手後,題材熱力圖也以最新日線漲跌重新上色
     }
 
     function initHmPeriod() {
