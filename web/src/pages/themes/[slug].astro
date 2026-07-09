@@ -348,7 +348,11 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       const withTov = cons
         .map((c) => {
           const s = stats[c.t];
-          return s ? { ...c, chg: s[period][0], tov: s[period][1] } : null;
+          if (!s) return null;
+          // 日線顏色優先用即時延遲報價(quote-batch);週/月無即時對應,用 CI 快照
+          const live =
+            period === "d" && typeof pct[c.t] === "number" && isFinite(pct[c.t]) ? pct[c.t] : null;
+          return { ...c, chg: live != null ? live : s[period][0], tov: s[period][1] };
         })
         .filter((c): c is Con & { chg: number; tov: number } => !!c && c.tov > 0)
         .sort((a, b) => b.tov - a.tov)
@@ -419,6 +423,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
         }
       }
       fillCards();
+      renderHm(); // 即時報價到手後,以最新日線漲跌重新上色熱力圖
     }
 
     function initHmPeriod() {
