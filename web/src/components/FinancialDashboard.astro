@@ -138,13 +138,14 @@ function lineChartSvg(
   includeZero = true,
   opts?: { fillFirstSeriesArea?: boolean }
 ) {
-  // %-圖防呆:比率(利潤率/YoY/占比)÷近零營收會爆成 -238 萬% 之類,污染 Y 軸與折線。
-  // 單位為 % 時,|值| > 1000% 視為基期失真 → 以 null 略過(不畫點、不納入軸範圍)。
+  // %-圖防呆:比率(利潤率/YoY/占比)÷近零營收會爆成數千%,污染 Y 軸與折線。
+  // 單位為 % 時,|值| > 500% 視為基期失真 → 以 null 略過(不畫點、不納入軸範圍;
+  // 合法高成長年/季 YoY 幾乎都 <500%,超過多為近零基期造成)。
   if (unit === "%") {
     specs = specs.map((s) => ({
       ...s,
       values: s.values.map((v) =>
-        v == null || !Number.isFinite(v) || Math.abs(v) > 1000 ? null : v,
+        v == null || !Number.isFinite(v) || Math.abs(v) > 500 ? null : v,
       ),
     }));
   }
@@ -444,8 +445,8 @@ function stackedExpensePctSvg(
     const pa = s != null && Number.isFinite(s) ? (s / r) * 100 : 0;
     const pb = d != null && Number.isFinite(d) ? (d / r) * 100 : 0;
     const pc = g != null && Number.isFinite(g) ? (g / r) * 100 : 0;
-    // 防呆:營收近零(正值)時費用率會爆(如 1 萬%),總費用率 > 1000% 視為失真 → 該期略過
-    if (pa + pb + pc > 1000) {
+    // 防呆:營收近零(正值)時費用率會爆(如 1 萬%),總費用率 > 500% 視為失真 → 該期略過
+    if (pa + pb + pc > 500) {
       segA.push(null);
       segB.push(null);
       segC.push(null);
@@ -837,8 +838,8 @@ let monthlyKpis: MonthlyKpi[] = [];
 if (monthly) {
   const mLabels = monthly.periods.map((p) => p.slice(2).replace("-", "/"));
   // 月營收 YoY 防呆:建設股某些月營收近零、金融/證券月營收可為負,YoY 會除以近零/負數而爆掉
-  // (曾見 16 萬%)。|YoY| > 1000% 視為基期失真 → 當作無資料(KPI 顯示 —、折線圖留空)。
-  const YOY_CAP = 1000;
+  // (曾見 16 萬%)。|YoY| > 500% 視為基期失真 → 當作無資料(KPI 顯示 —、折線圖留空)。
+  const YOY_CAP = 500;
   const saneYoy = (v: number | null | undefined): number | null =>
     v == null || !Number.isFinite(v) || Math.abs(v) > YOY_CAP ? null : v;
   const mYoy = (monthly.yoy || []).map(saneYoy);

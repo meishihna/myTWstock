@@ -206,15 +206,18 @@ function coerceValuationRoePercent(raw: unknown): number | null {
   return Number.isFinite(x) ? x : null;
 }
 
+// 近零基期(某年營收/獲利趨近 0)會讓 YoY 爆成數千%(失真)→ 超過 ±500% 視為不可靠,不顯示差值。
+const YOY_DELTA_CAP = 500;
+
 function fmtDeltaPct(n: number | null): { text: string; trend: "up" | "down" | "flat" } | null {
-  if (n == null || !Number.isFinite(n)) return null;
+  if (n == null || !Number.isFinite(n) || Math.abs(n) > YOY_DELTA_CAP) return null;
   const t = n > 0.05 ? "up" : n < -0.05 ? "down" : "flat";
   const sign = n > 0 ? "▲" : n < 0 ? "▼" : "—";
   return { text: `${sign} ${Math.abs(n).toFixed(1)}% YoY`, trend: t };
 }
 
 function fmtDeltaPp(n: number | null): { text: string; trend: "up" | "down" | "flat" } | null {
-  if (n == null || !Number.isFinite(n)) return null;
+  if (n == null || !Number.isFinite(n) || Math.abs(n) > YOY_DELTA_CAP) return null;
   const t = n > 0.05 ? "up" : n < -0.05 ? "down" : "flat";
   const sign = n > 0 ? "▲" : n < 0 ? "▼" : "—";
   return { text: `${sign} ${Math.abs(n).toFixed(1)}pp YoY`, trend: t };

@@ -96,6 +96,9 @@ function main() {
       const cur = revArr[revArr.length - 1];
       const prev = revArr[revArr.length - 2];
       if (prev) revYoy = Math.round((cur / prev - 1) * 1000) / 10;
+      // 近零基期年(某年營收趨近 0)會讓年 YoY 爆成數千%(失真)→ 超過 ±500% 視為不可靠,設 null。
+      // 此為所有 revYoy 的唯一源頭;industries/map-index 皆讀此值,故一處修正即全站生效。
+      if (revYoy != null && Math.abs(revYoy) > 500) revYoy = null;
     }
 
     const peV = num(vi.pe) ?? num(val["P/E (TTM)"]);
