@@ -47,8 +47,9 @@ const aria = MARKET_TICKER.ariaRegion;
    * 迷你走勢：點等距，橫向總寬可為當下交易比例（盤中 sessionProgress<1 時線不貼滿全寬）。
    * @param {number} [sessionProgress] 0~1，未傳則 1.0
    * @param {boolean} [isLive] 交易中則圓點帶脈衝
+   * @param {string} [kind] index|fx|commodity|crypto — 決定最小 Y 軸跨距
    */
-  function sparkSvg(points, prevClose, dir, safeId, sessionProgress, isLive) {
+  function sparkSvg(points, prevClose, dir, safeId, sessionProgress, isLive, kind) {
     const w = SPARK_W;
     const h = SPARK_H;
     const pad = SPARK_PAD;
@@ -62,6 +63,15 @@ const aria = MARKET_TICKER.ariaRegion;
     if (prevClose != null && Number.isFinite(prevClose)) {
       min = Math.min(min, prevClose);
       max = Math.max(max, prevClose);
+    }
+    // 最小 Y 軸跨距：微小漲跌(如 -0.05%)不得被縱向放大成懸崖,
+    // 斜率須與漲跌幅成比例(匯率日波動小,門檻另計)。
+    const mid = (min + max) / 2;
+    const minSpan = Math.abs(mid) * (kind === "fx" ? 0.0015 : 0.005);
+    if (minSpan > 0 && max - min < minSpan) {
+      const grow = (minSpan - (max - min)) / 2;
+      min -= grow;
+      max += grow;
     }
     if (max <= min) {
       min -= 1e-6;
@@ -86,30 +96,42 @@ const aria = MARKET_TICKER.ariaRegion;
     }
     const lastX = xAt(points.length - 1);
     const lastY = yAt(points[points.length - 1]);
-    const area =
-      line +
-      ` L ${lastX} ${h - pad} L ${pad} ${h - pad} Z`;
-    const gradId = ("mk-spark-" + safeId).replace(/[^a-zA-Z0-9_-]/g, "") || "mk-spark-g";
-    let baseline = "";
-    if (prevClose != null && Number.isFinite(prevClose)) {
-      const yp = yAt(prevClose);
-      baseline = `<line class="market-ticker-spark-baseline" x1="${pad}" y1="${yp}" x2="${w - pad}" y2="${yp}" />`;
-    }
+    const idBase =
+      ("mk-spark-" + safeId).replace(/[^a-zA-Z0-9_-]/g, "") || "mk-spark-g";
     const live = Boolean(isLive);
     const dotClass = live
       ? "market-ticker-spark-dot market-ticker-spark-dot--live"
       : "market-ticker-spark-dot";
     const dot = `<circle class="${dotClass}" cx="${lastX}" cy="${lastY}" r="2" fill="${color}" />`;
+    const hasPrev = prevClose != null && Number.isFinite(prevClose);
+
+    if (!hasPrev) {
+      // 無昨收基準 → 單色線(依當日漲跌),面積收至圖底
+      const area = line + ` L ${lastX} ${h - pad} L ${pad} ${h - pad} Z`;
+      return `<svg class="market-ticker-spark market-ticker-spark--${dir}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+<path class="market-ticker-spark-area" d="${area}" fill="${color}" fill-opacity="0.16" stroke="none" />
+<path class="market-ticker-spark-line" d="${line}" fill="none" stroke="${color}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+${dot}
+</svg>`;
+    }
+
+    // 平盤線分色(台股看盤慣例):昨收以上紅、以下綠。
+    // 真實日內走勢原樣保留;面積 = 線與平盤線之間,跨線時上紅下綠各自裁切。
+    const yBase = yAt(prevClose);
+    const baseline = `<line class="market-ticker-spark-baseline" x1="${pad}" y1="${yBase}" x2="${w - pad}" y2="${yBase}" />`;
+    const area = line + ` L ${lastX} ${yBase} L ${xAt(0)} ${yBase} Z`;
+    const upColor = "#e24b4a";
+    const downColor = "#1d9e75";
     return `<svg class="market-ticker-spark market-ticker-spark--${dir}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
 <defs>
-  <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${color}" stop-opacity="0.42"/>
-    <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
-  </linearGradient>
+  <clipPath id="${idBase}-ca"><rect x="0" y="0" width="${w}" height="${yBase}" /></clipPath>
+  <clipPath id="${idBase}-cb"><rect x="0" y="${yBase}" width="${w}" height="${h - yBase}" /></clipPath>
 </defs>
 ${baseline}
-<path class="market-ticker-spark-area" d="${area}" fill="url(#${gradId})" stroke="none" />
-<path class="market-ticker-spark-line" d="${line}" fill="none" stroke="${color}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+<path class="market-ticker-spark-area" d="${area}" fill="${upColor}" fill-opacity="0.18" stroke="none" clip-path="url(#${idBase}-ca)" />
+<path class="market-ticker-spark-area" d="${area}" fill="${downColor}" fill-opacity="0.18" stroke="none" clip-path="url(#${idBase}-cb)" />
+<path class="market-ticker-spark-line" d="${line}" fill="none" stroke="${upColor}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#${idBase}-ca)" />
+<path class="market-ticker-spark-line" d="${line}" fill="none" stroke="${downColor}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#${idBase}-cb)" />
 ${dot}
 </svg>`;
   }
@@ -131,6 +153,7 @@ ${dot}
       uid,
       item.sessionProgress ?? 1.0,
       item.isLive ?? false,
+      item.kind,
     );
     return `<article class="market-ticker-item" data-ticker-id="${sid}">
   <div class="market-ticker-text">
