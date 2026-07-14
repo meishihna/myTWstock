@@ -43,3 +43,4 @@ web/news-snapshot.json
 # 舊財務鏡像（app 已改讀 data/financials_store/；保留磁碟檔但不追蹤）
 web/public/data/financials/
 web/public/data/industries-index.json
+web/public/data/search-index.json

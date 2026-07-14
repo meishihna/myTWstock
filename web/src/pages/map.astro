@@ -86,6 +86,8 @@ export const prerender = true;
     const CHUNK = 110;        // /api/quote-batch 單次上限 120
     let themes: Theme[] = [];
     const pctByTicker: Record<string, number> = {};
+    const pxByTicker: Record<string, number> = {};  // 即時價
+    const volByTicker: Record<string, number> = {}; // 即時累積成交量(股)
 
     // 熱力圖:成交額/漲跌快照(日/週/月)
     type Stat = { d: number[]; w: number[]; m: number[] };
@@ -197,7 +199,10 @@ export const prerender = true;
         if (seen.has(c.t)) continue; seen.add(c.t);
         const s = statsByTicker[c.t]; if (!s) continue;
         const arr = s[hmPeriod]; if (!arr) continue;
-        const chg = arr[0], tv = arr[1];
+        // 日線漲跌與成交額優先用即時延遲報價(quote-batch);週/月無即時對應,用 CI 快照
+        const live = hmPeriod === "d" && typeof pctByTicker[c.t] === "number" && isFinite(pctByTicker[c.t]) ? pctByTicker[c.t] : null;
+        const liveTov = hmPeriod === "d" && typeof pxByTicker[c.t] === "number" && pxByTicker[c.t] > 0 && typeof volByTicker[c.t] === "number" && volByTicker[c.t] > 0 ? (pxByTicker[c.t] * volByTicker[c.t]) / 1e8 : null;
+        const chg = live != null ? live : arr[0], tv = liveTov != null ? liveTov : arr[1];
         if (typeof tv === "number" && tv > 0) {
           tov += tv;
           if (typeof chg === "number" && isFinite(chg)) { wsum += tv; psum += tv * chg; }
@@ -343,7 +348,10 @@ export const prerender = true;
         fetchedAt = res.fetchedAt || fetchedAt;
         for (const k of Object.keys(res.quotes)) {
           const v = res.quotes[k];
-          if (v && typeof v.changePct === "number" && isFinite(v.changePct)) { pctByTicker[k] = v.changePct; any = true; }
+          if (!v) continue;
+          if (typeof v.changePct === "number" && isFinite(v.changePct)) { pctByTicker[k] = v.changePct; any = true; }
+          if (typeof v.price === "number" && isFinite(v.price)) { pxByTicker[k] = v.price; any = true; }
+          if (typeof v.volume === "number" && isFinite(v.volume)) volByTicker[k] = v.volume;
         }
       }
       return { any, fetchedAt };
@@ -373,7 +381,7 @@ export const prerender = true;
     // 卡片 pct 徽章:即時報價(quote-batch),抓完重繪卡牆
     async function loadGallery() {
       const { any } = await loadQuotes();
-      if (any) renderThemes();
+      if (any) { renderThemes(); renderHeatmap(); } // 即時報價到手後,題材熱力圖也以最新日線漲跌重新上色
     }
 
     function initHmPeriod() {

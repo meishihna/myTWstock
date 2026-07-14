@@ -37,8 +37,9 @@ const themes = run("build-themes-index.mjs");
 const sector = run("build-sector-stats.mjs");
 const screener = run("build-screener-index.mjs");
 const momentum = run("build-momentum.mjs"); // 連三月年增,只依賴 financials_store
+const search = run("build-search-index.mjs"); // /discover 關鍵字搜尋靜態索引(讀 reports-index + Pilot_Reports)
 await hub; // stubs reads wikilink-hub output, so wait for hub specifically
-await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener, momentum]);
+await Promise.all([run("build-wikilink-stubs.mjs"), themes, sector, screener, momentum, search]);
 // map-index(/map 投資題材)+ industries-index(產業 TPEx 鏈)都需 screener+momentum(已 resolved)
 await Promise.all([run("build-map-index.mjs"), run("build-industries-index.mjs")]);
 console.error(`[build-data] all indexes built in ${((Date.now() - t0) / 1000).toFixed(1)}s`);

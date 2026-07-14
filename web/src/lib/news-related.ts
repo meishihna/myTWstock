@@ -40,6 +40,8 @@ export type QuoteBatchRow = {
   previousClose: number | null;
   changePct: number | null;
   currency?: string;
+  /** 當日累積成交量(股);供熱力圖算盤中成交額 = 價×量。缺則 null */
+  volume?: number | null;
 };
 
 /** 單則新聞最多顯示的台股代號（四碼／主題／公司名合併去重後） */

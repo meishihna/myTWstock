@@ -329,6 +329,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     const cons: Con[] = dataEl ? JSON.parse(dataEl.textContent || "[]") : [];
     const pct: Record<string, number> = {};
     const px: Record<string, number> = {};
+    const vol: Record<string, number> = {}; // 即時累積成交量(股),算盤中成交額 = 價×量
     const stats: Record<string, Stat> = {};
     let period: "d" | "w" | "m" = "d";
 
@@ -348,7 +349,15 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
       const withTov = cons
         .map((c) => {
           const s = stats[c.t];
-          return s ? { ...c, chg: s[period][0], tov: s[period][1] } : null;
+          if (!s) return null;
+          // 日線顏色與成交額優先用即時延遲報價(quote-batch);週/月無即時對應,用 CI 快照
+          const live =
+            period === "d" && typeof pct[c.t] === "number" && isFinite(pct[c.t]) ? pct[c.t] : null;
+          const liveTov =
+            period === "d" && typeof px[c.t] === "number" && px[c.t] > 0 && typeof vol[c.t] === "number" && vol[c.t] > 0
+              ? (px[c.t] * vol[c.t]) / 1e8
+              : null;
+          return { ...c, chg: live != null ? live : s[period][0], tov: liveTov != null ? liveTov : s[period][1] };
         })
         .filter((c): c is Con & { chg: number; tov: number } => !!c && c.tov > 0)
         .sort((a, b) => b.tov - a.tov)
@@ -416,9 +425,11 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
           if (!v) continue;
           if (typeof v.changePct === "number" && isFinite(v.changePct)) pct[k] = v.changePct;
           if (typeof v.price === "number" && isFinite(v.price)) px[k] = v.price;
+          if (typeof v.volume === "number" && isFinite(v.volume)) vol[k] = v.volume;
         }
       }
       fillCards();
+      renderHm(); // 即時報價到手後,以最新日線漲跌重新上色熱力圖
     }
 
     function initHmPeriod() {

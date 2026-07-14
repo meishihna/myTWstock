@@ -90,7 +90,11 @@ const defaultMonths = 6;
 
   {
     priceData ? (
-      <div class="quote-widget">
+      <div
+        class="quote-widget"
+        data-quote-ticker={ticker}
+        data-prev-close={prevSessionClose != null ? String(prevSessionClose) : ""}
+      >
         <div class="quote-top">
           <div class="quote-top-left">
             <div class="quote-price-with-chg">
@@ -352,6 +356,42 @@ const defaultMonths = 6;
 
   initQuoteChart();
   document.addEventListener("astro:page-load", initQuoteChart);
+</script>
+
+<script>
+  // 大股價前端更新:報告頁為 SSG,伺服器烤進去的價是「上次部署時」的值(盤中會顯示昨收)。
+  // 載入後抓延遲即時報價(/api/quote-mini)更新大價格與漲跌;前收沿用伺服器算好的可靠值(prev daily close)。
+  function hydrateHeadlineQuote() {
+    const w = document.querySelector(".quote-widget[data-quote-ticker]");
+    if (!w) return;
+    const tk = w.getAttribute("data-quote-ticker");
+    const prev = parseFloat(w.getAttribute("data-prev-close") || "");
+    if (!tk) return;
+    const priceEl = w.querySelector(".quote-price");
+    const chgEl = w.querySelector(".quote-chg-big");
+    const pctEl = w.querySelector(".quote-chg-pct");
+    const fmt2 = (n: number) =>
+      n.toLocaleString("zh-TW", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    fetch("/api/quote-mini/" + encodeURIComponent(tk))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((q) => {
+        if (!q || typeof q.latest !== "number" || !isFinite(q.latest) || q.latest <= 0) return;
+        if (priceEl) priceEl.textContent = fmt2(q.latest);
+        if (chgEl && pctEl && isFinite(prev) && prev > 0) {
+          const chg = Math.round((q.latest - prev) * 100) / 100;
+          const pct = Math.round((chg / prev) * 10000) / 100;
+          const cls = chg > 0 ? "up" : chg < 0 ? "down" : "flat";
+          chgEl.className = "quote-chg-big " + cls;
+          pctEl.className = "quote-chg-pct " + cls;
+          chgEl.textContent = chg === 0 ? fmt2(0) : (chg > 0 ? "+" : "-") + fmt2(Math.abs(chg));
+          pctEl.textContent =
+            (pct === 0 ? "0.00" : (pct > 0 ? "+" : "-") + Math.abs(pct).toFixed(2)) + "%";
+        }
+      })
+      .catch(() => {});
+  }
+  hydrateHeadlineQuote();
+  document.addEventListener("astro:page-load", hydrateHeadlineQuote);
 </script>
 
 <style>
