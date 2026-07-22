@@ -75,7 +75,9 @@ const chgPctStr =
         : (dayChangePct > 0 ? "+" : "-") + Math.abs(dayChangePct).toFixed(2)) +
       "%";
 
+// months: 0 = 當日分時線(intraday line);其餘為日 K 可見區間月數
 const ranges: { label: string; months: number }[] = [
+  { label: "當日", months: 0 },
   { label: "1月", months: 1 },
   { label: "3月", months: 3 },
   { label: "6月", months: 6 },
@@ -176,7 +178,12 @@ const defaultMonths = 6;
 </section>
 
 <script>
-  import { createChart, CrosshairMode } from "lightweight-charts";
+  import {
+    createChart,
+    CrosshairMode,
+    type IChartApi,
+    type ISeriesApi,
+  } from "lightweight-charts";
 
   interface Bar {
     time: string;
@@ -208,6 +215,65 @@ const defaultMonths = 6;
     }
     return out;
   }
+  /** 最後一根的 SMA（盤中即時更新末點用） */
+  function smaLast(bars: Bar[], period: number): number | null {
+    if (bars.length < period) return null;
+    let s = 0;
+    for (let j = bars.length - period; j < bars.length; j++) s += bars[j]!.close;
+    return Math.round((s / period) * 100) / 100;
+  }
+  function fmt2(n: number): string {
+    return n.toLocaleString("zh-TW", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  interface MiniQ {
+    latest: number;
+    prevClose?: number;
+    dayOpen?: number | null;
+    dayHigh?: number | null;
+    dayLow?: number | null;
+    dayVolume?: number | null;
+    sessionDate?: string | null;
+    points?: number[];
+    times?: number[];
+  }
+  /** 由 quote-mini 組「今日這根」日 K（open=當日開、high/low=當日極值、close=最新價） */
+  function buildTodayBar(q: MiniQ): Bar | null {
+    if (!q || typeof q.latest !== "number" || !(q.latest > 0) || !q.sessionDate) {
+      return null;
+    }
+    const close = Math.round(q.latest * 100) / 100;
+    const open = typeof q.dayOpen === "number" && q.dayOpen > 0 ? q.dayOpen : close;
+    let high = typeof q.dayHigh === "number" && q.dayHigh > 0 ? q.dayHigh : close;
+    let low = typeof q.dayLow === "number" && q.dayLow > 0 ? q.dayLow : close;
+    high = Math.max(high, close, open);
+    low = Math.min(low, close, open);
+    const volume = typeof q.dayVolume === "number" && q.dayVolume >= 0 ? q.dayVolume : 0;
+    return { time: q.sessionDate, open, high, low, close, volume };
+  }
+  /** 更新大股價 + 漲跌（漲跌基準 prevClose 與 K 線今日這根共用 → 三者一致） */
+  function updateHeadline(latest: number, prevClose: number | null): void {
+    const w = document.querySelector<HTMLElement>(".quote-widget[data-quote-ticker]");
+    if (!w) return;
+    const priceEl = w.querySelector(".quote-price");
+    if (priceEl && Number.isFinite(latest) && latest > 0) {
+      priceEl.textContent = fmt2(latest);
+    }
+    const chgEl = w.querySelector(".quote-chg-big");
+    const pctEl = w.querySelector(".quote-chg-pct");
+    if (chgEl && pctEl && prevClose != null && Number.isFinite(prevClose) && prevClose > 0) {
+      const chg = Math.round((latest - prevClose) * 100) / 100;
+      const pct = Math.round((chg / prevClose) * 10000) / 100;
+      const cls = chg > 0 ? "up" : chg < 0 ? "down" : "flat";
+      chgEl.className = "quote-chg-big " + cls;
+      pctEl.className = "quote-chg-pct " + cls;
+      chgEl.textContent = chg === 0 ? fmt2(0) : (chg > 0 ? "+" : "-") + fmt2(Math.abs(chg));
+      pctEl.textContent =
+        (pct === 0 ? "0.00" : (pct > 0 ? "+" : "-") + Math.abs(pct).toFixed(2)) + "%";
+    }
+  }
   /** crosshair 的 time 可能是 'YYYY-MM-DD' 字串或 {year,month,day}；統一成字串 key */
   function timeKey(t: unknown): string {
     if (typeof t === "string") return t;
@@ -223,21 +289,71 @@ const defaultMonths = 6;
     if (!el || el.dataset.lwcInit) return;
     el.dataset.lwcInit = "1";
     const ticker = el.getAttribute("data-ticker");
+    const miniUrl = `/api/quote-mini/${ticker}`;
 
     let bars: Bar[] = [];
+    let mini: MiniQ | null = null;
     try {
-      const r = await fetch(`/api/bars/${ticker}`);
-      const j = await r.json();
-      bars = (j.bars as Bar[]) || [];
+      const [rb, rq] = await Promise.all([
+        fetch(`/api/bars/${ticker}`).then((r) => r.json()).catch(() => null),
+        fetch(miniUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]);
+      bars = (rb && (rb.bars as Bar[])) || [];
+      mini = rq && typeof rq.latest === "number" ? (rq as MiniQ) : null;
     } catch {
       /* ignore */
     }
+
+    // 前一交易日收盤：大股價漲跌與 K 線「今日這根」共用同一基準 → 三者一致。
+    // 若 Yahoo 日線末根已是今日(== mini.sessionDate)則取其前一根，否則末根即昨收。
+    let prevDailyClose: number | null = null;
+    if (bars.length >= 1) {
+      const lastBar = bars[bars.length - 1]!;
+      prevDailyClose =
+        mini && mini.sessionDate && lastBar.time === mini.sessionDate
+          ? bars.length >= 2
+            ? bars[bars.length - 2]!.close
+            : lastBar.close
+          : lastBar.close;
+    }
+
     if (bars.length < 2) {
       el.innerHTML = '<div class="quote-lwc-msg">走勢資料暫時無法載入</div>';
+      // 無 K 線仍讓大股價即時：先更新一次再輪詢
+      if (mini) updateHeadline(mini.latest, prevDailyClose ?? mini.prevClose ?? null);
+      setInterval(() => {
+        if (document.hidden) return;
+        fetch(miniUrl)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((q) => {
+            if (q && typeof q.latest === "number")
+              updateHeadline(q.latest, prevDailyClose ?? q.prevClose ?? null);
+          })
+          .catch(() => {});
+      }, 45000);
       return;
     }
 
-    const chart = createChart(el, {
+    // 併入「今日這根」到日線尾端（首屏即：大股價 = K 線末根 = 圖例）；盤中由輪詢續更。
+    if (mini) {
+      const tb = buildTodayBar(mini);
+      if (tb) {
+        const last = bars[bars.length - 1]!;
+        if (last.time === tb.time) bars[bars.length - 1] = tb;
+        else if (tb.time > last.time) bars.push(tb);
+      }
+    }
+
+    // 兩個圖層宿主疊在同一容器：日 K 與「當日分時線」，切換時互相顯隱
+    const dailyHost = document.createElement("div");
+    dailyHost.className = "quote-lwc-host";
+    const intradayHost = document.createElement("div");
+    intradayHost.className = "quote-lwc-host";
+    intradayHost.style.display = "none";
+    el.appendChild(dailyHost);
+    el.appendChild(intradayHost);
+
+    const chart = createChart(dailyHost, {
       autoSize: true,
       layout: { background: { color: "transparent" }, textColor: "#cbd5e1", fontSize: 11 },
       grid: {
@@ -275,6 +391,7 @@ const defaultMonths = 6;
       [10, "#6BA3E8"],
       [20, "#B388FF"],
     ];
+    const maRuntime: [number, ReturnType<typeof chart.addLineSeries>][] = [];
     for (const [period, color] of maDefs) {
       const line = chart.addLineSeries({
         color,
@@ -284,6 +401,7 @@ const defaultMonths = 6;
         crosshairMarkerVisible: false,
       });
       line.setData(sma(bars, period));
+      maRuntime.push([period, line]);
     }
 
     // ── 互動式 OHLCV 圖例(隨游標更新,預設最新一根)─────────────
@@ -311,15 +429,227 @@ const defaultMonths = 6;
         `收<b style="color:${col}">${fmtNum(b.close)}</b> ` +
         `量<b>${fmtVol(b.volume)}</b>${chg}`;
     }
+    let pinnedLast = true;
+    let pinnedLastIntra = true;
+    let mode: "daily" | "intraday" = "daily";
+    let intradayChart: IChartApi | null = null;
+    let intradaySeries: ISeriesApi<"Baseline"> | null = null;
+    let intradayBuilt = false;
     renderAt(bars.length - 1);
     chart.subscribeCrosshairMove((param) => {
       if (!param || !param.point || param.time == null) {
+        pinnedLast = true;
         renderAt(bars.length - 1);
         return;
       }
       const idx = byTime.get(timeKey(param.time));
-      renderAt(idx == null ? bars.length - 1 : idx);
+      if (idx == null) {
+        pinnedLast = true;
+        renderAt(bars.length - 1);
+      } else {
+        pinnedLast = idx === bars.length - 1;
+        renderAt(idx);
+      }
     });
+
+    // ── 盤中即時：同一份 quote-mini 同步更新「大股價 + 今日 K + 量 + MA 末點 + 圖例」──
+    // 三者共用 prevDailyClose 與 latest → 永遠一致，不再有「大股價 vs K 線末根」落差。
+    const VOL_UP = "rgba(226,75,74,0.45)";
+    const VOL_DOWN = "rgba(29,158,117,0.45)";
+    function applyLive(q: MiniQ): void {
+      mini = q;
+      updateHeadline(q.latest, prevDailyClose);
+      // 分時線同步：資料保持新鮮；顯示中且未 hover 才刷新圖例
+      if (intradaySeries && q.points && q.times) {
+        setIntradayData();
+        if (mode === "intraday" && pinnedLastIntra && q.times.length) {
+          renderIntraAt(q.times.length - 1);
+        }
+      }
+      const tb = buildTodayBar(q);
+      if (tb) {
+        const last = bars[bars.length - 1];
+        if (last && last.time === tb.time) {
+          bars[bars.length - 1] = tb;
+        } else if (!last || tb.time > last.time) {
+          bars.push(tb);
+          byTime.set(tb.time, bars.length - 1);
+        } else {
+          return;
+        }
+        candle.update({ time: tb.time, open: tb.open, high: tb.high, low: tb.low, close: tb.close });
+        vol.update({
+          time: tb.time,
+          value: tb.volume,
+          color: tb.close >= tb.open ? VOL_UP : VOL_DOWN,
+        });
+        for (const [period, line] of maRuntime) {
+          const v = smaLast(bars, period);
+          if (v != null) line.update({ time: tb.time, value: v });
+        }
+        if (pinnedLast) renderAt(bars.length - 1);
+      }
+    }
+    if (mini) updateHeadline(mini.latest, prevDailyClose);
+    setInterval(() => {
+      if (document.hidden) return;
+      fetch(miniUrl)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((q) => {
+          if (q && typeof q.latest === "number") applyLive(q as MiniQ);
+        })
+        .catch(() => {});
+    }, 45000);
+
+    // ── 當日分時線（baseline：昨收之上紅、之下綠，同行情列平盤線分色）────────
+    function intraBase(): number {
+      if (prevDailyClose != null && prevDailyClose > 0) return prevDailyClose;
+      return mini && mini.prevClose && mini.prevClose > 0 ? mini.prevClose : 0;
+    }
+    function intraTimeLabel(utcSec: number): string {
+      return new Date(utcSec * 1000).toLocaleTimeString("zh-TW", {
+        timeZone: "Asia/Taipei",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    }
+    function renderIntraAt(idx: number): void {
+      if (!mini || !mini.points || !mini.times) return;
+      const v = mini.points[idx];
+      const t = mini.times[idx];
+      if (v == null || t == null) return;
+      const base = intraBase();
+      const up = base > 0 ? v >= base : true;
+      const col = up ? "#ff7b78" : "#3fd6a0";
+      let chg = "";
+      if (base > 0) {
+        const d = Math.round((v - base) * 100) / 100;
+        const p = (d / base) * 100;
+        chg = ` <b style="color:${col}">${d >= 0 ? "+" : ""}${p.toFixed(2)}%</b>`;
+      }
+      legend.innerHTML =
+        `<span class="t">${intraTimeLabel(t)}</span> 價<b style="color:${col}">${fmtNum(v)}</b>${chg}`;
+    }
+    function setIntradayData(): void {
+      if (!intradaySeries || !mini || !mini.points || !mini.times) return;
+      const pts = mini.points;
+      const tms = mini.times;
+      const data: { time: any; value: number }[] = [];
+      let lastT = -1;
+      for (let i = 0; i < pts.length; i++) {
+        const t = tms[i];
+        if (typeof t !== "number" || t <= 0) continue;
+        // +8h 位移：使 lightweight-charts 的 UTC 時間軸顯示為台北盤中時刻(09:00–13:30)
+        const shifted = t + 28800;
+        if (shifted <= lastT) continue; // 時間須嚴格遞增
+        lastT = shifted;
+        data.push({ time: shifted as any, value: pts[i]! });
+      }
+      intradaySeries.setData(data as any);
+    }
+    function ensureIntraday(): void {
+      if (intradayBuilt) return;
+      intradayBuilt = true;
+      const ok =
+        !!mini &&
+        Array.isArray(mini.points) &&
+        mini.points.length >= 2 &&
+        Array.isArray(mini.times) &&
+        mini.times.length === mini.points.length;
+      if (!ok) {
+        intradayHost.innerHTML = '<div class="quote-lwc-msg">當日無盤中分時資料</div>';
+        return;
+      }
+      intradayChart = createChart(intradayHost, {
+        autoSize: true,
+        layout: { background: { color: "transparent" }, textColor: "#cbd5e1", fontSize: 11 },
+        grid: {
+          vertLines: { color: "rgba(255,255,255,0.05)" },
+          horzLines: { color: "rgba(255,255,255,0.05)" },
+        },
+        rightPriceScale: { borderColor: "rgba(255,255,255,0.12)" },
+        timeScale: {
+          borderColor: "rgba(255,255,255,0.12)",
+          timeVisible: true,
+          secondsVisible: false,
+          rightOffset: 2,
+        },
+        crosshair: { mode: CrosshairMode.Normal },
+      });
+      const base = intraBase();
+      intradaySeries = intradayChart.addBaselineSeries({
+        baseValue: { type: "price", price: base },
+        topLineColor: "#E24B4A",
+        topFillColor1: "rgba(226,75,74,0.28)",
+        topFillColor2: "rgba(226,75,74,0.02)",
+        bottomLineColor: "#1D9E75",
+        bottomFillColor1: "rgba(29,158,117,0.02)",
+        bottomFillColor2: "rgba(29,158,117,0.28)",
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true,
+      });
+      setIntradayData();
+      if (base > 0) {
+        intradaySeries.createPriceLine({
+          price: base,
+          color: "rgba(255,255,255,0.28)",
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: "昨收",
+        });
+      }
+      intradayChart.timeScale().fitContent();
+      intradayChart.subscribeCrosshairMove((param: any) => {
+        const n = mini && mini.times ? mini.times.length : 0;
+        if (!param || !param.point || param.time == null) {
+          pinnedLastIntra = true;
+          renderIntraAt(n - 1);
+          return;
+        }
+        const target = Number(param.time) - 28800;
+        let idx = -1;
+        if (mini && mini.times) {
+          for (let i = 0; i < mini.times.length; i++) {
+            if (mini.times[i] === target) {
+              idx = i;
+              break;
+            }
+          }
+        }
+        if (idx < 0) {
+          pinnedLastIntra = true;
+          renderIntraAt(n - 1);
+        } else {
+          pinnedLastIntra = idx === n - 1;
+          renderIntraAt(idx);
+        }
+      });
+    }
+    const maLegendEl =
+      el.closest(".quote-widget-wrap")?.querySelector<HTMLElement>(".quote-ma-legend") ??
+      null;
+    function showMode(m: "daily" | "intraday"): void {
+      mode = m;
+      if (maLegendEl) maLegendEl.style.display = m === "intraday" ? "none" : "";
+      if (m === "intraday") {
+        dailyHost.style.display = "none";
+        intradayHost.style.display = "";
+        ensureIntraday();
+        if (intradaySeries && mini && mini.times) {
+          intradayChart!.timeScale().fitContent();
+          pinnedLastIntra = true;
+          renderIntraAt(mini.times.length - 1);
+        }
+      } else {
+        intradayHost.style.display = "none";
+        dailyHost.style.display = "";
+        pinnedLast = true;
+        renderAt(bars.length - 1);
+      }
+    }
 
     // ── 日期區間選擇 ───────────────────────────────────────────
     function applyRange(months: number): void {
@@ -347,7 +677,13 @@ const defaultMonths = 6;
       btn.addEventListener("click", () => {
         for (const b of btns) b.classList.remove("is-active");
         btn.classList.add("is-active");
-        applyRange(Number(btn.getAttribute("data-months")));
+        const m = Number(btn.getAttribute("data-months"));
+        if (m === 0) {
+          showMode("intraday");
+        } else {
+          showMode("daily");
+          applyRange(m);
+        }
       });
     }
     const defMonths = Number(el.getAttribute("data-default-months")) || 6;
@@ -356,42 +692,6 @@ const defaultMonths = 6;
 
   initQuoteChart();
   document.addEventListener("astro:page-load", initQuoteChart);
-</script>
-
-<script>
-  // 大股價前端更新:報告頁為 SSG,伺服器烤進去的價是「上次部署時」的值(盤中會顯示昨收)。
-  // 載入後抓延遲即時報價(/api/quote-mini)更新大價格與漲跌;前收沿用伺服器算好的可靠值(prev daily close)。
-  function hydrateHeadlineQuote() {
-    const w = document.querySelector(".quote-widget[data-quote-ticker]");
-    if (!w) return;
-    const tk = w.getAttribute("data-quote-ticker");
-    const prev = parseFloat(w.getAttribute("data-prev-close") || "");
-    if (!tk) return;
-    const priceEl = w.querySelector(".quote-price");
-    const chgEl = w.querySelector(".quote-chg-big");
-    const pctEl = w.querySelector(".quote-chg-pct");
-    const fmt2 = (n: number) =>
-      n.toLocaleString("zh-TW", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    fetch("/api/quote-mini/" + encodeURIComponent(tk))
-      .then((r) => (r.ok ? r.json() : null))
-      .then((q) => {
-        if (!q || typeof q.latest !== "number" || !isFinite(q.latest) || q.latest <= 0) return;
-        if (priceEl) priceEl.textContent = fmt2(q.latest);
-        if (chgEl && pctEl && isFinite(prev) && prev > 0) {
-          const chg = Math.round((q.latest - prev) * 100) / 100;
-          const pct = Math.round((chg / prev) * 10000) / 100;
-          const cls = chg > 0 ? "up" : chg < 0 ? "down" : "flat";
-          chgEl.className = "quote-chg-big " + cls;
-          pctEl.className = "quote-chg-pct " + cls;
-          chgEl.textContent = chg === 0 ? fmt2(0) : (chg > 0 ? "+" : "-") + fmt2(Math.abs(chg));
-          pctEl.textContent =
-            (pct === 0 ? "0.00" : (pct > 0 ? "+" : "-") + Math.abs(pct).toFixed(2)) + "%";
-        }
-      })
-      .catch(() => {});
-  }
-  hydrateHeadlineQuote();
-  document.addEventListener("astro:page-load", hydrateHeadlineQuote);
 </script>
 
 <style>
@@ -425,6 +725,11 @@ const defaultMonths = 6;
     height: 380px;
     margin-top: 0.5rem;
     position: relative;
+  }
+  /* 日 K 與當日分時線兩個圖層宿主疊放，切換時互相顯隱 */
+  .quote-lwc :global(.quote-lwc-host) {
+    position: absolute;
+    inset: 0;
   }
   /* 圖例與訊息為 JS 動態建立,Astro scoped 屬性套不到 → 用 :global()（限定在 .quote-lwc 內) */
   .quote-lwc :global(.quote-lwc-legend) {
