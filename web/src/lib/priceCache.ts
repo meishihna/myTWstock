@@ -327,6 +327,8 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
 export interface MiniQuote {
   /** 當日 5 分收盤序列(去 null),供 sparkline */
   points: number[];
+  /** 與 points 對齊的 UNIX 秒(UTC),供報告頁「當日分時線」時間軸 */
+  times: number[];
   /**
    * 與 points 對齊的 X 座標比例(0..1):依每點時間在當日盤中時段[09:00,13:30]的位置計算。
    * 盤中資料只到現在 → 線只走到對應比例;收盤後接近 1 → 幾乎填滿整寬。
@@ -343,6 +345,13 @@ export interface MiniQuote {
   state: string;
   /** regularMarketTime ISO */
   time: string | null;
+  /** 當日 K 棒(供報告頁 K 線「今日這根」即時長/收):由當日 5 分 K 聚合 */
+  dayOpen: number | null;
+  dayHigh: number | null;
+  dayLow: number | null;
+  dayVolume: number | null;
+  /** 當日交易日 YYYY-MM-DD(與日線 Bar.time 同慣例:UTC 日期,台股時段內即台北日期) */
+  sessionDate: string | null;
 }
 
 const miniCache = new Map<string, { data: MiniQuote | null; ts: number }>();
@@ -366,7 +375,12 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
       const result = json?.chart?.result?.[0];
       if (!result) continue;
       const meta = (result.meta || {}) as Record<string, unknown>;
-      const rawClose = result.indicators?.quote?.[0]?.close || [];
+      const quote0 = result.indicators?.quote?.[0] || {};
+      const rawClose = quote0.close || [];
+      const rawOpen = quote0.open || [];
+      const rawHigh = quote0.high || [];
+      const rawLow = quote0.low || [];
+      const rawVol = quote0.volume || [];
       const rawTs = (result as { timestamp?: number[] }).timestamp || [];
 
       // 盤中時段[start,end](TWSE 約 09:00–13:30):用於把每個點依「當日時間位置」定 X 座標。
@@ -386,10 +400,12 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
 
       const points: number[] = [];
       const xs: number[] = [];
+      const times: number[] = [];
       for (let i = 0; i < rawClose.length; i++) {
         const v = rawClose[i];
         if (v == null || !Number.isFinite(Number(v))) continue;
         points.push(Math.round(Number(v) * 100) / 100);
+        times.push(typeof rawTs[i] === "number" ? rawTs[i]! : 0);
         if (segValid && typeof rawTs[i] === "number") {
           let f = (rawTs[i]! - segStart!) / (segEnd! - segStart!);
           f = f < 0 ? 0 : f > 1 ? 1 : f;
@@ -398,6 +414,31 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
       }
       // 時段或時間戳缺失 → 無法時間定位,清空 xs(前端退回等距)
       if (xs.length !== points.length) xs.length = 0;
+
+      // 當日 K 棒聚合(供報告頁 K 線「今日這根」):只計有收盤的 5 分 K,
+      // 與 points 對齊。open=首根開盤、high/low=當日極值、volume=累計量。
+      const rnd = (n: number) => Math.round(n * 100) / 100;
+      let dayOpen: number | null = null;
+      let dayHigh: number | null = null;
+      let dayLow: number | null = null;
+      let dayVolume: number | null = null;
+      let lastValidTs: number | null = null;
+      for (let i = 0; i < rawClose.length; i++) {
+        if (rawClose[i] == null || !Number.isFinite(Number(rawClose[i]))) continue;
+        const o = Number(rawOpen[i]);
+        const h = Number(rawHigh[i]);
+        const l = Number(rawLow[i]);
+        const v = Number(rawVol[i]);
+        if (dayOpen == null && Number.isFinite(o) && o > 0) dayOpen = rnd(o);
+        if (Number.isFinite(h) && h > 0) dayHigh = dayHigh == null ? rnd(h) : Math.max(dayHigh, rnd(h));
+        if (Number.isFinite(l) && l > 0) dayLow = dayLow == null ? rnd(l) : Math.min(dayLow, rnd(l));
+        if (Number.isFinite(v) && v >= 0) dayVolume = (dayVolume ?? 0) + v;
+        if (typeof rawTs[i] === "number") lastValidTs = rawTs[i]!;
+      }
+      const sessionDate =
+        lastValidTs != null
+          ? new Date(lastValidTs * 1000).toISOString().split("T")[0]!
+          : null;
 
       const prevClose =
         Math.round(
@@ -431,12 +472,18 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
       const data: MiniQuote = {
         points,
         xs,
+        times,
         latest,
         prevClose,
         change,
         changePct,
         state,
         time: marketTimeToIso(meta),
+        dayOpen,
+        dayHigh,
+        dayLow,
+        dayVolume,
+        sessionDate,
       };
       miniCache.set(ticker, { data, ts: now });
       return data;
