@@ -9,7 +9,7 @@ const yahooFinance = new YahooFinance({
 
 const CACHE_TTL_MS = 60_000;
 /** 佈署後若曾快取到錯誤 payload，遞增以強制重算 */
-const CACHE_BUSTER = 9;
+const CACHE_BUSTER = 10;
 let cache: { body: string; ts: number; buster: number } | null = null;
 
 export type MarketTickerId =
@@ -265,14 +265,26 @@ type IntradayResult = {
   closes: number[];
   sessionProgress: number;
   isLive: boolean;
+  metaPrice: number | null;
+  metaPreviousClose: number | null;
+  metaTime: string | null;
 };
 
-/** 日內 5 分 K 收盤序列；併帶當下交易時段比例（自 Yahoo chart meta） */
+/**
+ * 日內 5 分 K 收盤序列；併帶交易時段比例與 chart meta 的價格/昨收。
+ *
+ * meta 與 K 棒同源同步：開盤換日瞬間 Yahoo 的 quote 批次會慢一天
+ * (顯示 price=昨日收、prevClose=前日收 → 漲跌%虛高)，而 chart meta 已滾動；
+ * 故 Yahoo 類個股的價格/昨收一律優先採 meta，與走勢線一致、消除矛盾。
+ */
 async function fetchIntradayClosesOnly(symbol: string): Promise<IntradayResult> {
   const empty = (): IntradayResult => ({
     closes: [],
     sessionProgress: 1.0,
     isLive: false,
+    metaPrice: null,
+    metaPreviousClose: null,
+    metaTime: null,
   });
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`;
@@ -283,41 +295,60 @@ async function fetchIntradayClosesOnly(symbol: string): Promise<IntradayResult> 
     const json = (await res.json()) as { chart?: { result?: ChartResult0[] } };
     const r0 = json?.chart?.result?.[0];
     if (!r0) return empty();
+    const meta = (r0.meta ?? {}) as Record<string, unknown>;
+    const metaPrice = pickNumber(meta, ["regularMarketPrice"]);
+    const metaPreviousClose = pickNumber(meta, [
+      "chartPreviousClose",
+      "previousClose",
+    ]);
+    const mtSec = pickNumber(meta, ["regularMarketTime"]);
+    const metaTime =
+      mtSec != null ? new Date(mtSec * 1000).toISOString() : null;
     const closes = r0.indicators?.quote?.[0]?.close;
-    if (!Array.isArray(closes)) return empty();
     const nums: number[] = [];
-    for (const c of closes) {
-      if (typeof c === "number" && Number.isFinite(c)) nums.push(c);
+    if (Array.isArray(closes)) {
+      for (const c of closes) {
+        if (typeof c === "number" && Number.isFinite(c)) nums.push(c);
+      }
     }
     const { sessionProgress, isLive } = computeSessionProgress(r0.meta);
-    if (nums.length < 2) {
-      return { closes: [], sessionProgress: 1.0, isLive: false };
-    }
-    return { closes: nums, sessionProgress, isLive };
+    return {
+      closes: nums.length >= 2 ? nums : [],
+      sessionProgress,
+      isLive,
+      metaPrice,
+      metaPreviousClose,
+      metaTime,
+    };
   } catch {
     return empty();
   }
 }
 
-async function fetchSparklineBundle(symbol: string): Promise<{
+type SparkBundle = {
   sparkline: number[];
   sessionProgress: number;
   isLive: boolean;
-}> {
+  metaPrice?: number | null;
+  metaPreviousClose?: number | null;
+  metaTime?: string | null;
+};
+
+async function fetchSparklineBundle(symbol: string): Promise<SparkBundle> {
   // 只取「當日/最近整段」日內序列作為線形；不再退回 3 個月日線
   // (3 個月日線與「當日漲跌色」時間軸不一致,且 Yahoo 對某些指數如 ^TWOII
   //  的日線收盤比例是壞的 → 反而造成線與現價對不上)。
-  // 拿不到日內序列時回空陣列,交由組裝端改畫「昨收→現價」乾淨兩點線。
+  // 併帶 chart meta 的價格/昨收(與線同源),交由組裝端優先採用。
   try {
     const intra = await fetchIntradayClosesOnly(symbol);
-    if (intra.closes.length >= 2) {
-      return {
-        sparkline: intra.closes,
-        sessionProgress: intra.sessionProgress,
-        isLive: intra.isLive,
-      };
-    }
-    return { sparkline: [], sessionProgress: 1.0, isLive: false };
+    return {
+      sparkline: intra.closes,
+      sessionProgress: intra.sessionProgress,
+      isLive: intra.isLive,
+      metaPrice: intra.metaPrice,
+      metaPreviousClose: intra.metaPreviousClose,
+      metaTime: intra.metaTime,
+    };
   } catch {
     return { sparkline: [], sessionProgress: 1.0, isLive: false };
   }
@@ -601,13 +632,13 @@ export const GET: APIRoute = async () => {
     return { def, q: pickQuoteForDef(def, rowsMap) };
   });
 
-  const emptySpark = {
+  const emptySpark: SparkBundle = {
     sparkline: [] as number[],
     sessionProgress: 1.0,
     isLive: false,
   };
   const sparks = await Promise.all(
-    resolved.map((r) => {
+    resolved.map((r): Promise<SparkBundle> => {
       const official = officialFor(r.def.id);
       if (official) {
         return Promise.resolve({
@@ -652,8 +683,12 @@ export const GET: APIRoute = async () => {
     // 因此跳空反轉日(開高走低收紅)也能誠實呈現而不產生顏色矛盾。
     // scaleOk:擋掉 Yahoo 比例壞掉的序列(如櫃買 ^TWOII 日內缺、
     // 日線收盤 352~425 但現值 269)→ 退為「昨收→現價」兩點線。
-    const px = q.price;
-    const pc = q.previousClose;
+    // 價格/昨收優先取 chart meta(與 K 棒同源、開盤換日同步滾動);
+    // quote 批次開盤瞬間會慢一天 → 用 meta 消除「大盤數字 vs 走勢線」矛盾。
+    // 官方源(櫃台/比特幣)的 spark 無 meta → 自動沿用 q(官方值)。
+    const px = rawSpark.metaPrice ?? q.price;
+    const pc = rawSpark.metaPreviousClose ?? q.previousClose;
+    const mt = rawSpark.metaTime ?? q.marketTime;
     const intra = rawSpark.sparkline;
     const lastPt = intra.length ? intra[intra.length - 1]! : null;
     const scaleOk =
@@ -669,21 +704,21 @@ export const GET: APIRoute = async () => {
     } else {
       sparkline = ensureSparklinePoints([], px, pc);
     }
-    const { change, changePct } = computeChange(q.price, q.previousClose);
+    const { change, changePct } = computeChange(px, pc);
     return {
       id: def.id,
       labelZh: def.labelZh,
       kind: def.kind,
       yahooSymbol: q.symbol,
-      price: q.price,
-      previousClose: q.previousClose,
+      price: px,
+      previousClose: pc,
       change,
       changePct,
-      marketTime: q.marketTime,
+      marketTime: mt,
       sparkline,
       sessionProgress: rawSpark.sessionProgress,
       isLive: rawSpark.isLive,
-      priceDisplay: fmtPriceForKind(def.kind, q.price),
+      priceDisplay: fmtPriceForKind(def.kind, px),
       changeDisplay:
         change == null
           ? null
