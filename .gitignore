@@ -18,6 +18,8 @@ web/.astro/
 .env
 .env.*
 !.env.example
+# FinMind token（本機操作用，絕不上傳）
+.finmind_token
 
 # MOPS 全市場季報快取（可很大）
 data/mops_cache/*.json
