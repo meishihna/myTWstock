@@ -1,0 +1,65 @@
+# 每月自動更新「月營收」:FinMind TaiwanStockMonthRevenue → financials_store 各檔
+# monthlyRevenue 區塊(純加法,不動年報/季報)。commit → push → Vercel 自動重新部署。
+#
+# 台灣上市櫃公司月營收須於次月 10 日前公告,故於每月 11 日盤前執行,抓上一月營收。
+# 需 repo secret FINMIND_TOKEN(已存在,refresh-snapshots 亦使用)。
+# 全市場約 1,700+ 檔、限流 580 次/hr → 約 3 小時;GitHub 單 job 上限 6 小時,足夠。
+name: Refresh monthly revenue
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每月 11 日 UTC 02:00 = 台灣時間(UTC+8)10:00(上月營收已於 10 日前公告完畢)
+    - cron: "0 2 11 * *"
+
+concurrency:
+  group: refresh-month-revenue
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330 # ~3hr 執行 + rebase 重試緩衝(GitHub 硬上限 360)
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 完整歷史,供 push 撞車時 rebase 使用
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      # 純加法:逐檔只更新 monthlyRevenue;抓不到最新月的檔取其現有最新、不影響年報季報。
+      # 限流 580/hr 以留餘裕於 FinMind 免費額度(約 600/hr),避免尾段 402/429。
+      - name: Update monthly revenue (--all)
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          FINMIND_MAX_CALLS_PER_HOUR: "580"
+        run: python -u scripts/update_month_revenue.py --all
+        continue-on-error: true
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/financials_store || true
+          if git diff --staged --quiet; then
+            echo "No month-revenue changes."
+            exit 0
+          fi
+          git commit -m "data(month-rev): 更新月營收 (automated)"
+          # 遠端可能被其他排程／手動 push 推進 → rebase 後再推,最多重試 5 次(不強推)
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "pushed on attempt $i"; exit 0
+            fi
+            echo "push rejected; fetch + rebase onto origin/main (attempt $i)…"
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; echo "rebase conflict, abort"; exit 1; }
+          done
+          echo "push still failing after retries"; exit 1
