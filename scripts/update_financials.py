@@ -17,6 +17,7 @@ Usage:
   python scripts/update_financials.py 2330 2317 3034   # Multiple tickers
   python scripts/update_financials.py --batch 101      # All tickers in a batch
   python scripts/update_financials.py --sector Semiconductors  # Entire sector
+  python scripts/update_financials.py --shard 2/3      # 全市場切 3 片,只跑第 2 片(CI 分片用)
   python scripts/update_financials.py --dry-run 2330   # Preview without writing
   python scripts/update_financials.py --resume           # Only tickers in data/.financials_update_checkpoint.json
   python scripts/update_financials.py --clear-checkpoint
@@ -1486,6 +1487,33 @@ def _save_checkpoint_pending(pending: set[str]) -> None:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
+def _parse_shard_cli(args_list: list[str]) -> tuple[list[str], tuple[int, int] | None]:
+    """自 argv 移除 --shard i/N(或 --shard=i/N),回傳 (其餘參數, (i,N) 或 None)。
+    i 為 1-based;供 CI 將全市場切成 N 片分別執行(規避單一 job 6 小時上限與 FinMind 時額)。"""
+    out: list[str] = []
+    shard: tuple[int, int] | None = None
+    i = 0
+    while i < len(args_list):
+        a = args_list[i]
+        spec: str | None = None
+        if a == "--shard" and i + 1 < len(args_list):
+            spec = args_list[i + 1]
+            i += 2
+        elif a.startswith("--shard="):
+            spec = a.split("=", 1)[1]
+            i += 1
+        else:
+            out.append(a)
+            i += 1
+            continue
+        m = re.match(r"^\s*(\d+)\s*/\s*(\d+)\s*$", spec or "")
+        if m:
+            si, sn = int(m.group(1)), int(m.group(2))
+            if sn >= 1 and 1 <= si <= sn:
+                shard = (si, sn)
+    return out, shard
+
+
 def main():
     setup_stdout()
 
@@ -1510,6 +1538,7 @@ def main():
 
     args, sleep_cli = _parse_sleep_sec_cli(args)
     sleep_between = sleep_cli if sleep_cli is not None else _sleep_seconds_between_tickers()
+    args, shard = _parse_shard_cli(args)
 
     tickers, sector, desc = parse_scope_args(args)
     print(f"Updating financials for {desc}...")
@@ -1528,6 +1557,10 @@ def main():
         print("Resume: checkpoint empty; processing full scope.\n")
 
     tickers_order = sorted(ticker_map.keys())
+    if shard:
+        si, sn = shard
+        tickers_order = [t for idx, t in enumerate(tickers_order) if idx % sn == (si - 1)]
+        print(f"Shard {si}/{sn}: 本片 {len(tickers_order)} 檔(全市場切 {sn} 片)。")
     print(f"Found {len(tickers_order)} files.\n")
     print(f"每檔間隔: {sleep_between} 秒（最後一檔處理完不等待）\n")
 
