@@ -54,6 +54,7 @@ import { valuationSnapshotRow } from "../../lib/valuationSnapshot";
 import { chipsSnapshotRow, chipsInstDate } from "../../lib/chipsSnapshot";
 import { chipsHistoryForTicker } from "../../lib/chipsHistory";
 import { themesForTicker } from "../../lib/themeXref";
+import { officialIndustryFor } from "../../lib/stockMeta";
 import {
   readRevenueMixForTicker,
   revenueStructureForRelationTab,
@@ -272,6 +273,8 @@ function metaDisplayField(v: unknown): string {
 }
 const sectorDisplay = metaDisplayField(summary.board);
 const industryDisplay = metaDisplayField(summary.industry);
+// 官方 TWSE 產業別(中文,來自 stock_codes.json);與上方 GICS 英文產業並陳
+const officialIndustry = officialIndustryFor(ticker!);
 
 // 估值卡片改讀全市場快照 valuation-index.json(TWSE/TPEx 官方 + Yahoo Beta);
 // 查無此檔/此股時退回報告內 MD 估值表(多已移除 → 顯示 4 張「—」卡)。
@@ -572,6 +575,14 @@ const reportLd = [
       </span>
       <span class="meta-card-value">{industryDisplay}</span>
     </div>
+    {officialIndustry && (
+      <div class="meta-card" data-meta="twse-industry">
+        <span class="meta-card-label">
+          <Bi zh="TWSE 產業別" en="TWSE Industry" />
+        </span>
+        <span class="meta-card-value">{officialIndustry}</span>
+      </div>
+    )}
     {summary.marketCap && (
       <div class="meta-card" data-meta="mcap">
         <span class="meta-card-label">
