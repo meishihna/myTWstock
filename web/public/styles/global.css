@@ -2977,10 +2977,12 @@ a:focus-visible {
 
 .relation-tablist {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.38rem 0.45rem;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 4px;
   min-width: min-content;
+  /* 髮絲分隔線：作用中底線壓在其上（.relation-tablist-wrap 提供橫向捲動）*/
+  border-bottom: 1px solid rgba(var(--ink), 0.12);
 }
 
 .relation-tab {
@@ -2989,29 +2991,24 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
-  padding: 0.42rem 0.82rem;
+  padding: 8px 12px 10px;
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.25;
-  color: rgba(196, 202, 214, 0.92);
-  background: rgba(var(--ink), 0.05);
-  border: 1px solid rgba(var(--ink), 0.07);
-  border-radius: 999px;
-  box-shadow: 0 1px 0 rgba(var(--ink), 0.03) inset;
+  color: rgba(196, 202, 214, 0.6);
+  background: none;
+  border: none;
+  position: relative;
   white-space: nowrap;
-  transition:
-    color 0.22s var(--ease-out),
-    background 0.22s var(--ease-out),
-    border-color 0.22s var(--ease-out),
-    box-shadow 0.22s ease;
+  transition: color 0.2s var(--ease-out);
 }
 
 .relation-tab__icon {
   display: flex;
   flex-shrink: 0;
-  opacity: 0.88;
+  opacity: 0.7;
 }
 
 .relation-tab__icon svg {
@@ -3022,10 +3019,22 @@ a:focus-visible {
   min-width: 0;
 }
 
+/* 底線指示條：左右內縮、貼齊整列髮絲線、scaleX 從中央展開 */
+.relation-tab::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent, #f0b429);
+  transform: scaleX(0);
+  transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
 .relation-tab:hover {
   color: #f0f2f6;
-  border-color: rgba(var(--ink), 0.16);
-  background: rgba(var(--ink), 0.09);
 }
 
 .relation-tab:focus-visible {
@@ -3033,15 +3042,11 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* 預設選取態（無 key 時） */
+/* 作用中：亮＋粗＋金色底線（統一「金底線＝分頁」，不再依類別上色） */
 .relation-tab[aria-selected="true"],
 .relation-tab--active {
-  color: var(--accent-hover, #cfe4ff);
-  border-color: var(--accent-glow);
-  background: var(--accent-soft);
-  box-shadow:
-    0 1px 0 rgba(var(--ink), 0.07) inset,
-    0 6px 18px rgba(0, 0, 0, 0.32);
+  color: #f4f3ef;
+  font-weight: 700;
 }
 
 .relation-tab[aria-selected="true"] .relation-tab__icon,
@@ -3049,55 +3054,9 @@ a:focus-visible {
   opacity: 1;
 }
 
-/* 依類別微調選取色（須覆寫預設） */
-.relation-tab[data-relation-key="supplyChain"][aria-selected="true"],
-.relation-tab[data-relation-key="supplyChain"].relation-tab--active {
-  color: #b8f0e0;
-  border-color: rgba(94, 214, 184, 0.55);
-  background: rgba(94, 214, 184, 0.12);
-  box-shadow:
-    0 1px 0 rgba(var(--ink), 0.06) inset,
-    0 6px 18px rgba(0, 0, 0, 0.32);
-}
-
-.relation-tab[data-relation-key="customers"][aria-selected="true"],
-.relation-tab[data-relation-key="customers"].relation-tab--active {
-  color: #c8ddff;
-  border-color: rgba(147, 197, 253, 0.55);
-  background: rgba(147, 197, 253, 0.12);
-  box-shadow:
-    0 1px 0 rgba(var(--ink), 0.06) inset,
-    0 6px 18px rgba(0, 0, 0, 0.32);
-}
-
-.relation-tab[data-relation-key="suppliers"][aria-selected="true"],
-.relation-tab[data-relation-key="suppliers"].relation-tab--active {
-  color: #ffe8b8;
-  border-color: rgba(251, 191, 36, 0.5);
-  background: rgba(251, 191, 36, 0.1);
-  box-shadow:
-    0 1px 0 rgba(var(--ink), 0.06) inset,
-    0 6px 18px rgba(0, 0, 0, 0.32);
-}
-
-.relation-tab[data-relation-key="competitors"][aria-selected="true"],
-.relation-tab[data-relation-key="competitors"].relation-tab--active {
-  color: #ffd0d8;
-  border-color: rgba(251, 113, 133, 0.52);
-  background: rgba(251, 113, 133, 0.11);
-  box-shadow:
-    0 1px 0 rgba(var(--ink), 0.06) inset,
-    0 6px 18px rgba(0, 0, 0, 0.32);
-}
-
-.relation-tab[data-relation-key="revenueStructure"][aria-selected="true"],
-.relation-tab[data-relation-key="revenueStructure"].relation-tab--active {
-  color: #e9d5ff;
-  border-color: rgba(167, 139, 250, 0.52);
-  background: rgba(139, 92, 246, 0.12);
-  box-shadow:
-    0 1px 0 rgba(var(--ink), 0.06) inset,
-    0 6px 18px rgba(0, 0, 0, 0.32);
+.relation-tab[aria-selected="true"]::after,
+.relation-tab--active::after {
+  transform: scaleX(1);
 }
 
 .relation-rev-wrap {

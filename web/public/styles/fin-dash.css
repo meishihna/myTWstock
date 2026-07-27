@@ -271,33 +271,51 @@
 .fin-dash__tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 4px;
   margin-bottom: 1.35rem;
+  /* 髮絲分隔線：作用中底線壓在其上 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+/* 底線式分頁籤：純文字、無框無底；作用中＝亮＋粗＋金色 2px 底線(scaleX 中央展開) */
 .fin-dash__tab {
   font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.4rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+  font-weight: 600;
+  padding: 8px 12px 10px;
+  border: none;
+  border-radius: 0;
   cursor: pointer;
-  background: transparent;
+  background: none;
   color: var(--fd-muted);
   font-family: inherit;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.fin-dash__tab::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent, #f0b429);
+  transform: scaleX(0);
+  transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1);
 }
 
 .fin-dash__tab:hover:not(:disabled) {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .fin-dash__tab.is-active {
-  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
-  font-weight: 500;
-  border-color: rgba(255, 255, 255, 0.35);
+  font-weight: 700;
+}
+
+.fin-dash__tab.is-active::after {
+  transform: scaleX(1);
 }
 
 .fin-dash__tab:disabled {

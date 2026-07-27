@@ -695,30 +695,48 @@ const defaultMonths = 6;
 </script>
 
 <style>
+  /* 底線式分頁籤(與財務儀表板／關係摘要同款):純文字、金色 2px 底線壓在髮絲線上 */
   .quote-lwc-ranges {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     margin-top: 0.5rem;
     flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   }
   .quote-lwc-range {
     font-size: 11px;
+    font-weight: 600;
     line-height: 1;
-    padding: 4px 9px;
-    border-radius: 6px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
-    background: transparent;
+    padding: 7px 10px 9px;
+    border: none;
+    border-radius: 0;
+    background: none;
     color: var(--muted, #9aa0a6);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    position: relative;
+    transition: color 0.15s;
+  }
+  .quote-lwc-range::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent, #f0b429);
+    transform: scaleX(0);
+    transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1);
   }
   .quote-lwc-range:hover {
     color: var(--fg, #e5e7eb);
   }
   .quote-lwc-range.is-active {
-    background: rgba(255, 255, 255, 0.1);
     color: var(--fg, #fff);
-    border-color: rgba(255, 255, 255, 0.28);
+    font-weight: 700;
+  }
+  .quote-lwc-range.is-active::after {
+    transform: scaleX(1);
   }
   .quote-lwc {
     width: 100%;
