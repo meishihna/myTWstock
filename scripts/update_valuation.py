@@ -27,11 +27,12 @@ from utils import (
     setup_stdout,
     update_metadata,
 )
+from stock_codes import suffix_order
 
 
 def fetch_valuation(ticker):
-    """Fetch market cap / enterprise value from Yahoo. Tries .TW then .TWO."""
-    for suffix in [".TW", ".TWO"]:
+    """Fetch market cap / enterprise value from Yahoo. 依官方市場別選對後綴(上市.TW/上櫃.TWO)。"""
+    for suffix in suffix_order(ticker):
         try:
             stock = yf.Ticker(f"{ticker}{suffix}")
             info = stock.info

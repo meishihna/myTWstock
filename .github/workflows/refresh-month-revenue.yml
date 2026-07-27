@@ -34,6 +34,12 @@ jobs:
       - name: Install Python deps
         run: pip install -r requirements.txt
 
+      # 官方代碼表(TWSE ISIN 上市/上櫃)→ code→後綴對照,供抓 Yahoo 直接選 .TW/.TWO。
+      # 掛牌變動慢(月級),隨月營收一起刷新即可。
+      - name: Refresh stock codes (market/suffix map)
+        run: python scripts/build_stock_codes.py
+        continue-on-error: true
+
       # 純加法:逐檔只更新 monthlyRevenue;抓不到最新月的檔取其現有最新、不影響年報季報。
       # 限流 580/hr 以留餘裕於 FinMind 免費額度(約 600/hr),避免尾段 402/429。
       - name: Update monthly revenue (--all)
@@ -47,12 +53,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/financials_store || true
+          git add data/financials_store data/stock_codes.json web/src/lib/stockSuffix.json || true
           if git diff --staged --quiet; then
-            echo "No month-revenue changes."
+            echo "No month-revenue / stock-code changes."
             exit 0
           fi
-          git commit -m "data(month-rev): 更新月營收 (automated)"
+          git commit -m "data: 更新月營收 + 官方代碼表 (automated)"
           # 遠端可能被其他排程／手動 push 推進 → rebase 後再推,最多重試 5 次(不強推)
           for i in 1 2 3 4 5; do
             if git push origin HEAD:main; then

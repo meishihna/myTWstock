@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import YahooFinance from "yahoo-finance2";
+import { suffixOrder } from "../../../lib/stockCodes";
 
 export const prerender = false;
 
@@ -23,7 +24,7 @@ function extract(q: Record<string, unknown>) {
 }
 
 async function quoteTwTicker(ticker: string) {
-  const candidates = [`${ticker}.TW`, `${ticker}.TWO`];
+  const candidates = suffixOrder(ticker).map((s) => `${ticker}${s}`);
   let lastErr: unknown;
   for (const symbol of candidates) {
     try {

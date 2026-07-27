@@ -6,6 +6,7 @@
  */
 
 import YahooFinance from "yahoo-finance2";
+import { suffixOrder } from "./stockCodes";
 
 let _yahooFinance: YahooFinance | null = null;
 function yahooFinanceClient(): YahooFinance {
@@ -113,7 +114,7 @@ async function fetchQuoteSummaryExtras(ticker: string): Promise<{
   if (!/^\d{4}$/.test(ticker)) return empty;
 
   const yf = yahooFinanceClient();
-  for (const suffix of [".TW", ".TWO"] as const) {
+  for (const suffix of suffixOrder(ticker)) {
     const symbol = `${ticker}${suffix}`;
     try {
       const r = await yf.quoteSummary(symbol, {
@@ -162,7 +163,7 @@ function rollingSma(values: number[], period: number): (number | null)[] {
 }
 
 async function fetchYahooChartOnce(ticker: string): Promise<PriceData | null> {
-  for (const suffix of [".TW", ".TWO"] as const) {
+  for (const suffix of suffixOrder(ticker)) {
     try {
       const symbol = `${ticker}${suffix}`;
       /** 2y 確保暖身後仍有足夠交易日（遇长假仍盡量滿足 110 根） */
@@ -363,7 +364,7 @@ export async function getMiniQuote(ticker: string): Promise<MiniQuote | null> {
   const hit = miniCache.get(ticker);
   if (hit && now - hit.ts < TTL_MS) return hit.data;
 
-  for (const suffix of [".TW", ".TWO"] as const) {
+  for (const suffix of suffixOrder(ticker)) {
     try {
       const symbol = `${ticker}${suffix}`;
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`;
@@ -517,7 +518,7 @@ export async function getBars(ticker: string): Promise<Bar[] | null> {
   const hit = barsCache.get(ticker);
   if (hit && now - hit.ts < TTL_MS) return hit.bars;
 
-  for (const suffix of [".TW", ".TWO"] as const) {
+  for (const suffix of suffixOrder(ticker)) {
     try {
       const symbol = `${ticker}${suffix}`;
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d`;

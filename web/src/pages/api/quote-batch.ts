@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import YahooFinance from "yahoo-finance2";
 import type { QuoteBatchRow } from "../../lib/news-related";
+import { suffixOrder } from "../../lib/stockCodes";
 
 export const prerender = false;
 
@@ -53,7 +54,7 @@ async function quoteOneYahooSymbol(symbol: string): Promise<QuoteBatchRow | null
 }
 
 async function quoteTwFourDigit(ticker: string): Promise<QuoteBatchRow | null> {
-  const candidates = [`${ticker}.TW`, `${ticker}.TWO`];
+  const candidates = suffixOrder(ticker).map((s) => `${ticker}${s}`);
   for (const symbol of candidates) {
     const r = await quoteOneYahooSymbol(symbol);
     if (r) return { ...r, symbol: ticker };

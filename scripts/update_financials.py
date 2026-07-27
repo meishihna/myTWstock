@@ -68,6 +68,7 @@ from utils import (
     find_ticker_files, parse_scope_args, setup_stdout,
     fetch_valuation_data,
 )
+from stock_codes import suffix_order
 from financial_supplement import (
     _finalize_merged_financial_columns,
     backfill_annual_from_quarterly,
@@ -351,7 +352,7 @@ def _yahoo_probe_quarterly_cols(ticker: str):
     輕量探測：第一個有季損益表的 suffix 與欄數（供 FinMind 配額優化）。
     回傳 (suffix, Ticker 實例或 None, 季欄數)。
     """
-    for suffix in [".TW", ".TWO"]:
+    for suffix in suffix_order(ticker):
         try:
             stock = yf.Ticker(f"{ticker}{suffix}")
             q_inc = stock.quarterly_income_stmt
@@ -501,7 +502,7 @@ def fetch_financials(ticker):
         else pd.DataFrame()
     )
 
-    for suffix in [".TW", ".TWO"]:
+    for suffix in suffix_order(ticker):
         try:
             if probe_stock is not None and suffix == probe_suffix:
                 stock = probe_stock
