@@ -272,8 +272,7 @@ function metaDisplayField(v: unknown): string {
   return s;
 }
 const sectorDisplay = metaDisplayField(summary.board);
-const industryDisplay = metaDisplayField(summary.industry);
-// 官方 TWSE 產業別(中文,來自 stock_codes.json);與上方 GICS 英文產業並陳
+// 官方 TWSE 產業別(中文,來自 stock_codes.json);取代原 GICS 英文「產業」卡
 const officialIndustry = officialIndustryFor(ticker!);
 
 // 估值卡片改讀全市場快照 valuation-index.json(TWSE/TPEx 官方 + Yahoo Beta);
@@ -568,12 +567,6 @@ const reportLd = [
         <Bi zh="板塊" en="Sector" />
       </span>
       <span class="meta-card-value">{sectorDisplay}</span>
-    </div>
-    <div class="meta-card" data-meta="industry">
-      <span class="meta-card-label">
-        <Bi zh="產業" en="Industry" />
-      </span>
-      <span class="meta-card-value">{industryDisplay}</span>
     </div>
     {officialIndustry && (
       <div class="meta-card" data-meta="twse-industry">
