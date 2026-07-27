@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-07-27T10:19:35Z",
+  "generatedAt": "2026-07-27T12:51:57Z",
   "institutional": {
     "date": "2026-07-27",
     "rows": [
       {
         "label": "外資",
-        "buy": 3269.6,
-        "sell": 3189.2,
+        "buy": 3350.8,
+        "sell": 3270.4,
         "net": 80.4
       },
       {
         "label": "投信",
-        "buy": 152.7,
-        "sell": 155.5,
-        "net": -2.8
+        "buy": 165.0,
+        "sell": 160.2,
+        "net": 4.8
       },
       {
         "label": "自營商(自行)",
@@ -34,21 +34,21 @@
         "net": 0.0
       }
     ],
-    "totalNet": -1.0
+    "totalNet": 6.6
   },
   "margin": {
-    "date": "2026-07-24",
+    "date": "2026-07-27",
     "margin": {
-      "today": 9354810,
-      "change": 4895
+      "today": 9272006,
+      "change": -82804
     },
     "short": {
-      "today": 204754,
-      "change": -3892
+      "today": 186233,
+      "change": -18521
     },
     "marginMoney": {
-      "today": 5771.0,
-      "change": -55.7
+      "today": 5687.0,
+      "change": -84.0
     }
   }
 }
