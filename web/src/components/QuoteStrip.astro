@@ -568,7 +568,10 @@ const defaultMonths = 6;
           vertLines: { color: "rgba(255,255,255,0.05)" },
           horzLines: { color: "rgba(255,255,255,0.05)" },
         },
-        rightPriceScale: { borderColor: "rgba(255,255,255,0.12)" },
+        rightPriceScale: {
+          borderColor: "rgba(255,255,255,0.12)",
+          scaleMargins: { top: 0.02, bottom: 0.02 },
+        },
         timeScale: {
           borderColor: "rgba(255,255,255,0.12)",
           timeVisible: true,
@@ -576,8 +579,24 @@ const defaultMonths = 6;
           rightOffset: 2,
         },
         crosshair: { mode: CrosshairMode.Normal },
+        // 當日走勢＝固定框：禁止使用者左右平移與縮放(日 K 其他區間不受影響)
+        handleScroll: false,
+        handleScale: false,
       });
       const base = intraBase();
+      // 當日 Y 軸天花板/地板 = 當日漲停/跌停價(前收 ±10%,依台股升降單位取整)
+      const twTick = (p: number) =>
+        p < 10 ? 0.01 : p < 50 ? 0.05 : p < 100 ? 0.1 : p < 500 ? 0.5 : p < 1000 ? 1 : 5;
+      const roundToTick = (p: number) => {
+        const t = twTick(p);
+        return Math.round(p / t + 1e-9) * t;
+      };
+      const limitUp = base > 0 ? roundToTick(base * 1.1) : null;
+      const limitDown = base > 0 ? roundToTick(base * 0.9) : null;
+      const fixedRange =
+        limitUp != null && limitDown != null
+          ? () => ({ priceRange: { minValue: limitDown, maxValue: limitUp } })
+          : undefined;
       intradaySeries = intradayChart.addBaselineSeries({
         baseValue: { type: "price", price: base },
         topLineColor: "#E24B4A",
@@ -589,6 +608,8 @@ const defaultMonths = 6;
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: true,
+        // Y 軸固定為當日漲跌停區間(不隨資料自動縮放)
+        autoscaleInfoProvider: fixedRange,
       });
       setIntradayData();
       if (base > 0) {
