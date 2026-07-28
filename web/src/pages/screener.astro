@@ -174,7 +174,7 @@ import Layout from "../layouts/Layout.astro";
         .map((r) => {
           const cells = COLS.map((c) => {
             if (c.k === "t")
-              return `<td class="scr-td--t"><a class="scr-chip" href="/report/${r.t}">${r.t}</a></td>`;
+              return `<td class="scr-td--t"><a class="tk-chip" href="/report/${r.t}">${r.t}</a></td>`;
             if (c.k === "n")
               return `<td class="scr-td--n"><a href="/report/${r.t}">${r.n ?? ""}</a></td>`;
             if (c.k === "s") return `<td class="scr-td--s">${r.s ? sectorZh(String(r.s)) : "—"}</td>`;
@@ -282,11 +282,6 @@ import Layout from "../layouts/Layout.astro";
     .scr-td--s { color: var(--muted); font-size: 0.8rem; }
     .scr-td--n a { color: var(--text); text-decoration: none; font-weight: 500; }
     .scr-td--n a:hover { color: var(--link-report); }
-    .scr-chip {
-      font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; text-decoration: none;
-      color: var(--link-report); background: color-mix(in srgb, var(--link-report) 14%, transparent);
-      padding: 2px 8px; border-radius: 6px;
-    }
     .scr-chg.is-pos { color: var(--up); }
     .scr-chg.is-neg { color: var(--down); }
 

@@ -964,6 +964,19 @@ a:focus-visible {
   text-decoration: none;
 }
 
+/* Ticker 代號膠囊(選股/自選/比較共用) */
+.tk-chip {
+  align-self: flex-start;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--link-report);
+  background: color-mix(in srgb, var(--link-report) 14%, transparent);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
 .graph-frame-wrap {
   margin: 0 -1.25rem;
   width: calc(100% + 2.5rem);
@@ -1687,9 +1700,9 @@ a:focus-visible {
   font: inherit;
   color: inherit;
   cursor: pointer;
-  background: #141414;
+  background: var(--surface);
   border: 1px solid rgba(var(--ink), 0.07);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: 0 1px 0 rgba(var(--ink), 0.03) inset;
   transition:
     border-color 0.2s var(--ease-out),
@@ -2551,7 +2564,7 @@ a:focus-visible {
 .quote-metric {
   padding: 10px 12px 11px;
   text-align: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: rgba(var(--ink), 0.035);
   border: 1px solid var(--border);
   box-shadow: none;

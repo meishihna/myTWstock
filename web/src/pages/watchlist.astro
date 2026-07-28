@@ -217,7 +217,7 @@ import Layout from "../layouts/Layout.astro";
             <button class="wl__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">×</button>
             <a class="wl__item-head" href="/report/${t}">
               <div class="wl__head-left">
-                <span class="wl__tk">${t}</span>
+                <span class="tk-chip">${t}</span>
                 <span class="wl__name">${r.n ?? ""}</span>
                 <span class="wl__sector">${r.s ? sectorZh(String(r.s)) : "—"}</span>
               </div>
@@ -300,12 +300,6 @@ import Layout from "../layouts/Layout.astro";
 
     .wl__item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; text-decoration: none; }
     .wl__head-left { display: flex; flex-direction: column; gap: 0.32rem; min-width: 0; }
-    .wl__tk {
-      align-self: flex-start;
-      font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700;
-      color: var(--link-report); padding: 2px 8px; border-radius: 6px;
-      background: color-mix(in srgb, var(--link-report) 14%, transparent);
-    }
     .wl__name {
       font-family: var(--font-display); font-size: 1.15rem; font-weight: 600;
       color: var(--text-heading, #fff); letter-spacing: -0.01em; line-height: 1.3;
