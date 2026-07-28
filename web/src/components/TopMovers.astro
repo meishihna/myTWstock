@@ -102,9 +102,13 @@ const fmtP = (p: number) => (p < 50 ? p.toFixed(2) : p < 500 ? p.toFixed(1) : p.
   .tm { margin: 0 0 1.6rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 0.95rem 1.15rem 0.85rem; }
   .tm-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
   .tm-title { font-family: var(--font-display); font-size: 1.12rem; margin: 0; color: var(--text-heading); }
-  .tm-toggle { margin-left: auto; display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); }
-  .tm-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.78rem; font-weight: 600; padding: 4px 14px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
-  .tm-tab.is-active { color: #1a1613; background: var(--accent); }
+  .tm-toggle { margin-left: auto; display: inline-flex; gap: 4px; border-bottom: 1px solid rgba(var(--ink), 0.12); }
+  .tm-tab { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 0.78rem; font-weight: 600; padding: 5px 12px 7px; border-radius: 0; cursor: pointer; position: relative; transition: color var(--duration) var(--ease-out); }
+  .tm-tab::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: -1px; height: 2px; border-radius: 1px; background: var(--accent); transform: scaleX(0); transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1); }
+  .tm-tab:hover { color: var(--text); }
+  .tm-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tm-tab.is-active { color: var(--text-heading); font-weight: 700; }
+  .tm-tab.is-active::after { transform: scaleX(1); }
 
   .tm-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 1.8rem; }
   .tm-list li { break-inside: avoid; }

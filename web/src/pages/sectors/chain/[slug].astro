@@ -243,9 +243,13 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .ind-tile-t { font-size: 0.72rem; font-weight: 600; color: inherit; line-height: 1.15; }
   .ind-tile-p { font-size: 0.68rem; color: inherit; opacity: 0.85; }
   .ind-hm-empty { color: var(--text-secondary); font-size: 0.82rem; padding: 1rem; text-align: center; }
-  .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
-  .hmp-tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; }
-  .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
+  .hmp-toggle { display: inline-flex; gap: 4px; border-bottom: 1px solid rgba(var(--ink), 0.12); }
+  .hmp-tab { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 5px 11px 7px; border-radius: 0; cursor: pointer; position: relative; transition: color var(--duration) var(--ease-out); }
+  .hmp-tab::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 1px; background: var(--accent); transform: scaleX(0); transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1); }
+  .hmp-tab:hover { color: var(--text); }
+  .hmp-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hmp-tab.is-active { color: var(--text-heading); font-weight: 700; }
+  .hmp-tab.is-active::after { transform: scaleX(1); }
   .ind-hm-tip { position: fixed; z-index: 60; pointer-events: none; background: #2a2620; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); box-shadow: 0 4px 18px rgba(0,0,0,0.5); }
   .ind-hm-tip .tip-head { margin-bottom: 6px; }
   .ind-hm-tip .tip-code { font-weight: 700; font-size: 0.9rem; }

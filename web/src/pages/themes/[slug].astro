@@ -583,10 +583,13 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .thm-cat-pill { font-size: 0.72rem; color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); padding: 1px 9px; border-radius: 999px; margin-right: 0.5rem; }
 
     /* 分頁列 */
-    .theme-tabs { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); margin: 0.3rem 0 1.3rem; }
-    .theme-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 600; padding: 7px 20px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .theme-tabs { display: inline-flex; gap: 4px; margin: 0.3rem 0 1.3rem; border-bottom: 1px solid rgba(var(--ink), 0.12); }
+    .theme-tab { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 600; padding: 8px 16px 10px; border-radius: 0; cursor: pointer; position: relative; transition: color var(--duration) var(--ease-out); }
+    .theme-tab::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 1px; background: var(--accent); transform: scaleX(0); transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1); }
     .theme-tab:hover { color: var(--text); }
-    .theme-tab.is-active { color: #1a1613; background: var(--accent); }
+    .theme-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .theme-tab.is-active { color: var(--text-heading); font-weight: 700; }
+    .theme-tab.is-active::after { transform: scaleX(1); }
     .theme-panel[hidden] { display: none; }
 
     /* 產業總覽卡 */
@@ -631,10 +634,13 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
 
     .theme-hm-sec { margin-top: 0.4rem; }
     .hm-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem; }
-    .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); flex: 0 0 auto; }
-    .hmp-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .hmp-toggle { display: inline-flex; gap: 4px; flex: 0 0 auto; border-bottom: 1px solid rgba(var(--ink), 0.12); }
+    .hmp-tab { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 5px 11px 7px; border-radius: 0; cursor: pointer; position: relative; transition: color var(--duration) var(--ease-out); }
+    .hmp-tab::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 1px; background: var(--accent); transform: scaleX(0); transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1); }
     .hmp-tab:hover { color: var(--text); }
-    .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
+    .hmp-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .hmp-tab.is-active { color: var(--text-heading); font-weight: 700; }
+    .hmp-tab.is-active::after { transform: scaleX(1); }
     .hm-empty { color: var(--muted); text-align: center; padding: 2rem 1rem; }
     .theme-hm { position: relative; width: 100%; height: clamp(220px, 38vh, 380px); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
     .thm-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; text-decoration: none; color: #f4efe6; border-radius: 2px; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.1s var(--ease-out); }
@@ -665,10 +671,13 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-dash { color: var(--muted); font-size: 0.8rem; }
 
     /* structure 子檢視切換 */
-    .sview-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); margin-bottom: 1rem; }
-    .sview-tab { appearance: none; border: none; background: transparent; color: var(--muted); font: inherit; font-size: 0.8rem; font-weight: 600; padding: 6px 16px; border-radius: 999px; cursor: pointer; transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
+    .sview-toggle { display: inline-flex; gap: 4px; margin-bottom: 1rem; border-bottom: 1px solid rgba(var(--ink), 0.12); }
+    .sview-tab { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 0.8rem; font-weight: 600; padding: 7px 14px 9px; border-radius: 0; cursor: pointer; position: relative; transition: color var(--duration) var(--ease-out); }
+    .sview-tab::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: -1px; height: 2px; border-radius: 1px; background: var(--accent); transform: scaleX(0); transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1); }
     .sview-tab:hover { color: var(--text); }
-    .sview-tab.is-active { color: #1a1613; background: var(--accent); }
+    .sview-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .sview-tab.is-active { color: var(--text-heading); font-weight: 700; }
+    .sview-tab.is-active::after { transform: scaleX(1); }
     #sview-compare[hidden], #sview-role[hidden] { display: none; }
 
     /* 可收合分段 */
