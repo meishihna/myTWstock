@@ -44,6 +44,23 @@ import Layout from "../layouts/Layout.astro";
       const arrow = n > 0 ? "▲" : n < 0 ? "▼" : "";
       return metric("年營收 YoY%", `${arrow}${Math.abs(n).toFixed(1)}`, "wl__chg " + cls);
     };
+    // 月營收異動提示:最新月 YoY;|≥30%| 標「大增/大減」(你追蹤的股票營收突然大幅變動時一眼看到)
+    const monthRevAlert = (mrY: unknown, mrP: unknown) => {
+      const n = num(mrY);
+      if (n == null || typeof mrP !== "string" || !mrP) return "";
+      const mm = Number(mrP.slice(5, 7));
+      const mLabel = Number.isFinite(mm) && mm ? `${mm}月` : mrP;
+      const pos = n > 0,
+        neg = n < 0;
+      const arrow = pos ? "▲" : neg ? "▼" : "";
+      const big = Math.abs(n) >= 30;
+      const cls = big ? (pos ? "wl__rev--surge" : "wl__rev--drop") : "";
+      const flag = big
+        ? `<span class="wl__rev-flag">${pos ? "營收大增" : "營收大減"}</span>`
+        : "";
+      const vcls = pos ? "is-pos" : neg ? "is-neg" : "";
+      return `<div class="wl__rev ${cls}"><span class="wl__rev-lab">月營收 ${mLabel}</span><span class="wl__rev-val ${vcls}">${arrow}${Math.abs(n).toFixed(1)}%</span>${flag}</div>`;
+    };
 
     const $ = (id: string) => document.getElementById(id);
     let index: Record<string, Row> = {};
@@ -175,6 +192,7 @@ import Layout from "../layouts/Layout.astro";
               </div>
               <div class="wl__quote" data-quote-tk="${t}"><span class="wl__quote-load">···</span></div>
             </a>
+            ${monthRevAlert(r.mrY, r.mrP)}
             <dl class="wl__metrics">
               ${metric("市值(百萬)", (r.me ? "~" : "") + fmtInt(r.mc))}
               ${metric("P/E", fmt(r.pe))}
@@ -289,6 +307,29 @@ import Layout from "../layouts/Layout.astro";
     }
     .wl__chg.is-pos { color: var(--up); }
     .wl__chg.is-neg { color: var(--down); }
+
+    /* 月營收異動提示(紅增綠減;|≥30%| 整條染色強調) */
+    .wl__rev {
+      display: flex; align-items: center; gap: 8px;
+      margin: 0.9rem 0 0; padding: 6px 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03); font-size: 0.8rem;
+    }
+    .wl__rev-lab { color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+    .wl__rev-val {
+      margin-left: auto; font-family: ui-monospace, monospace; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .wl__rev-val.is-pos { color: var(--up); }
+    .wl__rev-val.is-neg { color: var(--down); }
+    .wl__rev-flag {
+      font-size: 0.68rem; font-weight: 700; padding: 2px 7px;
+      border-radius: 999px; white-space: nowrap;
+    }
+    .wl__rev--surge { border-color: rgba(226, 75, 74, 0.4); background: rgba(226, 75, 74, 0.08); }
+    .wl__rev--surge .wl__rev-flag { color: #ff9a9a; background: rgba(226, 75, 74, 0.18); }
+    .wl__rev--drop { border-color: rgba(29, 158, 117, 0.4); background: rgba(29, 158, 117, 0.08); }
+    .wl__rev--drop .wl__rev-flag { color: #5ee9b5; background: rgba(29, 158, 117, 0.18); }
 
     .wl__rm {
       position: absolute; top: 9px; right: 9px; z-index: 2;

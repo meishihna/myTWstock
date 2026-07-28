@@ -101,6 +101,22 @@ function main() {
       if (revYoy != null && Math.abs(revYoy) > 500) revYoy = null;
     }
 
+    // 最新月營收 YoY(供自選股「營收異動」提示;>±500% 視為失真設 null)
+    let mrY = null;
+    let mrP = null;
+    const mr = data.monthlyRevenue;
+    if (mr?.periods?.length && Array.isArray(mr.yoy)) {
+      for (let i = mr.periods.length - 1; i >= 0; i--) {
+        const v = mr.yoy[i];
+        if (v != null && Number.isFinite(v)) {
+          // 營收 YoY 數學下限 -100%(歸零);< -100 或 > 500 多為金融/保險負基期或近零基期失真 → null
+          mrY = v < -100 || v > 500 ? null : Math.round(v * 10) / 10;
+          mrP = mr.periods[i];
+          break;
+        }
+      }
+    }
+
     const peV = num(vi.pe) ?? num(val["P/E (TTM)"]);
     const pbV = num(vi.pb) ?? num(val["P/B"]);
     const revV = rev ? rev.value : null;
@@ -147,6 +163,8 @@ function main() {
       eps: eps ? eps.value : null,
       revYoy,
       yr: rev?.period ? rev.period.slice(0, 4) : null,
+      mrY, // 最新月營收 YoY%
+      mrP, // 最新月營收月份 YYYY-MM
     });
   }
 
