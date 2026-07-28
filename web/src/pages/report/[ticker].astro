@@ -285,20 +285,6 @@ const valuation: ValuationParsed = valSnapRow
 // 籌碼面快照(三大法人最新一日 + 融資融券),供財務儀表板「籌碼面」分頁
 const chipsRow = chipsSnapshotRow(ticker!);
 const memberThemes = themesForTicker(ticker!); // ④ 所屬投資題材(/map 跨題材)
-
-// 營收異動「原因」:FinMind 新聞頭條 + why 一句話歸納(build 時讀 public JSON;缺檔/缺該檔則不顯示)。
-// CI 每月更新該檔 → Vercel 重建時本頁一併刷新。Astro 模板表達式預設逸出,外部標題安全呈現。
-let revNote:
-  | { why?: string; asOf?: string; heads?: { d?: string; t?: string; s?: string; u?: string | null }[] }
-  | null = null;
-try {
-  const rrPath = path.join(webRoot, "public", "data", "revenue-reasons.json");
-  const rr = JSON.parse(fs.readFileSync(rrPath, "utf8"));
-  const n = rr?.notes?.[ticker!];
-  if (n && Array.isArray(n.heads) && n.heads.length) revNote = n;
-} catch {
-  /* 無檔則略過 */
-}
 const chipsDate = chipsInstDate();
 const chipsHistory = chipsHistoryForTicker(ticker!);
 
@@ -655,7 +641,7 @@ const reportLd = [
   <RelationSummary
     blocks={relationBlocks}
     revenueStructure={revenueStructureForRelation}
-    newsNote={revNote}
+    ticker={meta.ticker}
     nameToTicker={nameToTicker}
     labelToWikiSlug={labelToWikiSlug}
   />

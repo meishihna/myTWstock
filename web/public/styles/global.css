@@ -2466,14 +2466,6 @@ a:focus-visible {
   text-align: right;
 }
 
-.quote-up {
-  color: #6ecf9b !important;
-}
-
-.quote-down {
-  color: #e07a7a !important;
-}
-
 /* 延遲行情：SSR 面積圖 + hover 十字線／tooltip（Style 3） */
 .quote-widget-wrap {
   margin-bottom: 1.5rem;
@@ -3250,6 +3242,12 @@ a:focus-visible {
   border-top: 1px solid rgba(var(--ink), 0.06);
   font-size: 0.72rem;
   color: rgba(160, 168, 182, 0.8);
+}
+.relation-news-status {
+  margin: 0;
+  padding: 0.7rem 0.2rem;
+  font-size: 0.85rem;
+  color: rgba(160, 168, 182, 0.85);
 }
 
 .relation-summary-body {

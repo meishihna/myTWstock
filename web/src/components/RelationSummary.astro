@@ -10,26 +10,19 @@ export interface RevenueStructureTab {
   revenueGeo: string | null;
 }
 
-export interface RevenueNewsTab {
-  /** Claude Code 歸納的一句話原因（可無） */
-  why?: string | null;
-  /** FinMind 近期營收相關頭條 */
-  heads?: { d?: string; t?: string; s?: string; u?: string | null }[];
-}
-
 interface Props {
   blocks: RelationBlocks;
   /** 來自業務簡介／enrichment 之營收結構，插入為「第四個」膠囊（在主要供應商之後、競爭對手之前） */
   revenueStructure?: RevenueStructureTab | null;
-  /** 營收異動相關新聞（FinMind 頭條 + why 歸納），作為最後一個頁籤 */
-  newsNote?: RevenueNewsTab | null;
+  /** 個股代號：提供時加入「相關新聞」頁籤，前端於開啟時即時抓 /api/revenue-news */
+  ticker?: string | null;
   nameToTicker: Record<string, string>;
   labelToWikiSlug?: Record<string, string>;
 }
 const {
   blocks,
   revenueStructure = null,
-  newsNote = null,
+  ticker = null,
   nameToTicker,
   labelToWikiSlug,
 } = Astro.props;
@@ -73,8 +66,7 @@ type TabEntry =
       kind: "news";
       key: "news";
       title: string;
-      why: string | null;
-      heads: { d?: string; t?: string; s?: string; u?: string | null }[];
+      ticker: string;
     };
 
 const entries: TabEntry[] = [];
@@ -106,17 +98,8 @@ if (
 
 pushMd("competitors", RELATION.competitors, toHtml(blocks.competitors));
 
-if (newsNote && Array.isArray(newsNote.heads) && newsNote.heads.length > 0) {
-  entries.push({
-    kind: "news",
-    key: "news",
-    title: "相關新聞",
-    why:
-      typeof newsNote.why === "string" && newsNote.why.trim()
-        ? newsNote.why.trim()
-        : null,
-    heads: newsNote.heads,
-  });
+if (ticker && /^\d{4,6}$/.test(ticker)) {
+  entries.push({ kind: "news", key: "news", title: "相關新聞", ticker });
 }
 
 /** 穩定唯一 id 前綴（同頁僅一區塊時亦唯一） */
@@ -317,35 +300,11 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
                   </div>
                 </div>
               ) : (
-                <div class="relation-tabpanel-inner relation-news">
-                  {s.why && <p class="relation-news-why">{s.why}</p>}
-                  <ul class="relation-news-list">
-                    {s.heads.map((h) => {
-                      const url =
-                        typeof h.u === "string" && /^https?:\/\//.test(h.u)
-                          ? h.u
-                          : null;
-                      const metaLine = `${(h.d ?? "").slice(5)}${h.s ? " · " + h.s : ""}`;
-                      return (
-                        <li class="relation-news-item">
-                          {url ? (
-                            <a href={url} target="_blank" rel="noopener noreferrer">
-                              <span class="relation-news-t">{h.t}</span>
-                              <span class="relation-news-m">{metaLine}</span>
-                            </a>
-                          ) : (
-                            <div>
-                              <span class="relation-news-t">{h.t}</span>
-                              <span class="relation-news-m">{metaLine}</span>
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <p class="relation-news-src">
-                    資料來源:公開新聞(FinMind);僅供參考,非投資建議。
-                  </p>
+                <div
+                  class="relation-tabpanel-inner relation-news"
+                  data-news-ticker={s.ticker}
+                >
+                  <p class="relation-news-status">載入中…</p>
                 </div>
               )}
             </div>
@@ -369,6 +328,67 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
 
           function ix(i) {
             return ((i % tabs.length) + tabs.length) % tabs.length;
+          }
+
+          function renderNews(panel, heads) {
+            var status = panel.querySelector(".relation-news-status");
+            if (!heads || !heads.length) {
+              if (status) status.textContent = "近期無相關新聞。";
+              return;
+            }
+            var ul = document.createElement("ul");
+            ul.className = "relation-news-list";
+            heads.forEach(function (h) {
+              var li = document.createElement("li");
+              li.className = "relation-news-item";
+              var url =
+                typeof h.u === "string" && /^https?:\/\//.test(h.u) ? h.u : null;
+              var wrap = document.createElement(url ? "a" : "div");
+              if (url) {
+                wrap.href = url;
+                wrap.target = "_blank";
+                wrap.rel = "noopener noreferrer";
+              }
+              var t = document.createElement("span");
+              t.className = "relation-news-t";
+              t.textContent = h.t || "";
+              var m = document.createElement("span");
+              m.className = "relation-news-m";
+              var d = (h.d || "").slice(5);
+              m.textContent = d + (h.s ? (d ? " · " : "") + h.s : "");
+              wrap.appendChild(t);
+              wrap.appendChild(m);
+              li.appendChild(wrap);
+              ul.appendChild(li);
+            });
+            var src = document.createElement("p");
+            src.className = "relation-news-src";
+            src.textContent =
+              "資料來源：公開新聞（FinMind）；僅供參考，非投資建議。";
+            panel.textContent = "";
+            panel.appendChild(ul);
+            panel.appendChild(src);
+          }
+
+          function loadNews(panelWrap) {
+            if (!panelWrap) return;
+            var panel = panelWrap.querySelector(".relation-news[data-news-ticker]");
+            if (!panel || panel.getAttribute("data-news-loaded")) return;
+            var tk = panel.getAttribute("data-news-ticker");
+            if (!tk) return;
+            panel.setAttribute("data-news-loaded", "1");
+            var status = panel.querySelector(".relation-news-status");
+            fetch("/api/revenue-news/" + encodeURIComponent(tk))
+              .then(function (r) {
+                return r.ok ? r.json() : null;
+              })
+              .then(function (j) {
+                renderNews(panel, j && j.heads ? j.heads : []);
+              })
+              .catch(function () {
+                panel.removeAttribute("data-news-loaded"); /* 允許重試 */
+                if (status) status.textContent = "新聞載入失敗，請稍後再試。";
+              });
           }
 
           function resetRevenuePanel(panel) {
@@ -460,6 +480,9 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
                   panels[j].classList.add("relation-tabpanel--active");
                   if (tabs[j].getAttribute("data-relation-key") === "revenueStructure") {
                     playRevenueAnim(panels[j]);
+                  }
+                  if (tabs[j].getAttribute("data-relation-key") === "news") {
+                    loadNews(panels[j]);
                   }
                 } else {
                   panels[j].hidden = true;
