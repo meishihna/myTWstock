@@ -90,8 +90,47 @@ import Layout from "../layouts/Layout.astro";
       );
     };
 
+    // 營收異動「原因」:FinMind 近期新聞頭條(每則附日期/來源/連結)+ 可選 why(技能歸納)。
+    // 外部新聞內容不可信 → 一律 esc 逸出;連結僅允許 http(s)、target=_blank + noopener。
+    type RevNote = {
+      asOf?: string;
+      why?: string;
+      heads?: { d?: string; t?: string; s?: string; u?: string | null }[];
+    };
+    const esc = (s: unknown) =>
+      String(s ?? "").replace(
+        /[&<>"']/g,
+        (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+            c
+          ] as string,
+      );
+    const revReason = (t: string) => {
+      const note = reasons[t];
+      if (!note) return "";
+      const heads = Array.isArray(note.heads) ? note.heads.slice(0, 3) : [];
+      const why =
+        typeof note.why === "string" && note.why.trim() ? note.why.trim() : "";
+      if (!why && !heads.length) return "";
+      const whyHtml = why ? `<p class="wl__why-lead">${esc(why)}</p>` : "";
+      const newsHtml = heads
+        .map((h) => {
+          const title = esc(h.t || "");
+          const d = String(h.d || "").slice(5);
+          const meta = esc(d + (h.s ? (d ? " · " : "") + h.s : ""));
+          const inner = `<span class="wl__why-t">${title}</span><span class="wl__why-m">${meta}</span>`;
+          const u = h.u;
+          return typeof u === "string" && /^https?:\/\//.test(u)
+            ? `<a class="wl__why-item" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+            : `<div class="wl__why-item">${inner}</div>`;
+        })
+        .join("");
+      return `<div class="wl__why"><div class="wl__why-hd">為什麼<span class="wl__why-tag">近期新聞</span></div>${whyHtml}${newsHtml}</div>`;
+    };
+
     const $ = (id: string) => document.getElementById(id);
     let index: Record<string, Row> = {};
+    let reasons: Record<string, RevNote> = {};
 
     interface Mini {
       points: number[];
@@ -221,6 +260,7 @@ import Layout from "../layouts/Layout.astro";
               <div class="wl__quote" data-quote-tk="${t}"><span class="wl__quote-load">···</span></div>
             </a>
             ${monthRevAlert(r.mrY, r.mrP, r.mrMoM, r.mrAcc)}
+            ${revReason(t)}
             <dl class="wl__metrics">
               ${metric("市值(百萬)", (r.me ? "~" : "") + fmtInt(r.mc))}
               ${metric("P/E", fmt(r.pe))}
@@ -249,6 +289,16 @@ import Layout from "../layouts/Layout.astro";
         render();
       })
       .catch(render);
+    // 營收異動原因(內容檔,缺檔則優雅略過)
+    fetch("/data/revenue-reasons.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j && j.notes) {
+          reasons = j.notes;
+          render();
+        }
+      })
+      .catch(() => {});
     render();
   </script>
 
@@ -358,6 +408,34 @@ import Layout from "../layouts/Layout.astro";
     .wl__rev--surge .wl__rev-flag { color: #ff9a9a; background: rgba(226, 75, 74, 0.18); }
     .wl__rev--drop { border-color: rgba(29, 158, 117, 0.4); background: rgba(29, 158, 117, 0.08); }
     .wl__rev--drop .wl__rev-flag { color: #5ee9b5; background: rgba(29, 158, 117, 0.18); }
+
+    /* 營收異動「為什麼」— 近期新聞頭條(每則附日期/來源/連結) */
+    .wl__why {
+      margin-top: 7px; padding: 9px 11px 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .wl__why-hd {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 0.74rem; font-weight: 600; color: var(--text-secondary);
+    }
+    .wl__why-tag {
+      font-size: 0.62rem; font-weight: 500; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px;
+    }
+    .wl__why-lead { margin: 0; font-size: 0.8rem; line-height: 1.5; color: var(--text); }
+    .wl__why-item { display: block; text-decoration: none; }
+    .wl__why-item + .wl__why-item { margin-top: 6px; }
+    .wl__why-t {
+      display: block; font-size: 0.78rem; line-height: 1.42; color: var(--text-secondary);
+      transition: color var(--duration) var(--ease-out);
+    }
+    a.wl__why-item:hover .wl__why-t { color: var(--accent); }
+    .wl__why-m {
+      display: block; margin-top: 1px; font-size: 0.68rem; color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
 
     .wl__rm {
       position: absolute; top: 9px; right: 9px; z-index: 2;
