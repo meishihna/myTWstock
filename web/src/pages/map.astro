@@ -7,8 +7,8 @@ export const prerender = true;
 ---
 
 <Layout
-  title="產業地圖 Industry Map — TWstock"
-  description="台股題材熱力圖與供應鏈產業地圖：依題材瀏覽上中下游與成分股，當日漲跌一眼掌握。"
+  title="投資題材 — TWstock"
+  description="台股投資題材熱力圖:依題材瀏覽上中下游與成分股,當日漲跌一眼掌握。官方產業分類另見「產業」。"
 >
   <main class="map-page">
     <header class="map-head">
@@ -16,7 +16,7 @@ export const prerender = true;
       <p class="map-lead">{MAP_PAGE.lead}</p>
     </header>
 
-    <div class="map-tabs" role="tablist" aria-label="地圖檢視切換">
+    <div class="map-tabs" role="tablist" aria-label="題材檢視切換">
       <button class="map-tab is-active" role="tab" aria-selected="true" data-tab="heatmap">{MAP_PAGE.tabHeatmap}</button>
       <button class="map-tab" role="tab" aria-selected="false" data-tab="industry">{MAP_PAGE.tabIndustry}</button>
     </div>
