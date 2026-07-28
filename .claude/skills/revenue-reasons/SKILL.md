@@ -73,7 +73,7 @@ helper 只會更新「已有頭條」的個股,設 `why` + `whyAsOf`(今日)。
 ### Step 5：驗證
 
 - `Read web/public/data/revenue-reasons.json` 確認目標個股已有 `why`、JSON 合法、全繁體中文、無 placeholder。
-- 若 dev server 在跑:開 `/report/<代號>`,`FinancialDashboard` 下方應見「營收異動 · 為什麼」區(`.report-reasons-why` 一句 + `.report-reasons-item` 頭條)。
+- 若 dev server 在跑:開 `/report/<代號>`,「關係摘要」的**「相關新聞」頁籤**應見 `why` 一句(`.relation-news-why`)+ 頭條(`.relation-news-item`)。
 
 ## Notes
 

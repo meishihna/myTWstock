@@ -655,6 +655,7 @@ const reportLd = [
   <RelationSummary
     blocks={relationBlocks}
     revenueStructure={revenueStructureForRelation}
+    newsNote={revNote}
     nameToTicker={nameToTicker}
     labelToWikiSlug={labelToWikiSlug}
   />
@@ -669,41 +670,6 @@ const reportLd = [
       chipsDate={chipsDate}
       chipsHistory={chipsHistory}
     />
-  )}
-
-  {revNote && (
-    <section class="report-reasons" aria-label="營收異動原因">
-      <h2 class="report-reasons-h">
-        營收異動 · 為什麼
-        <span class="report-reasons-tag">近期新聞</span>
-      </h2>
-      {revNote.why && <p class="report-reasons-why">{revNote.why}</p>}
-      <ul class="report-reasons-list">
-        {revNote.heads!.map((h) => {
-          const url =
-            typeof h.u === "string" && /^https?:\/\//.test(h.u) ? h.u : null;
-          const metaLine = `${(h.d ?? "").slice(5)}${h.s ? " · " + h.s : ""}`;
-          return (
-            <li class="report-reasons-item">
-              {url ? (
-                <a href={url} target="_blank" rel="noopener noreferrer">
-                  <span class="report-reasons-t">{h.t}</span>
-                  <span class="report-reasons-m">{metaLine}</span>
-                </a>
-              ) : (
-                <div>
-                  <span class="report-reasons-t">{h.t}</span>
-                  <span class="report-reasons-m">{metaLine}</span>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      <p class="report-reasons-src">
-        資料來源:公開新聞(FinMind);僅供參考,非投資建議。
-      </p>
-    </section>
   )}
 
   {!finDashOk && (
@@ -989,35 +955,4 @@ const reportLd = [
     border-color: var(--accent, #f0b429);
     background: var(--accent-soft, rgba(240, 180, 41, 0.18));
   }
-
-  /* 營收異動「為什麼」— why 一句話 + 近期新聞頭條(單檔報告頁,空間充裕) */
-  .report-reasons { margin: 1.4rem 0 0.3rem; }
-  .report-reasons-h {
-    display: flex; align-items: center; gap: 9px;
-    font-size: 0.95rem; font-weight: 600; color: var(--fg, #ececec); margin: 0 0 0.6rem;
-  }
-  .report-reasons-tag {
-    font-size: 0.68rem; font-weight: 500; color: var(--muted, #9a9a9a);
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.18)); border-radius: 999px; padding: 1px 9px;
-  }
-  .report-reasons-why {
-    margin: 0 0 0.75rem; font-size: 0.92rem; line-height: 1.6; color: var(--fg, #ececec);
-    padding: 0.7rem 0.9rem; border-radius: 10px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
-    background: var(--surface, rgba(255, 255, 255, 0.03));
-  }
-  .report-reasons-list {
-    list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem;
-  }
-  .report-reasons-item a, .report-reasons-item div { display: block; text-decoration: none; }
-  .report-reasons-t {
-    display: block; font-size: 0.88rem; line-height: 1.45; color: var(--fg-soft, #d0d0d0);
-    transition: color 0.15s;
-  }
-  .report-reasons-item a:hover .report-reasons-t { color: var(--accent, #f0b429); }
-  .report-reasons-m {
-    display: block; margin-top: 2px; font-size: 0.74rem; color: var(--muted, #9a9a9a);
-    font-variant-numeric: tabular-nums;
-  }
-  .report-reasons-src { margin: 0.75rem 0 0; font-size: 0.72rem; color: var(--muted, #9a9a9a); }
 </style>

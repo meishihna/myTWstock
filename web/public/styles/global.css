@@ -3193,6 +3193,65 @@ a:focus-visible {
   padding: 0.35rem 1rem 0.15rem;
 }
 
+/* 相關新聞頁籤：why 一句 + 近期頭條（每則附日期/來源/連結） */
+.relation-tabpanel-inner.relation-news {
+  box-sizing: border-box;
+  max-width: min(42rem, 100%);
+  margin-inline: auto;
+  padding: 0.5rem 1rem 0.2rem;
+}
+.relation-news-why {
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  line-height: 1.62;
+  color: rgba(224, 228, 236, 0.96);
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(var(--ink), 0.1);
+  background: rgba(var(--ink), 0.045);
+}
+.relation-news-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.relation-news-item + .relation-news-item {
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(var(--ink), 0.06);
+}
+.relation-news-item a,
+.relation-news-item > div {
+  display: block;
+  text-decoration: none;
+}
+.relation-news-t {
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(202, 208, 220, 0.95);
+  transition: color 0.18s ease;
+}
+.relation-news-item a:hover .relation-news-t {
+  color: var(--accent);
+}
+.relation-news-m {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  color: rgba(160, 168, 182, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+.relation-news-src {
+  margin: 1rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(var(--ink), 0.06);
+  font-size: 0.72rem;
+  color: rgba(160, 168, 182, 0.8);
+}
+
 .relation-summary-body {
   font-size: 1rem;
   line-height: 1.62;
