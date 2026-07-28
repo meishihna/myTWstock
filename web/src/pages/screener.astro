@@ -214,6 +214,8 @@ import Layout from "../layouts/Layout.astro";
 
     buildHead();
     attachFilterEvents();
+    const scrCount0 = $("scr-count");
+    if (scrCount0) scrCount0.textContent = "載入中…";
     fetch("/data/screener-index.json")
       .then((r) => r.json())
       .then((j) => {

@@ -103,7 +103,7 @@ const wan = (z: number) => (z / 1e4).toFixed(1); // 張 → 萬張
                   <span class="mf-bal-v">{wan(margin.short.today)} 萬張</span>
                   <span class={`mf-bal-c ${sign(margin.short.change)}`}>
                     {plus(margin.short.change)}
-                    {intc(margin.short.change)} 張
+                    {wan(margin.short.change)} 萬張
                   </span>
                 </li>
               )}
@@ -118,7 +118,7 @@ const wan = (z: number) => (z / 1e4).toFixed(1); // 張 → 萬張
                 </li>
               )}
             </ul>
-            <p class="mf-unit">融資/融券餘額單位:張</p>
+            <p class="mf-unit">融資/融券餘額單位:萬張</p>
           </div>
         )}
       </div>

@@ -37,9 +37,8 @@ import Layout from "../layouts/Layout.astro";
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
     const $ = (id: string) => document.getElementById(id);
     const MAX = 8;
-    const BARS = ["#5b9fd4", "#7dd3c0", "#9fd4ff", "#8eb4e6", "#b8a8e0", "#c0a8e0", "#88c4b0", "#d6b98e"];
 
-    type Metric = { k: string; label: string; dir: "hi" | "lo" | ""; fmt: (v: number) => string };
+    type Metric = { k: string; label: string; dir: "hi" | "lo" | ""; fmt: (v: number) => string; signed?: boolean };
     const f1 = (v: number) => v.toFixed(1);
     const f2 = (v: number) => v.toFixed(2);
     const SECTIONS: { h: string; items: Metric[] }[] = [
@@ -59,7 +58,7 @@ import Layout from "../layouts/Layout.astro";
         { k: "eps", label: "EPS(元)", dir: "hi", fmt: f2 },
       ]},
       { h: "成長 Growth", items: [
-        { k: "revYoy", label: "年營收YoY%", dir: "hi", fmt: f1 },
+        { k: "revYoy", label: "年營收YoY%", dir: "hi", fmt: f1, signed: true },
       ]},
       { h: "風險 Risk", items: [
         { k: "beta", label: "Beta", dir: "", fmt: f2 },
@@ -68,6 +67,7 @@ import Layout from "../layouts/Layout.astro";
     ];
 
     let index: Record<string, Row> = {};
+    let indexLoaded = false;
     let tickers: string[] = [];
 
     function parseUrl(): string[] {
@@ -103,10 +103,9 @@ import Layout from "../layouts/Layout.astro";
 
       const head = `<tr>
         <th class="cmp__corner">指標</th>
-        ${tickers.map((t, i) => {
+        ${tickers.map((t) => {
           const r = index[t];
           return `<th class="cmp__tk">
-            <span class="cmp__bar" style="background:linear-gradient(90deg,${BARS[i % BARS.length]},transparent 82%)"></span>
             <span class="cmp__tk-top">
               <a class="cmp__chip" href="/report/${t}">${t}</a>
               <button class="cmp__rm" data-rm="${t}" title="移除" aria-label="移除 ${t}">×</button>
@@ -127,7 +126,15 @@ import Layout from "../layouts/Layout.astro";
             const mark = on ? `<span class="cmp__mk">◆</span>` : "";
             const est = m.k === "mc" && index[t]?.me ? "~" : "";
             const tt = est ? ` title="市值為估算(本益比×淨利)"` : "";
-            return `<td class="cmp__v${on ? " is-best" : ""}"${tt}>${v == null ? "—" : mark + est + m.fmt(v)}</td>`;
+            // 成長類指標(signed)：紅漲綠跌 + ▲▼；估值/獲利等「水準」指標維持原樣
+            const signCls = m.signed && v != null && v !== 0 ? (v > 0 ? " is-pos" : " is-neg") : "";
+            const disp =
+              v == null
+                ? "—"
+                : m.signed
+                  ? mark + est + (v > 0 ? "▲" : v < 0 ? "▼" : "") + m.fmt(Math.abs(v))
+                  : mark + est + m.fmt(v);
+            return `<td class="cmp__v${on ? " is-best" : ""}${signCls}"${tt}>${disp}</td>`;
           }).join("");
           return `<tr><th class="cmp__rlabel">${m.label}</th>${tds}</tr>`;
         }).join("");
@@ -150,6 +157,7 @@ import Layout from "../layouts/Layout.astro";
       if (!/^\d{4}$/.test(t)) return say("請輸入 4 位代號");
       if (tickers.includes(t)) return;
       if (tickers.length >= MAX) return say(`最多比較 ${MAX} 檔`);
+      if (!indexLoaded) return say("資料載入中,請稍候…");
       if (!index[t]) return say(`查無 ${t}`);
       say("");
       tickers.push(t);
@@ -184,6 +192,7 @@ import Layout from "../layouts/Layout.astro";
       .then((r) => r.json())
       .then((j) => {
         for (const row of j.rows || []) index[row.t] = row;
+        indexLoaded = true;
         render();
       })
       .catch(render);
@@ -239,7 +248,6 @@ import Layout from "../layouts/Layout.astro";
       background: var(--surface-elevated); border-left: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
     }
-    .cmp__bar { display: none; }
     .cmp__tk-top { display: flex; align-items: center; justify-content: space-between; }
     .cmp__chip {
       font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; text-decoration: none;
@@ -271,6 +279,8 @@ import Layout from "../layouts/Layout.astro";
       font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; font-weight: 600;
       color: var(--text); border-top: 1px solid var(--border); border-left: 1px solid var(--border);
     }
+    .cmp__v.is-pos { color: var(--up); }
+    .cmp__v.is-neg { color: var(--down); }
     .cmp__v.is-best { color: var(--accent); background: rgba(194,163,106,0.08); }
     .cmp__mk { font-size: 0.6rem; margin-right: 5px; vertical-align: 1px; }
     .cmp__table tbody tr:hover .cmp__v { background: rgba(255,255,255,0.025); }
