@@ -44,22 +44,50 @@ import Layout from "../layouts/Layout.astro";
       const arrow = n > 0 ? "▲" : n < 0 ? "▼" : "";
       return metric("年營收 YoY%", `${arrow}${Math.abs(n).toFixed(1)}`, "wl__chg " + cls);
     };
-    // 月營收異動提示:最新月 YoY;|≥30%| 標「大增/大減」(你追蹤的股票營收突然大幅變動時一眼看到)
-    const monthRevAlert = (mrY: unknown, mrP: unknown) => {
-      const n = num(mrY);
-      if (n == null || typeof mrP !== "string" || !mrP) return "";
+    // 月營收異動提示:YoY + MoM(環比) + 加速度旗標。
+    // 加速度=本月 YoY − 近6月均 YoY(pp),≥+25→「轉強」、≤-25→「轉弱」(真正的突然轉折);
+    // 否則退回看 YoY 幅度(|≥30%|→大增/大減)。你追蹤的股票剛發動時一眼看到。
+    const sign = (v: number) => (v > 0 ? "▲" : v < 0 ? "▼" : "");
+    const scls = (v: number) => (v > 0 ? "is-pos" : v < 0 ? "is-neg" : "");
+    const monthRevAlert = (
+      mrY: unknown,
+      mrP: unknown,
+      mrMoM: unknown,
+      mrAcc: unknown,
+    ) => {
+      const y = num(mrY);
+      if (y == null || typeof mrP !== "string" || !mrP) return "";
       const mm = Number(mrP.slice(5, 7));
       const mLabel = Number.isFinite(mm) && mm ? `${mm}月` : mrP;
-      const pos = n > 0,
-        neg = n < 0;
-      const arrow = pos ? "▲" : neg ? "▼" : "";
-      const big = Math.abs(n) >= 30;
-      const cls = big ? (pos ? "wl__rev--surge" : "wl__rev--drop") : "";
-      const flag = big
-        ? `<span class="wl__rev-flag">${pos ? "營收大增" : "營收大減"}</span>`
+      const acc = num(mrAcc);
+      const mom = num(mrMoM);
+      let flag = "",
+        cls = "";
+      if (acc != null && acc >= 25) {
+        flag = "轉強";
+        cls = "wl__rev--surge";
+      } else if (acc != null && acc <= -25) {
+        flag = "轉弱";
+        cls = "wl__rev--drop";
+      } else if (Math.abs(y) >= 30) {
+        flag = y > 0 ? "營收大增" : "營收大減";
+        cls = y > 0 ? "wl__rev--surge" : "wl__rev--drop";
+      }
+      const accTitle =
+        acc != null ? `加速度 ${acc > 0 ? "+" : ""}${acc.toFixed(0)}pp（本月YoY − 近6月均）` : "";
+      const flagHtml = flag
+        ? `<span class="wl__rev-flag" title="${accTitle}">${flag}</span>`
         : "";
-      const vcls = pos ? "is-pos" : neg ? "is-neg" : "";
-      return `<div class="wl__rev ${cls}"><span class="wl__rev-lab">月營收 ${mLabel}</span><span class="wl__rev-val ${vcls}">${arrow}${Math.abs(n).toFixed(1)}%</span>${flag}</div>`;
+      const momHtml =
+        mom != null
+          ? `<span class="wl__rev-sub">MoM <b class="${scls(mom)}">${sign(mom)}${Math.abs(mom).toFixed(1)}%</b></span>`
+          : "";
+      return (
+        `<div class="wl__rev ${cls}">` +
+        `<div class="wl__rev-top"><span class="wl__rev-lab">月營收 ${mLabel}</span>${flagHtml}</div>` +
+        `<div class="wl__rev-nums"><span class="wl__rev-sub">YoY <b class="${scls(y)}">${sign(y)}${Math.abs(y).toFixed(1)}%</b></span>${momHtml}</div>` +
+        `</div>`
+      );
     };
 
     const $ = (id: string) => document.getElementById(id);
@@ -192,7 +220,7 @@ import Layout from "../layouts/Layout.astro";
               </div>
               <div class="wl__quote" data-quote-tk="${t}"><span class="wl__quote-load">···</span></div>
             </a>
-            ${monthRevAlert(r.mrY, r.mrP)}
+            ${monthRevAlert(r.mrY, r.mrP, r.mrMoM, r.mrAcc)}
             <dl class="wl__metrics">
               ${metric("市值(百萬)", (r.me ? "~" : "") + fmtInt(r.mc))}
               ${metric("P/E", fmt(r.pe))}
@@ -308,23 +336,23 @@ import Layout from "../layouts/Layout.astro";
     .wl__chg.is-pos { color: var(--up); }
     .wl__chg.is-neg { color: var(--down); }
 
-    /* 月營收異動提示(紅增綠減;|≥30%| 整條染色強調) */
+    /* 月營收異動提示:雙行(YoY+MoM+加速度旗標);紅增綠減、轉強紅/轉弱綠 */
     .wl__rev {
-      display: flex; align-items: center; gap: 8px;
-      margin: 0.9rem 0 0; padding: 6px 10px;
+      display: flex; flex-direction: column; gap: 5px;
+      margin: 0.9rem 0 0; padding: 7px 11px;
       border: 1px solid var(--border); border-radius: 8px;
-      background: rgba(255, 255, 255, 0.03); font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.03);
     }
-    .wl__rev-lab { color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
-    .wl__rev-val {
-      margin-left: auto; font-family: ui-monospace, monospace; font-weight: 700;
-      font-variant-numeric: tabular-nums;
-    }
-    .wl__rev-val.is-pos { color: var(--up); }
-    .wl__rev-val.is-neg { color: var(--down); }
+    .wl__rev-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .wl__rev-lab { color: var(--text-secondary); font-weight: 600; font-size: 0.78rem; white-space: nowrap; }
+    .wl__rev-nums { display: flex; flex-wrap: wrap; gap: 3px 16px; }
+    .wl__rev-sub { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .wl__rev-sub b { font-family: ui-monospace, monospace; font-weight: 700; color: var(--text-heading, #fff); }
+    .wl__rev-sub b.is-pos { color: var(--up); }
+    .wl__rev-sub b.is-neg { color: var(--down); }
     .wl__rev-flag {
-      font-size: 0.68rem; font-weight: 700; padding: 2px 7px;
-      border-radius: 999px; white-space: nowrap;
+      font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px; white-space: nowrap; cursor: help;
     }
     .wl__rev--surge { border-color: rgba(226, 75, 74, 0.4); background: rgba(226, 75, 74, 0.08); }
     .wl__rev--surge .wl__rev-flag { color: #ff9a9a; background: rgba(226, 75, 74, 0.18); }

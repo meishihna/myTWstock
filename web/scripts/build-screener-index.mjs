@@ -101,18 +101,49 @@ function main() {
       if (revYoy != null && Math.abs(revYoy) > 500) revYoy = null;
     }
 
-    // 最新月營收 YoY(供自選股「營收異動」提示;>±500% 視為失真設 null)
+    // 月營收訊號(供自選股「營收異動」):最新月 YoY、月增 MoM、加速度(本月 YoY − 近6月均 YoY)
     let mrY = null;
     let mrP = null;
+    let mrMoM = null;
+    let mrAcc = null;
     const mr = data.monthlyRevenue;
     if (mr?.periods?.length && Array.isArray(mr.yoy)) {
-      for (let i = mr.periods.length - 1; i >= 0; i--) {
-        const v = mr.yoy[i];
-        if (v != null && Number.isFinite(v)) {
-          // 營收 YoY 數學下限 -100%(歸零);< -100 或 > 500 多為金融/保險負基期或近零基期失真 → null
-          mrY = v < -100 || v > 500 ? null : Math.round(v * 10) / 10;
-          mrP = mr.periods[i];
+      const P = mr.periods;
+      const Y = mr.yoy;
+      const R = Array.isArray(mr.revenue) ? mr.revenue : [];
+      // 營收 YoY 數學下限 -100%;< -100 或 > 500 多為金融/保險負基期或近零基期失真 → 濾除
+      const okYoy = (v) =>
+        typeof v === "number" && Number.isFinite(v) && v >= -100 && v <= 500;
+      let li = -1;
+      for (let i = P.length - 1; i >= 0; i--) {
+        if (Y[i] != null && Number.isFinite(Y[i])) {
+          li = i;
           break;
+        }
+      }
+      if (li >= 0) {
+        mrP = P[li];
+        mrY = okYoy(Y[li]) ? Math.round(Y[li] * 10) / 10 : null;
+        // 月增 MoM%(本月營收 vs 上月)
+        if (
+          li >= 1 &&
+          Number.isFinite(R[li]) &&
+          Number.isFinite(R[li - 1]) &&
+          R[li - 1] > 0
+        ) {
+          const m = (R[li] / R[li - 1] - 1) * 100;
+          if (Math.abs(m) <= 500) mrMoM = Math.round(m * 10) / 10;
+        }
+        // 加速度(pp):本月 YoY − 近 6 月(不含本月)YoY 均值 → 抓「突然轉折」
+        if (mrY != null) {
+          const win = [];
+          for (let i = li - 1; i >= 0 && win.length < 6; i--) {
+            if (okYoy(Y[i])) win.push(Y[i]);
+          }
+          if (win.length >= 3) {
+            const avg = win.reduce((a, b) => a + b, 0) / win.length;
+            mrAcc = Math.round((mrY - avg) * 10) / 10;
+          }
         }
       }
     }
@@ -165,6 +196,8 @@ function main() {
       yr: rev?.period ? rev.period.slice(0, 4) : null,
       mrY, // 最新月營收 YoY%
       mrP, // 最新月營收月份 YYYY-MM
+      mrMoM, // 月增 MoM%
+      mrAcc, // 加速度(pp):本月 YoY − 近6月均 YoY
     });
   }
 
