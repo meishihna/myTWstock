@@ -196,7 +196,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .chain-nodes { display: flex; flex-direction: column; gap: 0.4rem; }
   .chain-diagram.flat .chain-nodes { flex-direction: row; flex-wrap: wrap; }
   .chain-tier.multi .chain-nodes { display: grid; align-content: start; }
-  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.3rem; width: 100%; padding: 0.45rem 0.45rem; white-space: nowrap; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-family: inherit; font-size: 0.72rem; font-weight: 600; line-height: 1.2; color: var(--text-primary); text-align: left; text-decoration: none; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.3rem; width: 100%; padding: 0.45rem 0.45rem; white-space: nowrap; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-family: inherit; font-size: 0.72rem; font-weight: 600; line-height: 1.2; color: var(--text); text-align: left; text-decoration: none; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
   .chain-node:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated)); }
   .chain-node.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface-elevated)); color: var(--accent); }
   .cn-n { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
@@ -215,7 +215,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .sc-subn { font-size: 0.72rem; color: var(--text-secondary); }
   .sc-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .sc-grid > .sc-card2 { flex: 0 0 172px; width: 172px; min-height: 7rem; }
-  .sc-card2 { position: relative; display: flex; flex-direction: column; padding: 0.4rem 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; color: var(--text-primary); transition: border-color 0.15s; }
+  .sc-card2 { position: relative; display: flex; flex-direction: column; padding: 0.4rem 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; color: var(--text); transition: border-color 0.15s; }
   .sc-card2:hover { border-color: var(--accent); }
   .sc-card2-main { display: flex; flex-direction: column; gap: 0.14rem; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
   .sc-fav { position: absolute; top: 0.4rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--text-secondary); font-size: 0.9rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color 0.15s; }
@@ -246,7 +246,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .hmp-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
   .hmp-tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.76rem; font-weight: 600; padding: 4px 13px; border-radius: 999px; cursor: pointer; }
   .hmp-tab.is-active { color: #1a1613; background: var(--accent); }
-  .ind-hm-tip { position: fixed; z-index: 60; pointer-events: none; background: #2a2620; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text-primary); box-shadow: 0 4px 18px rgba(0,0,0,0.5); }
+  .ind-hm-tip { position: fixed; z-index: 60; pointer-events: none; background: #2a2620; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); box-shadow: 0 4px 18px rgba(0,0,0,0.5); }
   .ind-hm-tip .tip-head { margin-bottom: 6px; }
   .ind-hm-tip .tip-code { font-weight: 700; font-size: 0.9rem; }
   .ind-hm-tip .tip-name { color: var(--text-secondary); font-size: 0.78rem; }
