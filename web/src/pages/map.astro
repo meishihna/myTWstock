@@ -72,6 +72,7 @@ export const prerender = true;
 
   <script>
     import { getThemes, toggleTheme } from "../lib/themelist";
+    import { treemap, tileColor, tileTextColor, type Rect } from "../lib/heatmap";
 
     interface Co { t: string; n: string; s: string; ss: string; mc: number | null; }
     interface Theme {
@@ -80,8 +81,6 @@ export const prerender = true;
       related: { label: string; slug: string | null }[];
       tiers: { u: Co[]; m: Co[]; d: Co[] };
     }
-    interface Rect { x: number; y: number; w: number; h: number; }
-
     const TOP_N = 6;          // 卡片 pct 用:每題材取市值前 N 檔估算平均漲跌
     const CHUNK = 110;        // /api/quote-batch 單次上限 120
     let themes: Theme[] = [];
@@ -108,67 +107,7 @@ export const prerender = true;
     const esc = (s: string) =>
       s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
-    // ---- squarified treemap（純手刻，無相依） ----
-    function worstRatio(row: { area: number }[], side: number): number {
-      let sum = 0, max = -Infinity, min = Infinity;
-      for (const it of row) { sum += it.area; if (it.area > max) max = it.area; if (it.area < min) min = it.area; }
-      if (sum <= 0) return Infinity;
-      const s2 = sum * sum, l2 = side * side;
-      return Math.max((l2 * max) / s2, s2 / (l2 * min));
-    }
-    function treemap<T extends { value: number }>(nodes: T[], X: number, Y: number, W: number, H: number): (T & Rect)[] {
-      const total = nodes.reduce((s, n) => s + Math.max(0, n.value), 0) || 1;
-      const scale = (W * H) / total;
-      const items = nodes.map((n) => ({ n, area: Math.max(0, n.value) * scale }));
-      const out: (T & Rect)[] = [];
-      let x = X, y = Y, w = W, h = H, i = 0;
-      while (i < items.length) {
-        const side = Math.min(w, h);
-        let row: typeof items = [];
-        while (i < items.length) {
-          const cand = row.concat(items[i]);
-          if (row.length === 0 || worstRatio(cand, side) <= worstRatio(row, side)) { row = cand; i++; }
-          else break;
-        }
-        const rowArea = row.reduce((s, it) => s + it.area, 0);
-        if (w >= h) {
-          const colW = rowArea / h || 0;
-          let cy = y;
-          for (const it of row) { const ih = colW > 0 ? it.area / colW : 0; out.push({ ...(it.n as T), x, y: cy, w: colW, h: ih }); cy += ih; }
-          x += colW; w -= colW;
-        } else {
-          const rowH = rowArea / w || 0;
-          let cx = x;
-          for (const it of row) { const iw = rowH > 0 ? it.area / rowH : 0; out.push({ ...(it.n as T), x: cx, y, w: iw, h: rowH }); cx += iw; }
-          y += rowH; h -= rowH;
-        }
-      }
-      return out;
-    }
-
-    // ---- 漲跌配色（台股慣例）：接近平盤=淺，漲跌越大顏色越深；紅漲綠跌 ----
-    function tileRGB(pct: number | null): [number, number, number] {
-      if (pct == null) return [185, 183, 177];     // 無資料：淺灰
-      const a = Math.abs(pct);
-      if (a < 0.15) return [197, 195, 189];         // 平盤：淺灰
-      const t = Math.min(a / 6, 1);                 // 線性，越大越深
-      const light = pct > 0 ? [223, 196, 194] : [196, 223, 202]; // 淺紅 / 淺綠
-      const deep = pct > 0 ? [135, 27, 24] : [19, 84, 47];       // 深紅 / 深綠
-      return [
-        Math.round(light[0] + (deep[0] - light[0]) * t),
-        Math.round(light[1] + (deep[1] - light[1]) * t),
-        Math.round(light[2] + (deep[2] - light[2]) * t),
-      ];
-    }
-    function tileColor(pct: number | null): string {
-      const [r, g, b] = tileRGB(pct);
-      return `rgb(${r},${g},${b})`;
-    }
-    // 依底色亮度決定文字色：淺底深字、深底淺字
-    function tileTextColor(pct: number | null): string {
-      const [r, g, b] = tileRGB(pct);
-      return 0.299 * r + 0.587 * g + 0.114 * b > 148 ? "#1c1c1c" : "#f5f3ee";
-    }
+    // treemap 版面 + 漲跌配色改用共用 lib/heatmap(見上方 import),不再本地複製一份
 
     function dedupTop(t: Theme): Co[] {
       const seen = new Set<string>(); const all: Co[] = [];
