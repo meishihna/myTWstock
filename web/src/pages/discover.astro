@@ -113,6 +113,36 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
     var list = document.getElementById("discover-results");
     if (!form || !input || !status || !list) return;
 
+    // 自選股(與 lib/watchlist 同源:localStorage "tw:watchlist")—— is:inline 無法 import,故內聯
+    var WL_KEY = "tw:watchlist";
+    function wlGet() {
+      try { var v = JSON.parse(localStorage.getItem(WL_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+    }
+    function wlToggle(t) {
+      var l = wlGet(); var i = l.indexOf(t);
+      if (i >= 0) l.splice(i, 1); else l.push(t);
+      var uniq = l.filter(function (x, k) { return l.indexOf(x) === k; });
+      try { localStorage.setItem(WL_KEY, JSON.stringify(uniq)); } catch (e) {}
+      return i < 0;
+    }
+    function syncStars() {
+      var wl = wlGet();
+      Array.prototype.forEach.call(list.querySelectorAll(".wl-star"), function (b) {
+        var on = wl.indexOf(b.getAttribute("data-star")) >= 0;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        b.textContent = on ? "★" : "☆";
+      });
+    }
+    list.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".wl-star") : null;
+      if (!b) return;
+      var on = wlToggle(b.getAttribute("data-star"));
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.textContent = on ? "★" : "☆";
+    });
+
     function esc(s) {
       var d = document.createElement("div");
       d.textContent = s;
@@ -136,7 +166,9 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
             ? '<a href="/sectors/' + esc(r.sectorSlug) + '">' + esc(r.sector) + "</a>"
             : esc(r.sector || "");
         li.innerHTML =
-          '<div class="discover-hit-head"><a href="/report/' +
+          '<div class="discover-hit-head"><button class="wl-star" type="button" data-star="' +
+          esc(r.ticker) +
+          '" aria-label="加入自選" aria-pressed="false" title="加入／移除自選">☆</button><a href="/report/' +
           esc(r.ticker) +
           '"><strong>' +
           esc(r.ticker) +
@@ -151,6 +183,7 @@ const pageTitle = `${DISCOVER_PAGE.title} — ${SITE.name}`;
           "</p>";
         list.appendChild(li);
       });
+      syncStars();
     }
 
     // 前端關鍵字搜尋:載入一次靜態索引(CDN,線上可用),於瀏覽器內比對。

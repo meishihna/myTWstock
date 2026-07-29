@@ -40,6 +40,7 @@ import Layout from "../layouts/Layout.astro";
 
   <script>
     import { sectorZh } from "../lib/sector-i18n";
+    import { getWatchlist, toggleWatch } from "../lib/watchlist";
     type Row = Record<string, string | number | null>;
     const COLS: { k: string; label: string; num: boolean; fmt?: (v: number) => string }[] = [
       { k: "t", label: "代號", num: false },
@@ -174,7 +175,7 @@ import Layout from "../layouts/Layout.astro";
         .map((r) => {
           const cells = COLS.map((c) => {
             if (c.k === "t")
-              return `<td class="scr-td--t"><a class="tk-chip" href="/report/${r.t}">${r.t}</a></td>`;
+              return `<td class="scr-td--t"><button class="wl-star" type="button" data-star="${r.t}" aria-label="加入自選" aria-pressed="false" title="加入／移除自選">☆</button><a class="tk-chip" href="/report/${r.t}">${r.t}</a></td>`;
             if (c.k === "n")
               return `<td class="scr-td--n"><a href="/report/${r.t}">${r.n ?? ""}</a></td>`;
             if (c.k === "s") return `<td class="scr-td--s">${r.s ? sectorZh(String(r.s)) : "—"}</td>`;
@@ -192,6 +193,17 @@ import Layout from "../layouts/Layout.astro";
           return `<tr>${cells.join("")}</tr>`;
         })
         .join("");
+      syncStars();
+    }
+
+    function syncStars() {
+      const wl = new Set(getWatchlist());
+      document.querySelectorAll<HTMLElement>("#scr-body .wl-star").forEach((b) => {
+        const on = wl.has(b.dataset.star!);
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        b.textContent = on ? "★" : "☆";
+      });
     }
 
     function attachFilterEvents() {
@@ -216,6 +228,15 @@ import Layout from "../layouts/Layout.astro";
     attachFilterEvents();
     const scrCount0 = $("scr-count");
     if (scrCount0) scrCount0.textContent = "載入中…";
+    // 加自選星號:事件委派(列會重繪),render 後由 syncStars 同步狀態
+    $("scr-body")?.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest(".wl-star") as HTMLElement | null;
+      if (!b) return;
+      const on = toggleWatch(b.dataset.star!);
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.textContent = on ? "★" : "☆";
+    });
     fetch("/data/screener-index.json")
       .then((r) => r.json())
       .then((j) => {

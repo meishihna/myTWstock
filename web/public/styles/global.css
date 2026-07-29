@@ -977,6 +977,36 @@ a:focus-visible {
   border-radius: var(--radius-sm);
 }
 
+/* 列內「加自選」星號(選股/探索共用) */
+.wl-star {
+  flex: none;
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0 4px;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  vertical-align: middle;
+  transition:
+    color var(--duration) var(--ease-out),
+    transform var(--duration) var(--ease-out);
+}
+.wl-star:hover {
+  color: var(--accent-hover);
+  transform: scale(1.18);
+}
+.wl-star.is-on {
+  color: var(--accent);
+}
+.wl-star:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .graph-frame-wrap {
   margin: 0 -1.25rem;
   width: calc(100% + 2.5rem);
