@@ -1,48 +1,106 @@
+/* ══ 台股戰情室 · 財經終端(工業終端 × 財經編輯)· 深/淺可切 ══
+   襯線大標(編輯)＋等寬數據/髮絲格線(終端)。台股紅漲綠跌。
+   色票/字體 token 與個人版 <style id="tw-portal-theme"> 同源(唯一事實來源),
+   全生態(Coverage/個人版/回測)一致。此處只換視覺 token,不改資料與功能邏輯。 */
 :root {
+  color-scheme: dark;
   --layout-max: min(88rem, calc(100vw - 2.5rem));
-  /* 編輯室(Editorial)暖墨色盤:暖近黑底、墨色文字、克制金色強調。
-     沿用 /news 的暖色系語言,全站統一。 */
-  --bg: #100e0b;
-  --bg-mid: #100e0b;
-  --surface: #1a1613;
-  --surface-elevated: #221d18;
-  --border: #2e2820;
-  --border-subtle: rgba(var(--ink), 0.08);
-  --text: #ece7dd;
-  --text-secondary: #bab2a4;
-  --muted: #8f8779;
-  --accent: #c2a36a;
-  --accent-hover: #d8c79a;
-  --accent-soft: rgba(194, 163, 106, 0.14);
-  --accent-glow: rgba(194, 163, 106, 0.22);
-  --accent-data: #c2a36a;
+
+  /* ── 深色(終端夜盤 + 編輯墨) ── */
+  --bg: #0b0c0e;
+  --bg-mid: #0b0c0e;
+  --surface: #101216;
+  --surface-elevated: #15181d;
+  --border: #23262c;
+  --border-strong: #31353d;
+  --border-subtle: rgba(var(--ink), 0.07);
+  --text: #e9e6dd;
+  --text-secondary: #a09c92;
+  --muted: #6b6760;
+  --text-heading: #e9e6dd;
+  --accent: #d8a24e;
+  --accent-hover: #e8bd72;
+  --accent-soft: rgba(216, 162, 78, 0.12);
+  --accent-glow: rgba(216, 162, 78, 0.22);
+  --accent-data: #d8a24e;
+  /** 金色重點在深底上的可讀墨色(膠囊/按鈕作用中的字色) */
+  --accent-ink: #0b0c0e;
   /** 漲跌語意色：台灣慣例 紅漲綠跌（紅=漲/正、綠=跌/負）。改這兩個值即可全站切換漲跌配色。 */
-  --up: #e24b4a;
-  --down: #1d9e75;
-  --text-heading: #f2ede2;
-  --link-report: #c2a36a;
+  --up: #e0483d;
+  --down: #2fa572;
+  --flat: #6b6760;
+  --link-report: #d8a24e;
   /** 報告內文／關係摘要連結 hover（略亮於 --link-report） */
-  --link-report-hover: #d8c79a;
-  --wikilink-none: #a98f5e;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.55);
-  --shadow-inset: inset 0 1px 0 rgba(var(--ink), 0.04);
+  --link-report-hover: #e8bd72;
+  --wikilink-none: #a09c92;
+  /** 圖表類別序列色(非漲跌語意;與個人版 --series-* 同源) */
+  --series-1: #d8a24e;
+  --series-2: #2fa572;
+  --series-3: #5b9ce6;
+  --series-4: #c98500;
+  --series-5: #9085e9;
+  --series-6: #e26767;
+  --series-7: #d55181;
+  --series-8: #d95926;
+  --series-9: #1fa2b0;
+  --series-10: #b06e2e;
+  /** 終端感:近直角 */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  /** 終端感:無浮起陰影(保留變數名,值改為 none 以免各處失效) */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-inset: none;
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --duration: 0.18s;
-  --font-display: Georgia, "Noto Serif TC", "Source Han Serif TC", "Songti TC", "新細明體", serif;
-  --font-body: "Noto Sans TC", "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
-  /** 自訂滾動軸（與深色介面一致；Firefox 用 scrollbar-color，WebKit 用下方偽元素） */
+  --font-display: "Noto Serif TC", "Source Han Serif TC", "Songti TC", Georgia, serif;
+  --font-body: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, "Noto Sans TC", monospace;
+  /** 自訂滾動軸（Firefox 用 scrollbar-color，WebKit 用下方偽元素） */
   --scrollbar-size: 8px;
   --scrollbar-track: rgba(var(--ink), 0.05);
   --scrollbar-thumb: rgba(var(--ink), 0.2);
   --scrollbar-thumb-hover: rgba(var(--ink), 0.32);
   --scrollbar-thumb-active: rgba(var(--ink), 0.42);
   --bg2: rgba(var(--ink), 0.04);
-  --fg: #ececec;
+  --fg: #e9e6dd;
+  /** 白/墨 alpha 基底:深色用白、淺色用墨(全站 rgba(var(--ink),x) 靠它雙色化) */
   --ink: 255, 255, 255;
+}
+
+/* ── 淺色(報章米白 + 墨) ── */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f3ea;
+  --bg-mid: #f6f3ea;
+  --surface: #fffdf6;
+  --surface-elevated: #efeadd;
+  --border: #e2dacb;
+  --border-strong: #cdc3ac;
+  --border-subtle: rgba(var(--ink), 0.08);
+  --text: #1c1812;
+  --text-secondary: #5c5448;
+  --muted: #8f8676;
+  --text-heading: #1c1812;
+  --accent: #a4611a;
+  --accent-hover: #8a4f12;
+  --accent-soft: rgba(164, 97, 26, 0.1);
+  --accent-glow: rgba(164, 97, 26, 0.2);
+  --accent-data: #a4611a;
+  --accent-ink: #fffdf6;
+  --up: #b3261e;
+  --down: #1c6b3f;
+  --flat: #8f8676;
+  --link-report: #a4611a;
+  --link-report-hover: #8a4f12;
+  --wikilink-none: #8f8676;
+  --series-1: #a4611a;
+  --series-2: #1c6b3f;
+  --series-3: #2a78d6;
+  --series-4: #c98500;
+  --fg: #1c1812;
+  --ink: 20, 16, 10;
 }
 
 *,
@@ -209,15 +267,16 @@ html::-webkit-scrollbar-corner,
   font-size: 0.82em;
 }
 
+/* 報頭:終端金色頂線 + 髮絲底線(無陰影) */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  border-bottom: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  border-top: 2px solid var(--accent);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-sm);
 }
 
 .nav {
@@ -270,6 +329,34 @@ html::-webkit-scrollbar-corner,
 }
 
 .nav-links a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 深/淺色切換鈕(終端風:等寬、近直角、髮絲邊) */
+.theme-toggle {
+  appearance: none;
+  margin-left: 0.35rem;
+  padding: 0.28rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.1;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out);
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.theme-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -453,16 +540,17 @@ html::-webkit-scrollbar-corner,
   margin: 0;
   font-size: 0.6875rem;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--muted);
   letter-spacing: 0.01em;
   line-height: 1.2;
 }
 
 .market-ticker-price {
   margin: 0;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
 }

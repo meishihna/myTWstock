@@ -53,8 +53,9 @@ const aria = MARKET_TICKER.ariaRegion;
     const w = SPARK_W;
     const h = SPARK_H;
     const pad = SPARK_PAD;
+    // 顏色走 CSS 變數(SVG presentation attribute 支援 var()),深/淺主題自動跟隨
     const color =
-      dir === "up" ? "#e24b4a" : dir === "down" ? "#1d9e75" : "#888780";
+      dir === "up" ? "var(--up)" : dir === "down" ? "var(--down)" : "var(--flat)";
     if (!points || points.length < 2) {
       return `<svg class="market-ticker-spark market-ticker-spark--empty" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"></svg>`;
     }
@@ -120,8 +121,8 @@ ${dot}
     const yBase = yAt(prevClose);
     const baseline = `<line class="market-ticker-spark-baseline" x1="${pad}" y1="${yBase}" x2="${w - pad}" y2="${yBase}" />`;
     const area = line + ` L ${lastX} ${yBase} L ${xAt(0)} ${yBase} Z`;
-    const upColor = "#e24b4a";
-    const downColor = "#1d9e75";
+    const upColor = "var(--up)";
+    const downColor = "var(--down)";
     return `<svg class="market-ticker-spark market-ticker-spark--${dir}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
 <defs>
   <clipPath id="${idBase}-ca"><rect x="0" y="0" width="${w}" height="${yBase}" /></clipPath>

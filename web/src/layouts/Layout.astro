@@ -41,7 +41,21 @@ const navActive = (href: string) =>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#100e0b" />
+    <meta name="theme-color" content="#0b0c0e" />
+    <script is:inline>
+      /* 深/淺色:繪製前先套用(避免閃白);預設跟隨系統,使用者選擇存 localStorage "tw-theme"(與個人版同鍵) */
+      (function () {
+        var root = document.documentElement;
+        var saved = null;
+        try {
+          saved = localStorage.getItem("tw-theme");
+        } catch (e) {}
+        var t =
+          saved ||
+          (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+        root.dataset.theme = t === "light" ? "light" : "dark";
+      })();
+    </script>
     <meta name="description" content={description} />
     {noIndex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonicalUrl.href} />
@@ -83,9 +97,40 @@ const navActive = (href: string) =>
           <a href="/watchlist" aria-current={navActive("/watchlist") ? "page" : undefined}>自選</a>
           <a href="/compare" aria-current={navActive("/compare") ? "page" : undefined}>比較</a>
           <a href="/news" aria-current={navActive("/news") ? "page" : undefined}>{NEWS_PAGE.nav}</a>
+          <button
+            id="tw-theme-btn"
+            class="theme-toggle"
+            type="button"
+            title="切換深／淺色"
+            aria-label="切換深淺色主題"
+          >☾</button>
         </div>
       </nav>
     </header>
+    <script is:inline>
+      /* 切換鈕:只換 data-theme 與 theme-color,不影響資料/功能 */
+      (function () {
+        var root = document.documentElement;
+        var btn = document.getElementById("tw-theme-btn");
+        var meta = document.querySelector('meta[name="theme-color"]');
+        function paint(t) {
+          root.dataset.theme = t;
+          if (btn) btn.textContent = t === "dark" ? "☾" : "☀";
+          if (meta) meta.setAttribute("content", t === "light" ? "#f6f3ea" : "#0b0c0e");
+          window.dispatchEvent(new CustomEvent("tw-theme-change", { detail: { theme: t } }));
+        }
+        paint(root.dataset.theme === "light" ? "light" : "dark");
+        if (btn) {
+          btn.addEventListener("click", function () {
+            var next = root.dataset.theme === "dark" ? "light" : "dark";
+            paint(next);
+            try {
+              localStorage.setItem("tw-theme", next);
+            } catch (e) {}
+          });
+        }
+      })();
+    </script>
     <MarketTickerBar />
     <main class="main">
       <slot />
