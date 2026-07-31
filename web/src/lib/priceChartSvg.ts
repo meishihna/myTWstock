@@ -182,7 +182,7 @@ export function buildCandlestickChart(
   for (let i = 0; i < n; i++) {
     const x = xCenter(i);
     const isUp = close[i]! >= open[i]!;
-    const color = isUp ? "#E24B4A" : "#1D9E75";
+    const color = isUp ? "var(--up)" : "var(--down)";
 
     let bodyTop = priceToY(Math.max(open[i]!, close[i]!));
     let bodyBottom = priceToY(Math.min(open[i]!, close[i]!));
@@ -211,9 +211,9 @@ export function buildCandlestickChart(
 
   const maPaths: { key: string; d: string; color: string }[] = [];
   const maSpecs: { key: string; arr: (number | null)[] | null | undefined; color: string }[] = [
-    { key: "ma5", arr: ma5In, color: "#F0B429" },
-    { key: "ma10", arr: ma10In, color: "#6BA3E8" },
-    { key: "ma20", arr: ma20In, color: "#B388FF" },
+    { key: "ma5", arr: ma5In, color: "var(--accent)" },
+    { key: "ma10", arr: ma10In, color: "var(--series-3)" },
+    { key: "ma20", arr: ma20In, color: "var(--series-5)" },
   ];
   for (const { key, arr, color } of maSpecs) {
     if (!arr || arr.length !== n) continue;

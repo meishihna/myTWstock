@@ -353,25 +353,60 @@ const defaultMonths = 6;
     el.appendChild(dailyHost);
     el.appendChild(intradayHost);
 
+    // ── 主題色:canvas 圖表(lightweight-charts)自行解析顏色字串,**不支援 CSS var()**
+    //    故一律傳「解析後的實色」;切換深/淺色時由 tw-theme-change 重新套用(見下方 applyChartTheme)
+    const rootCS = () => getComputedStyle(document.documentElement);
+    const tc = (name: string, fb: string): string =>
+      rootCS().getPropertyValue(name).trim() || fb;
+    /** 以 --ink(深=白/淺=墨)組 rgba,供格線與座標軸邊框 */
+    const inkA = (a: number): string => `rgba(${tc("--ink", "255, 255, 255")}, ${a})`;
+    /** hex → rgba(帶透明度);非 hex 原樣回傳 */
+    const alphaOf = (c: string, a: number): string => {
+      const m = c.match(/^#([0-9a-fA-F]{6})$/);
+      if (!m) return c;
+      const n = parseInt(m[1], 16);
+      return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+    };
+    const upC = () => tc("--up", "#e24f43");
+    const downC = () => tc("--down", "#2fa572");
+    const maColors = () => [
+      tc("--accent", "#d8a24e"),
+      tc("--series-3", "#5b9ce6"),
+      tc("--series-5", "#9085e9"),
+    ];
+    const baselineColors = () => ({
+      topLineColor: upC(),
+      topFillColor1: alphaOf(upC(), 0.28),
+      topFillColor2: alphaOf(upC(), 0.02),
+      bottomLineColor: downC(),
+      bottomFillColor1: alphaOf(downC(), 0.02),
+      bottomFillColor2: alphaOf(downC(), 0.28),
+    });
+    const baseChartOpts = () => ({
+      layout: {
+        background: { color: "transparent" },
+        textColor: tc("--text-secondary", "#a09c92"),
+        fontSize: 11,
+      },
+      grid: { vertLines: { color: inkA(0.05) }, horzLines: { color: inkA(0.05) } },
+    });
+
     const chart = createChart(dailyHost, {
       autoSize: true,
-      layout: { background: { color: "transparent" }, textColor: "var(--text-secondary)", fontSize: 11 },
-      grid: {
-        vertLines: { color: "rgba(var(--ink), 0.05)" },
-        horzLines: { color: "rgba(var(--ink), 0.05)" },
-      },
-      rightPriceScale: { borderColor: "rgba(var(--ink), 0.12)" },
-      timeScale: { borderColor: "rgba(var(--ink), 0.12)", rightOffset: 4 },
+      ...baseChartOpts(),
+      rightPriceScale: { borderColor: inkA(0.12) },
+      timeScale: { borderColor: inkA(0.12), rightOffset: 4 },
       crosshair: { mode: CrosshairMode.Normal },
     });
 
-    const candle = chart.addCandlestickSeries({
-      upColor: "#E24B4A",
-      downColor: "#1D9E75",
+    const candleColors = () => ({
+      upColor: upC(),
+      downColor: downC(),
       borderVisible: false,
-      wickUpColor: "#E24B4A",
-      wickDownColor: "#1D9E75",
+      wickUpColor: upC(),
+      wickDownColor: downC(),
     });
+    const candle = chart.addCandlestickSeries(candleColors());
     candle.setData(
       bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })),
     );
@@ -382,15 +417,14 @@ const defaultMonths = 6;
       bars.map((b) => ({
         time: b.time,
         value: b.volume,
-        color: b.close >= b.open ? "rgba(226,75,74,0.45)" : "rgba(29,158,117,0.45)",
+        color: b.close >= b.open ? alphaOf(upC(), 0.45) : alphaOf(downC(), 0.45),
       })),
     );
 
-    const maDefs: [number, string][] = [
-      [5, "var(--accent)"],
-      [10, "#6BA3E8"],
-      [20, "#B388FF"],
-    ];
+    const maPeriods = [5, 10, 20];
+    const maDefs: [number, string][] = maPeriods.map(
+      (pd, i) => [pd, maColors()[i]!] as [number, string],
+    );
     const maRuntime: [number, ReturnType<typeof chart.addLineSeries>][] = [];
     for (const [period, color] of maDefs) {
       const line = chart.addLineSeries({
@@ -403,6 +437,46 @@ const defaultMonths = 6;
       line.setData(sma(bars, period));
       maRuntime.push([period, line]);
     }
+
+    // ── 切換深/淺色:canvas 圖表不吃 CSS 變數,需重新套用色彩(Layout 發 tw-theme-change)
+    const applyChartTheme = () => {
+      try {
+        chart.applyOptions({
+          ...baseChartOpts(),
+          rightPriceScale: { borderColor: inkA(0.12) },
+          timeScale: { borderColor: inkA(0.12), rightOffset: 4 },
+        });
+        candle.applyOptions(candleColors());
+        vol.setData(
+          bars.map((b) => ({
+            time: b.time,
+            value: b.volume,
+            color: b.close >= b.open ? alphaOf(upC(), 0.45) : alphaOf(downC(), 0.45),
+          })),
+        );
+        const cols = maColors();
+        maRuntime.forEach(([, line], i) => line.applyOptions({ color: cols[i]! }));
+        if (intradayChart) {
+          intradayChart.applyOptions({
+            ...baseChartOpts(),
+            rightPriceScale: {
+              borderColor: inkA(0.12),
+              scaleMargins: { top: 0.02, bottom: 0.02 },
+            },
+            timeScale: {
+              borderColor: inkA(0.12),
+              timeVisible: true,
+              secondsVisible: false,
+              rightOffset: 2,
+            },
+          });
+        }
+        if (intradaySeries) intradaySeries.applyOptions(baselineColors());
+      } catch {
+        /* 圖表尚未就緒 */
+      }
+    };
+    window.addEventListener("tw-theme-change", applyChartTheme);
 
     // ── 互動式 OHLCV 圖例(隨游標更新,預設最新一根)─────────────
     const legend = document.createElement("div");
@@ -563,17 +637,13 @@ const defaultMonths = 6;
       }
       intradayChart = createChart(intradayHost, {
         autoSize: true,
-        layout: { background: { color: "transparent" }, textColor: "var(--text-secondary)", fontSize: 11 },
-        grid: {
-          vertLines: { color: "rgba(var(--ink), 0.05)" },
-          horzLines: { color: "rgba(var(--ink), 0.05)" },
-        },
+        ...baseChartOpts(),
         rightPriceScale: {
-          borderColor: "rgba(var(--ink), 0.12)",
+          borderColor: inkA(0.12),
           scaleMargins: { top: 0.02, bottom: 0.02 },
         },
         timeScale: {
-          borderColor: "rgba(var(--ink), 0.12)",
+          borderColor: inkA(0.12),
           timeVisible: true,
           secondsVisible: false,
           rightOffset: 2,
@@ -599,12 +669,7 @@ const defaultMonths = 6;
           : undefined;
       intradaySeries = intradayChart.addBaselineSeries({
         baseValue: { type: "price", price: base },
-        topLineColor: "#E24B4A",
-        topFillColor1: "rgba(226,75,74,0.28)",
-        topFillColor2: "rgba(226,75,74,0.02)",
-        bottomLineColor: "#1D9E75",
-        bottomFillColor1: "rgba(29,158,117,0.02)",
-        bottomFillColor2: "rgba(29,158,117,0.28)",
+        ...baselineColors(),
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: true,
@@ -615,7 +680,7 @@ const defaultMonths = 6;
       if (base > 0) {
         intradaySeries.createPriceLine({
           price: base,
-          color: "rgba(var(--ink), 0.28)",
+          color: inkA(0.28),
           lineWidth: 1,
           lineStyle: 2,
           axisLabelVisible: true,

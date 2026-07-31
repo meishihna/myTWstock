@@ -107,10 +107,17 @@ html[data-theme="light"] {
   --link-report-hover: #8a4f12;
   /* 未解析 wikilink 提示字:原 #8f8676 僅 3.24 → 與新 --muted 同值(5.1+) */
   --wikilink-none: #6f6657;
-  --series-1: #a4611a;
+  /* 圖表序列色(淺色):比深色版加深,確保線/圖例點在米白底上達 AA */
+  --series-1: #9c5c17;
   --series-2: #1c6b3f;
-  --series-3: #2a78d6;
-  --series-4: #c98500;
+  --series-3: #1f5fae;
+  --series-4: #8a5c00;
+  --series-5: #5b4fc4;
+  --series-6: #b3423f;
+  --series-7: #a32d59;
+  --series-8: #a23c14;
+  --series-9: #14707a;
+  --series-10: #7a4a1c;
   --fg: #1c1812;
   --ink: 20, 16, 10;
 }
@@ -1268,21 +1275,21 @@ a:focus-visible {
 
 /* 上市／上櫃／興櫃：與 .report-sector-pill 共用外層大小，此處只定配色＋邊框 */
 .report-listing-pill--twse {
-  color: #93c5fd;
-  background: rgba(30, 58, 138, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: color-mix(in srgb, #3b82f6 52%, var(--text));
+  background: color-mix(in srgb, #3b82f6 14%, transparent);
+  border: 1px solid color-mix(in srgb, #3b82f6 34%, transparent);
 }
 
 .report-listing-pill--tpex {
-  color: #86efac;
-  background: rgba(20, 83, 45, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: color-mix(in srgb, #22c55e 46%, var(--text));
+  background: color-mix(in srgb, #22c55e 14%, transparent);
+  border: 1px solid color-mix(in srgb, #22c55e 34%, transparent);
 }
 
 .report-listing-pill--emerging {
-  color: #fcd34d;
-  background: rgba(120, 53, 15, 0.25);
-  border: 1px solid rgba(234, 179, 8, 0.35);
+  color: color-mix(in srgb, #eab308 46%, var(--text));
+  background: color-mix(in srgb, #eab308 15%, transparent);
+  border: 1px solid color-mix(in srgb, #eab308 34%, transparent);
 }
 
 .meta-card-grid {
@@ -1883,7 +1890,7 @@ a:focus-visible {
   letter-spacing: 0.01em;
   text-align: left;
   color: var(--text);
-  background: rgba(22, 22, 26, 0.98);
+  background: var(--surface-elevated);
   border: 1px solid rgba(var(--ink), 0.12);
   border-radius: 9px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
@@ -2919,7 +2926,7 @@ a:focus-visible {
   left: 0;
   top: 0;
   pointer-events: none;
-  background: #0f0f0f;
+  background: var(--surface-elevated);
   border: 1px solid rgba(var(--ink), 0.12);
   border-radius: 10px;
   padding: 8px 12px;
@@ -3010,7 +3017,7 @@ a:focus-visible {
 .quote-rangebar {
   width: 100px;
   height: 4px;
-  background: #1e1e30;
+  background: rgba(var(--ink), 0.08);
   border-radius: 2px;
   position: relative;
   flex-shrink: 0;

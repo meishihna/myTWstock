@@ -251,7 +251,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .hmp-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .hmp-tab.is-active { color: var(--text-heading); font-weight: 700; }
   .hmp-tab.is-active::after { transform: scaleX(1); }
-  .ind-hm-tip { position: fixed; z-index: 60; pointer-events: none; background: #2a2620; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); box-shadow: 0 4px 18px rgba(0,0,0,0.5); }
+  .ind-hm-tip { position: fixed; z-index: 60; pointer-events: none; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); box-shadow: 0 4px 18px rgba(0,0,0,0.5); }
   .ind-hm-tip .tip-head { margin-bottom: 6px; }
   .ind-hm-tip .tip-code { font-weight: 700; font-size: 0.9rem; }
   .ind-hm-tip .tip-name { color: var(--text-secondary); font-size: 0.78rem; }
@@ -440,7 +440,7 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
     const d = tile.dataset;
     const isNode = tile.classList.contains("node");
     const chg = d.chg || "", cn = parseFloat(chg);
-    const col = chg === "" ? "var(--muted)" : cn > 0 ? "#e24b4a" : cn < 0 ? "#1d9e75" : "var(--muted)";
+    const col = chg === "" ? "var(--muted)" : cn > 0 ? "var(--up)" : cn < 0 ? "var(--down)" : "var(--muted)";
     const chgStr = chg === "" ? "—" : `${cn > 0 ? "+" : ""}${chg}%`;
     const tovStr = fmtTov(parseFloat(d.tov || "0") || 0);
     const head = isNode

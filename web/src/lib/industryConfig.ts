@@ -198,10 +198,10 @@ export function getIndustryConfig(
 }
 
 export const REVENUE_LINE_COLORS: Record<string, string> = {
-  Revenue: "#378ADD",
-  "Gross Profit": "#1D9E75",
-  "Operating Income": "#D85A30",
-  "Net Income": "#7F77DD",
+  Revenue: "var(--series-3)",
+  "Gross Profit": "var(--series-2)",
+  "Operating Income": "var(--series-8)",
+  "Net Income": "var(--series-5)",
 };
 
 export const REVENUE_LINE_DASHES: Record<string, string | undefined> = {
@@ -219,9 +219,9 @@ export const REVENUE_LINE_LABELS: Record<string, string> = {
 };
 
 export const MARGIN_LINE_COLORS: Record<string, string> = {
-  "Gross Margin (%)": "#1D9E75",
-  "Operating Margin (%)": "#D85A30",
-  "Net Margin (%)": "#7F77DD",
+  "Gross Margin (%)": "var(--series-2)",
+  "Operating Margin (%)": "var(--series-8)",
+  "Net Margin (%)": "var(--series-5)",
 };
 
 export const MARGIN_LINE_DASHES: Record<string, string | undefined> = {
