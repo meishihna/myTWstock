@@ -7,10 +7,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const BIZ_REV_BAR_COLORS = [
-  "#1D9E75",
-  "#378ADD",
-  "#EF9F27",
-  "#D4537E",
+  "var(--series-2)",
+  "var(--series-3)",
+  "var(--series-1)",
+  "var(--series-7)",
   "rgba(255,255,255,0.2)",
 ] as const;
 

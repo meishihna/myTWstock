@@ -1973,7 +1973,7 @@ const mRevYTickMarks =
 
     const W = 720, HT = 210, P = { l: 12, r: 12, t: 18, b: 22 };
     const pw = W - P.l - P.r, ph = HT - P.t - P.b;
-    const UP = "var(--up)", DOWN = "var(--down)", GOLD = "var(--series-1)", BLUE = "var(--series-3)", PURP = "var(--series-5)";
+    const UP = "var(--up)", DOWN = "var(--down)", GOLD = "var(--series-1)", BLUE = "var(--series-3)", PURP = "var(--series-5)", MUTED = "var(--muted)";
     const p2 = (n) => (n < 10 ? "0" : "") + n;
     const toYmd = (t) => {
       if (t == null) return "";
@@ -2009,7 +2009,7 @@ const mRevYTickMarks =
         let html = `<div class="ct-tip-d">${fmtDate(model.dates[i])}</div>`;
         for (const s of model.series) {
           const v = s.values[i];
-          const col = s.signColor ? (v == null ? "#999" : v > 0 ? UP : DOWN) : s.color;
+          const col = s.signColor ? (v == null ? MUTED : v > 0 ? UP : DOWN) : s.color;
           html += `<div class="ct-tip-r"><i style="background:${col}"></i>${s.label} <b>${v == null || !isFinite(v) ? "—" : s.fmt(v)}</b></div>`;
         }
         tip.innerHTML = html; tip.style.display = "block";

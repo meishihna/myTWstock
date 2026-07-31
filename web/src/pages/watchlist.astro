@@ -35,8 +35,8 @@ import Layout from "../layouts/Layout.astro";
     const fmtInt = (v: unknown) => (num(v) == null ? "—" : Math.round(v as number).toLocaleString("zh-TW"));
     // 火花圖漲跌色沿用全站 token(--up 紅 / --down 綠),避免硬編碼漂移
     const _rootCss = getComputedStyle(document.documentElement);
-    const UP_COLOR = _rootCss.getPropertyValue("--up").trim() || "#e24b4a";
-    const DOWN_COLOR = _rootCss.getPropertyValue("--down").trim() || "#1d9e75";
+    const UP_COLOR = _rootCss.getPropertyValue("--up").trim() || "#e24f43";
+    const DOWN_COLOR = _rootCss.getPropertyValue("--down").trim() || "#2fa572";
 
     const metric = (label: string, val: string, cls = "") =>
       `<div class="wl__m"><dt>${label}</dt><dd class="${cls}">${val}</dd></div>`;
@@ -274,7 +274,7 @@ import Layout from "../layouts/Layout.astro";
     }
     .wl__btn:hover { border-color: var(--accent); }
     .wl__btn--primary { color: var(--accent-ink); border-color: transparent; background: var(--accent); }
-    .wl__btn--primary:hover { filter: brightness(1.08); border-color: transparent; }
+    .wl__btn--primary:hover { filter: brightness(1.08); border-color: transparent; color: var(--accent-ink); }
     .wl__btn--primary.is-disabled { opacity: 0.4; pointer-events: none; }
 
     /* 卡片網格 — 沿用報告頁 .meta-card 視覺語言 */
