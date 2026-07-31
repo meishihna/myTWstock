@@ -16,7 +16,10 @@
   --border-subtle: rgba(var(--ink), 0.07);
   --text: #e9e6dd;
   --text-secondary: #a09c92;
-  --muted: #6b6760;
+  /* 無障礙 > 照抄個人版:個人版 --mute #6b6760 在深底小字僅 3.16–3.48(未達 AA 4.5),
+     且站上有 160+ 處小字用它。提亮至 #8f8a80 → 最差底(--surface-elevated)仍 ≥5.1。
+     色相不變;個人版仍是「色相/風格」來源,對比不足處必須調整。 */
+  --muted: #8f8a80;
   --text-heading: #e9e6dd;
   --accent: #d8a24e;
   --accent-hover: #e8bd72;
@@ -25,10 +28,13 @@
   --accent-data: #d8a24e;
   /** 金色重點在深底上的可讀墨色(膠囊/按鈕作用中的字色) */
   --accent-ink: #0b0c0e;
-  /** 漲跌語意色：台灣慣例 紅漲綠跌（紅=漲/正、綠=跌/負）。改這兩個值即可全站切換漲跌配色。 */
-  --up: #e0483d;
+  /** 漲跌語意色：台灣慣例 紅漲綠跌（紅=漲/正、綠=跌/負）。改這兩個值即可全站切換漲跌配色。
+      個人版 #e0483d 當「文字」用在升起面板上僅 4.41(如 KPI 年增小字),微提亮至 #e24f43
+      → 各深底皆 ≥4.6;肉眼幾乎同色。綠 #2fa572 已達標(5.7+)不動。 */
+  --up: #e24f43;
   --down: #2fa572;
-  --flat: #6b6760;
+  /** 平盤:同時用於「—」文字與走勢圖平盤線 → 指向已達 AA 的 --muted */
+  --flat: var(--muted);
   --link-report: #d8a24e;
   /** 報告內文／關係摘要連結 hover（略亮於 --link-report） */
   --link-report-hover: #e8bd72;
@@ -86,18 +92,21 @@ html[data-theme="light"] {
      深色不受影響、其餘 token 與個人版同源。 */
   --muted: #6f6657;
   --text-heading: #1c1812;
-  --accent: #a4611a;
+  /* 個人版 #a4611a 當「文字/連結」用在米白頁底上僅 4.375(未達 AA 4.5)→ 微調深至 #9c5c17
+     (4.80);色相不變,仍是燒赭金。裝飾用途(底線/邊框)不受影響。 */
+  --accent: #9c5c17;
   --accent-hover: #8a4f12;
-  --accent-soft: rgba(164, 97, 26, 0.1);
-  --accent-glow: rgba(164, 97, 26, 0.2);
-  --accent-data: #a4611a;
+  --accent-soft: rgba(156, 92, 23, 0.1);
+  --accent-glow: rgba(156, 92, 23, 0.2);
+  --accent-data: #9c5c17;
   --accent-ink: #fffdf6;
   --up: #b3261e;
   --down: #1c6b3f;
-  --flat: #8f8676;
-  --link-report: #a4611a;
+  --flat: var(--muted);
+  --link-report: #9c5c17;
   --link-report-hover: #8a4f12;
-  --wikilink-none: #8f8676;
+  /* 未解析 wikilink 提示字:原 #8f8676 僅 3.24 → 與新 --muted 同值(5.1+) */
+  --wikilink-none: #6f6657;
   --series-1: #a4611a;
   --series-2: #1c6b3f;
   --series-3: #2a78d6;
@@ -590,7 +599,7 @@ html::-webkit-scrollbar-corner,
 }
 
 .market-ticker-spark-baseline {
-  stroke: rgba(148, 163, 184, 0.4);
+  stroke: var(--muted);
   stroke-width: 1;
   stroke-dasharray: 3 3;
   vector-effect: non-scaling-stroke;
@@ -778,7 +787,7 @@ a:focus-visible {
 }
 
 .fin-table-amount-pct .fin-num-neg {
-  color: #f87171;
+  color: var(--down);
 }
 
 .fin-table-amount-pct thead th.fin-th-period-single {
@@ -1062,7 +1071,7 @@ a:focus-visible {
   font-size: 0.78rem;
   font-weight: 700;
   text-decoration: none;
-  color: var(--link-report);
+  color: var(--link-report-hover);
   background: color-mix(in srgb, var(--link-report) 14%, transparent);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -1321,7 +1330,7 @@ a:focus-visible {
   margin: 0 0 1rem;
   padding: 0;
   border: none;
-  color: #f2f2f2;
+  color: var(--text-heading);
 }
 
 .biz-card-wrap {
@@ -1375,7 +1384,7 @@ a:focus-visible {
   flex: 1;
   min-width: 0;
   font-size: 1.1rem;
-  color: #c6c6c6;
+  color: var(--text-secondary);
   line-height: 1.82;
   letter-spacing: 0.01em;
 }
@@ -1383,7 +1392,7 @@ a:focus-visible {
 /* 注意：global.css 為純 CSS，勿用 Astro :global()，否則選擇器無效、樣式不會套用 */
 .biz-intro strong,
 .biz-intro b {
-  color: #ececec;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -1470,7 +1479,7 @@ a:focus-visible {
 
 .biz-md strong,
 .biz-md b {
-  color: #e2e2e2;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -1496,7 +1505,7 @@ a:focus-visible {
 .biz-rev-title {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #8a8a8a;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.85rem;
@@ -1518,7 +1527,7 @@ a:focus-visible {
 }
 
 .biz-rev-label {
-  color: #b8b8b8;
+  color: var(--text-secondary);
   font-size: 0.8rem;
   line-height: 1.35;
   word-break: break-word;
@@ -1555,7 +1564,7 @@ a:focus-visible {
 }
 
 .biz-rev-pct {
-  color: #d0d0d0;
+  color: var(--text-secondary);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1569,7 +1578,7 @@ a:focus-visible {
   padding-top: 0.75rem;
   border-top: 1px solid rgba(var(--ink), 0.06);
   font-size: 0.75rem;
-  color: #8f8f8f;
+  color: var(--muted);
   line-height: 1.55;
 }
 
@@ -1618,16 +1627,16 @@ a:focus-visible {
 }
 
 .biz-pill[data-pill="growth"] {
-  --pill-bar: #a98f5e;
+  --pill-bar: var(--wikilink-none);
 }
 
 .biz-pill[data-pill="risk"] {
-  --pill-bar: #d8c79a;
+  --pill-bar: var(--accent-hover);
 }
 
 .biz-pill:hover {
   background: rgba(var(--ink), 0.055);
-  border-color: rgba(194, 163, 106, 0.28);
+  border-color: var(--accent-glow);
   transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
 }
@@ -1635,7 +1644,7 @@ a:focus-visible {
 .biz-pill-title {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #a3a3a3;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.5rem;
@@ -1643,7 +1652,7 @@ a:focus-visible {
 
 .biz-pill-text {
   font-size: 0.84rem;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   line-height: 1.65;
 }
 
@@ -1685,7 +1694,7 @@ a:focus-visible {
 }
 
 .meta-card:hover {
-  border-color: rgba(194, 163, 106, 0.3);
+  border-color: var(--accent-glow);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1718,7 +1727,7 @@ a:focus-visible {
 .meta-card[data-meta="ev"] .meta-card-value {
   font-size: 1.28rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-heading);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1726,7 +1735,7 @@ a:focus-visible {
   margin: 1.25rem 0 1.5rem;
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md, 10px);
-  border: 1px solid rgba(194, 163, 106, 0.28);
+  border: 1px solid var(--accent-glow);
   background: rgba(194, 163, 106, 0.08);
   color: var(--text);
   font-size: 0.98rem;
@@ -1776,7 +1785,7 @@ a:focus-visible {
 .valuation-md-fallback-note {
   margin: -0.2rem 0 0.65rem;
   font-size: 0.76rem;
-  color: rgba(200, 206, 220, 0.92);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -1873,7 +1882,7 @@ a:focus-visible {
   line-height: 1.45;
   letter-spacing: 0.01em;
   text-align: left;
-  color: #e8e8e8;
+  color: var(--text);
   background: rgba(22, 22, 26, 0.98);
   border: 1px solid rgba(var(--ink), 0.12);
   border-radius: 9px;
@@ -1949,7 +1958,7 @@ a:focus-visible {
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.03em;
-  color: #ffffff;
+  color: var(--text-heading);
   font-variant-numeric: tabular-nums lining-nums;
 }
 
@@ -2044,7 +2053,7 @@ a:focus-visible {
 }
 
 .revenue-bar--margin {
-  background: linear-gradient(180deg, #6ecf9b, #3d9a6a);
+  background: linear-gradient(180deg, var(--down), #3d9a6a);
 }
 
 .revenue-bar--growth-pos {
@@ -2052,7 +2061,7 @@ a:focus-visible {
 }
 
 .revenue-bar--growth-neg {
-  background: linear-gradient(180deg, #e07a7a, #b54545);
+  background: linear-gradient(180deg, var(--up), #b54545);
 }
 
 .revenue-bar--growth-na {
@@ -2224,7 +2233,7 @@ a:focus-visible {
 }
 
 .fin-table-mode-btn:hover:not(.is-active) {
-  color: #fff;
+  color: var(--text-heading);
   border-color: rgba(var(--ink), 0.28);
 }
 
@@ -2234,7 +2243,7 @@ a:focus-visible {
 
 .fin-table-mode-btn.is-active {
   background: rgba(var(--ink), 0.08);
-  color: #ffffff;
+  color: var(--text-heading);
   font-weight: 500;
   border-color: rgba(var(--ink), 0.35);
 }
@@ -2696,7 +2705,7 @@ a:focus-visible {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: rgba(180, 186, 198, 0.92);
+  color: var(--text-secondary);
   line-height: 1.35;
   margin-bottom: 4px;
 }
@@ -2712,7 +2721,7 @@ a:focus-visible {
   );
   font-size: 15px;
   font-weight: 600;
-  color: #f0f0f0;
+  color: var(--text-heading);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums lining-nums;
 }
@@ -2826,7 +2835,7 @@ a:focus-visible {
 
 .quote-chg-big.flat,
 .quote-chg-pct.flat {
-  color: #888780;
+  color: var(--flat);
 }
 
 .quote-mid {
@@ -3098,7 +3107,7 @@ a:focus-visible {
   margin: 0;
   font-size: 0.84rem;
   letter-spacing: 0.03em;
-  color: rgba(160, 168, 182, 0.95);
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -3109,7 +3118,7 @@ a:focus-visible {
   border-radius: 12px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  background: rgba(0, 0, 0, 0.42);
+  background: var(--surface-elevated);
   border: 1px solid rgba(var(--ink), 0.06);
   box-shadow:
     inset 0 1px 0 rgba(var(--ink), 0.034),
@@ -3138,7 +3147,7 @@ a:focus-visible {
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.25;
-  color: rgba(196, 202, 214, 0.6);
+  color: var(--text-secondary);
   background: none;
   border: none;
   position: relative;
@@ -3169,7 +3178,7 @@ a:focus-visible {
   bottom: -1px;
   height: 2px;
   border-radius: 1px;
-  background: var(--accent, #f0b429);
+  background: var(--accent, var(--accent));
   transform: scaleX(0);
   transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1);
 }
@@ -3186,7 +3195,7 @@ a:focus-visible {
 /* 作用中：亮＋粗＋金色底線（統一「金底線＝分頁」，不再依類別上色） */
 .relation-tab[aria-selected="true"],
 .relation-tab--active {
-  color: #f4f3ef;
+  color: var(--text-heading);
   font-weight: 700;
 }
 
@@ -3276,7 +3285,7 @@ a:focus-visible {
   align-items: baseline;
   justify-content: flex-end;
   gap: 0.06em;
-  color: rgba(228, 232, 240, 0.92);
+  color: var(--text);
 }
 
 .relation-rev .relation-rev-pct-num {
@@ -3294,7 +3303,7 @@ a:focus-visible {
   padding-top: 0.85rem;
   font-size: 0.74rem;
   line-height: 1.6;
-  color: rgba(160, 168, 182, 0.92);
+  color: var(--muted);
   border-top: 1px solid rgba(var(--ink), 0.06);
 }
 
@@ -3345,7 +3354,7 @@ a:focus-visible {
   margin: 0 0 0.9rem;
   font-size: 0.95rem;
   line-height: 1.62;
-  color: rgba(224, 228, 236, 0.96);
+  color: var(--text);
   padding: 0.75rem 0.9rem;
   border-radius: var(--radius-md);
   border: 1px solid rgba(var(--ink), 0.1);
@@ -3372,7 +3381,7 @@ a:focus-visible {
   display: block;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: rgba(202, 208, 220, 0.95);
+  color: var(--text-secondary);
   transition: color 0.18s ease;
 }
 .relation-news-item a:hover .relation-news-t {
@@ -3382,7 +3391,7 @@ a:focus-visible {
   display: block;
   margin-top: 3px;
   font-size: 0.75rem;
-  color: rgba(160, 168, 182, 0.85);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .relation-news-src {
@@ -3390,13 +3399,13 @@ a:focus-visible {
   padding-top: 0.8rem;
   border-top: 1px solid rgba(var(--ink), 0.06);
   font-size: 0.72rem;
-  color: rgba(160, 168, 182, 0.8);
+  color: var(--muted);
 }
 .relation-news-status {
   margin: 0;
   padding: 0.7rem 0.2rem;
   font-size: 0.85rem;
-  color: rgba(160, 168, 182, 0.85);
+  color: var(--muted);
 }
 
 .relation-summary-body {
@@ -3423,7 +3432,7 @@ a:focus-visible {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.94rem;
-  color: rgba(228, 232, 240, 0.95);
+  color: var(--text);
   margin: 0.95rem 0 0.35rem;
   letter-spacing: 0.02em;
 }
@@ -3476,7 +3485,7 @@ a:focus-visible {
 
 .relation-summary-body strong {
   font-weight: 600;
-  color: rgba(245, 247, 252, 0.96);
+  color: var(--text-heading);
 }
 
 .relation-summary-body a {
@@ -3820,7 +3829,7 @@ a:focus-visible {
 .discover-pre {
   margin: 0.5rem 0 0;
   padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(var(--ink), 0.05);
   border-radius: var(--radius-md);
   overflow-x: auto;
   font-size: 0.8rem;

@@ -158,7 +158,7 @@ const defaultMonths = 6;
 
         <div class="quote-foot">
           <div class="quote-ma-legend">
-            <span class="quote-ma-legend__item"><i style="background:#F0B429"></i>5MA</span>
+            <span class="quote-ma-legend__item"><i style="background:var(--accent)"></i>5MA</span>
             <span class="quote-ma-legend__item"><i style="background:#6BA3E8"></i>10MA</span>
             <span class="quote-ma-legend__item"><i style="background:#B388FF"></i>20MA</span>
           </div>
@@ -355,13 +355,13 @@ const defaultMonths = 6;
 
     const chart = createChart(dailyHost, {
       autoSize: true,
-      layout: { background: { color: "transparent" }, textColor: "#cbd5e1", fontSize: 11 },
+      layout: { background: { color: "transparent" }, textColor: "var(--text-secondary)", fontSize: 11 },
       grid: {
-        vertLines: { color: "rgba(255,255,255,0.05)" },
-        horzLines: { color: "rgba(255,255,255,0.05)" },
+        vertLines: { color: "rgba(var(--ink), 0.05)" },
+        horzLines: { color: "rgba(var(--ink), 0.05)" },
       },
-      rightPriceScale: { borderColor: "rgba(255,255,255,0.12)" },
-      timeScale: { borderColor: "rgba(255,255,255,0.12)", rightOffset: 4 },
+      rightPriceScale: { borderColor: "rgba(var(--ink), 0.12)" },
+      timeScale: { borderColor: "rgba(var(--ink), 0.12)", rightOffset: 4 },
       crosshair: { mode: CrosshairMode.Normal },
     });
 
@@ -387,7 +387,7 @@ const defaultMonths = 6;
     );
 
     const maDefs: [number, string][] = [
-      [5, "#F0B429"],
+      [5, "var(--accent)"],
       [10, "#6BA3E8"],
       [20, "#B388FF"],
     ];
@@ -414,12 +414,12 @@ const defaultMonths = 6;
       if (!b) return;
       const prev = idx > 0 ? bars[idx - 1]!.close : null;
       const up = b.close >= b.open;
-      const col = up ? "#ff7b78" : "#3fd6a0";
+      const col = up ? "var(--up)" : "var(--down)";
       let chg = "";
       if (prev != null && prev !== 0) {
         const d = Math.round((b.close - prev) * 100) / 100;
         const p = (d / prev) * 100;
-        const c2 = d >= 0 ? "#ff9a9a" : "#5ee9b5";
+        const c2 = d >= 0 ? "var(--up)" : "var(--down)";
         chg = ` <b style="color:${c2}">${d >= 0 ? "+" : ""}${p.toFixed(2)}%</b>`;
       }
       legend.innerHTML =
@@ -521,7 +521,7 @@ const defaultMonths = 6;
       if (v == null || t == null) return;
       const base = intraBase();
       const up = base > 0 ? v >= base : true;
-      const col = up ? "#ff7b78" : "#3fd6a0";
+      const col = up ? "var(--up)" : "var(--down)";
       let chg = "";
       if (base > 0) {
         const d = Math.round((v - base) * 100) / 100;
@@ -563,17 +563,17 @@ const defaultMonths = 6;
       }
       intradayChart = createChart(intradayHost, {
         autoSize: true,
-        layout: { background: { color: "transparent" }, textColor: "#cbd5e1", fontSize: 11 },
+        layout: { background: { color: "transparent" }, textColor: "var(--text-secondary)", fontSize: 11 },
         grid: {
-          vertLines: { color: "rgba(255,255,255,0.05)" },
-          horzLines: { color: "rgba(255,255,255,0.05)" },
+          vertLines: { color: "rgba(var(--ink), 0.05)" },
+          horzLines: { color: "rgba(var(--ink), 0.05)" },
         },
         rightPriceScale: {
-          borderColor: "rgba(255,255,255,0.12)",
+          borderColor: "rgba(var(--ink), 0.12)",
           scaleMargins: { top: 0.02, bottom: 0.02 },
         },
         timeScale: {
-          borderColor: "rgba(255,255,255,0.12)",
+          borderColor: "rgba(var(--ink), 0.12)",
           timeVisible: true,
           secondsVisible: false,
           rightOffset: 2,
@@ -615,7 +615,7 @@ const defaultMonths = 6;
       if (base > 0) {
         intradaySeries.createPriceLine({
           price: base,
-          color: "rgba(255,255,255,0.28)",
+          color: "rgba(var(--ink), 0.28)",
           lineWidth: 1,
           lineStyle: 2,
           axisLabelVisible: true,
@@ -722,7 +722,7 @@ const defaultMonths = 6;
     gap: 4px;
     margin-top: 0.5rem;
     flex-wrap: wrap;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(var(--ink), 0.12);
   }
   .quote-lwc-range {
     font-size: 11px;
@@ -732,7 +732,7 @@ const defaultMonths = 6;
     border: none;
     border-radius: 0;
     background: none;
-    color: var(--muted, #9aa0a6);
+    color: var(--muted, var(--muted));
     cursor: pointer;
     position: relative;
     transition: color 0.15s;
@@ -745,15 +745,15 @@ const defaultMonths = 6;
     bottom: -1px;
     height: 2px;
     border-radius: 1px;
-    background: var(--accent, #f0b429);
+    background: var(--accent, var(--accent));
     transform: scaleX(0);
     transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1);
   }
   .quote-lwc-range:hover {
-    color: var(--fg, #e5e7eb);
+    color: var(--fg, var(--text));
   }
   .quote-lwc-range.is-active {
-    color: var(--fg, #fff);
+    color: var(--fg, var(--text-heading));
     font-weight: 700;
   }
   .quote-lwc-range.is-active::after {
@@ -780,7 +780,7 @@ const defaultMonths = 6;
     font-size: 11px;
     font-family: ui-monospace, "SF Mono", monospace;
     color: var(--muted, #aab);
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--surface-elevated);
     padding: 3px 7px;
     border-radius: 4px;
     white-space: nowrap;
@@ -789,11 +789,11 @@ const defaultMonths = 6;
     text-overflow: ellipsis;
   }
   .quote-lwc :global(.quote-lwc-legend b) {
-    color: #e5e7eb;
+    color: var(--text);
     font-weight: 500;
   }
   .quote-lwc :global(.quote-lwc-legend .t) {
-    color: #9aa0a6;
+    color: var(--muted);
     margin-right: 5px;
   }
   .quote-lwc :global(.quote-lwc-msg) {
@@ -802,7 +802,7 @@ const defaultMonths = 6;
     justify-content: center;
     width: 100%;
     height: 100%;
-    color: var(--muted, #888);
+    color: var(--muted, var(--muted));
     font-size: 0.85rem;
   }
   .quote-foot {
@@ -811,7 +811,7 @@ const defaultMonths = 6;
     justify-content: space-between;
     margin-top: 0.4rem;
     font-size: 11px;
-    color: var(--muted, #888);
+    color: var(--muted, var(--muted));
   }
   .quote-ma-legend {
     display: flex;

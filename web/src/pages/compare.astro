@@ -204,7 +204,7 @@ import Layout from "../layouts/Layout.astro";
     .cmp__h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
     .cmp__en { color: var(--muted); font-weight: 400; font-size: 1rem; }
     .cmp__intro { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.6; }
-    .cmp__intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 5px; }
+    .cmp__intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(var(--ink), 0.05); padding: 1px 6px; border-radius: 5px; }
     .cmp__legend { color: var(--accent); }
 
     .cmp__add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; margin-bottom: 1.1rem; }
@@ -219,7 +219,7 @@ import Layout from "../layouts/Layout.astro";
       transition: border-color var(--duration) var(--ease-out), filter var(--duration) var(--ease-out);
     }
     .cmp__btn:hover { border-color: var(--accent); }
-    .cmp__btn--primary { color: #06141f; background: var(--accent); border-color: transparent; }
+    .cmp__btn--primary { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
     .cmp__btn--primary:hover { filter: brightness(1.08); }
     .cmp__msg { color: var(--muted); font-size: 0.8rem; }
 
@@ -240,7 +240,7 @@ import Layout from "../layouts/Layout.astro";
       font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary);
       border-bottom: 1px solid var(--border);
     }
-    .cmp__rlabel { font-size: 0.82rem; border-top: 1px solid rgba(255,255,255,0.045); }
+    .cmp__rlabel { font-size: 0.82rem; border-top: 1px solid rgba(var(--ink), 0.045); }
 
     .cmp__tk {
       position: relative; vertical-align: top; text-align: left;
@@ -251,7 +251,7 @@ import Layout from "../layouts/Layout.astro";
     .cmp__tk-top { display: flex; align-items: center; justify-content: space-between; }
     .cmp__name {
       display: block; margin-top: 8px; font-family: var(--font-display); font-size: 1.02rem; font-weight: 600;
-      color: var(--text-heading, #fff); text-decoration: none; letter-spacing: -0.01em;
+      color: var(--text-heading, var(--text-heading)); text-decoration: none; letter-spacing: -0.01em;
     }
     .cmp__name:hover { color: var(--link-report); }
     .cmp__sector { display: block; margin-top: 2px; font-size: 0.72rem; color: var(--muted); }
@@ -260,7 +260,7 @@ import Layout from "../layouts/Layout.astro";
       font-size: 0.78rem; width: 24px; height: 24px; border-radius: 50%; line-height: 1;
       transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
     }
-    .cmp__rm:hover { background: rgba(226,75,74,0.15); color: #ff7b78; }
+    .cmp__rm:hover { background: color-mix(in srgb, var(--up) 15%, transparent); color: var(--up); }
 
     .cmp__sec td {
       padding: 10px 16px 7px; background: transparent;
@@ -278,8 +278,8 @@ import Layout from "../layouts/Layout.astro";
     .cmp__v.is-neg { color: var(--down); }
     .cmp__v.is-best { color: var(--accent); background: rgba(194,163,106,0.08); }
     .cmp__mk { font-size: 0.6rem; margin-right: 5px; vertical-align: 1px; }
-    .cmp__table tbody tr:hover .cmp__v { background: rgba(255,255,255,0.025); }
-    .cmp__table tbody tr:hover .cmp__v.is-best { background: rgba(194,163,106,0.12); }
+    .cmp__table tbody tr:hover .cmp__v { background: rgba(var(--ink), 0.025); }
+    .cmp__table tbody tr:hover .cmp__v.is-best { background: var(--accent-soft); }
 
     .cmp__empty { padding: 3.5rem 1.5rem; text-align: center; }
     .cmp__empty-icon { font-size: 2rem; color: var(--muted); opacity: 0.45; margin-bottom: 0.4rem; }

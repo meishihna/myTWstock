@@ -97,8 +97,26 @@ export function tileColor(pct: number | null): string {
   const [r, g, b] = tileRGB(pct);
   return `rgb(${r},${g},${b})`;
 }
-// 依磚塊底色亮度決定文字色:淺底深字、深底淺字
+/** WCAG 相對亮度(sRGB) */
+function relLum(r: number, g: number, b: number): number {
+  const f = (v: number) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+/**
+ * 磚上文字色:在「深字/淺字」兩候選中取 WCAG 對比較高者。
+ * 原本用固定感知亮度門檻(>148),中間色調(如 +3% 的中紅 #b4716e)會挑錯 → 對比僅 3.43;
+ * 改為實算對比後同一磚可得 5.17。磚底色本身是資料驅動(紅漲綠跌)、深淺主題相同。
+ */
 export function tileTextColor(pct: number | null): string {
   const [r, g, b] = tileRGB(pct);
-  return 0.299 * r + 0.587 * g + 0.114 * b > 148 ? "#1c1c1c" : "#f5f3ee";
+  const L = relLum(r, g, b);
+  const cr = (a: number, x: number) =>
+    (Math.max(a, x) + 0.05) / (Math.min(a, x) + 0.05);
+  const dark = relLum(11, 12, 14);
+  const light = relLum(245, 243, 238);
+  return cr(L, dark) >= cr(L, light) ? "#0b0c0e" : "#f5f3ee";
 }

@@ -256,7 +256,7 @@ import Layout from "../layouts/Layout.astro";
     .scr-h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
     .scr-h1-en { color: var(--muted); font-weight: 400; font-size: 1rem; }
     .scr-intro { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.6; }
-    .scr-intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 5px; }
+    .scr-intro code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: rgba(var(--ink), 0.05); padding: 1px 6px; border-radius: 5px; }
 
     .scr-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.1rem; }
     .scr-input, .scr-num {
@@ -291,12 +291,12 @@ import Layout from "../layouts/Layout.astro";
     }
     .scr-table thead th:hover { color: var(--text); }
     .scr-th--num { text-align: right; }
-    .scr-arrow { color: var(--accent); }
+    .scr-arrow { color: var(--accent-hover); }
 
     .scr-table tbody td {
-      padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.045);
+      padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid rgba(var(--ink), 0.045);
     }
-    .scr-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+    .scr-table tbody tr:hover td { background: rgba(var(--ink), 0.03); }
     .scr-td--num {
       text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; color: var(--text);
     }

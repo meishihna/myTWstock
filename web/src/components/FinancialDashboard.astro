@@ -84,7 +84,7 @@ const fmtSignedLot = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : (n > 0 ? "+" : "") + n.toLocaleString("zh-TW");
 // 買賣超／增減:買超或增(正)＝紅、賣超或減(負)＝綠(紅漲綠跌)
 const netColorStyle = (n: number | null | undefined) =>
-  n == null || !Number.isFinite(n) || n === 0 ? "" : n > 0 ? "color:#e24b4a" : "color:#1d9e75";
+  n == null || !Number.isFinite(n) || n === 0 ? "" : n > 0 ? "color:var(--up)" : "color:var(--down)";
 const fmtPct1 = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(1)}%`;
 // 大戶持股週增減(pp):本週 pct − 上週 pct;無上週資料 → null
@@ -216,7 +216,7 @@ const annRevProfit = lineChartSvg(
   indCfg.revenueSeries.map((key) => ({
     name: REVENUE_LINE_LABELS[key] ?? key,
     values: annual.series[key] ?? [],
-    color: REVENUE_LINE_COLORS[key] ?? "#888",
+    color: REVENUE_LINE_COLORS[key] ?? "var(--muted)",
     strokeDasharray: REVENUE_LINE_DASHES[key],
   })),
   "百萬元",
@@ -230,7 +230,7 @@ const annMargins = lineChartSvg(
   indCfg.marginSeries.map((key) => ({
     name: MARGIN_LINE_LABELS[key] ?? key,
     values: annual.series[key] ?? [],
-    color: MARGIN_LINE_COLORS[key] ?? "#888",
+    color: MARGIN_LINE_COLORS[key] ?? "var(--muted)",
     strokeDasharray: MARGIN_LINE_DASHES[key],
   })),
   "%",
@@ -399,7 +399,7 @@ const CF_LABELS: Record<string, string> = {
   "Financing Cash Flow": "籌資現金流",
 };
 const CF_COLORS: Record<string, string> = {
-  "Op Cash Flow": "#1D9E75",
+  "Op Cash Flow": "var(--down)",
   "Investing Cash Flow": "#D85A30",
   "Financing Cash Flow": "#7F77DD",
 };
@@ -477,7 +477,7 @@ function stackedExpensePctSvg(
     const layers = [
       { pct: a, fill: "#378ADD" },
       { pct: b, fill: "#D85A30" },
-      { pct: c, fill: "#888780" },
+      { pct: c, fill: "var(--flat)" },
     ];
     for (const { pct, fill } of layers) {
       if (!(pct > 0)) continue;
@@ -494,7 +494,7 @@ function stackedExpensePctSvg(
     segments: [
       { name: "推銷費用率", color: "#378ADD", values: segA.map((v) => (v == null ? null : v)) },
       { name: "研發費用率", color: "#D85A30", values: segB.map((v) => (v == null ? null : v)) },
-      { name: "管理費用率", color: "#888780", values: segC.map((v) => (v == null ? null : v)) },
+      { name: "管理費用率", color: "var(--flat)", values: segC.map((v) => (v == null ? null : v)) },
     ],
     pad: PAD,
     w: CHART_W,
@@ -621,7 +621,7 @@ if (quarterly) {
       REVENUE_LINE_LABELS.Revenue ?? "營收",
       REVENUE_LINE_LABELS["Gross Profit"] ?? "毛利",
       REVENUE_LINE_COLORS.Revenue ?? "#378ADD",
-      REVENUE_LINE_COLORS["Gross Profit"] ?? "#1D9E75"
+      REVENUE_LINE_COLORS["Gross Profit"] ?? "var(--down)"
     );
   } else {
     qRevSimple = barChartMillion(
@@ -642,7 +642,7 @@ if (quarterly) {
       marginKeys.map((key) => ({
         name: MARGIN_LINE_LABELS[key] ?? key,
         values: quarterly.series[key] ?? [],
-        color: MARGIN_LINE_COLORS[key] ?? "#888",
+        color: MARGIN_LINE_COLORS[key] ?? "var(--muted)",
         strokeDasharray: MARGIN_LINE_DASHES[key],
       })),
       "%",
@@ -844,8 +844,8 @@ if (monthly) {
     v == null || !Number.isFinite(v) || Math.abs(v) > YOY_CAP ? null : v;
   const mYoy = (monthly.yoy || []).map(saneYoy);
   const mCumYoy = (monthly.cumYoy || []).map(saneYoy);
-  mRevBars = barChartMillion(mLabels, monthly.revenue, "月營收（Monthly revenue）", "#E24B4A", {
-    stroke: "#E24B4A",
+  mRevBars = barChartMillion(mLabels, monthly.revenue, "月營收（Monthly revenue）", "var(--up)", {
+    stroke: "var(--up)",
     fillOpacity: 0.5,
     tooltipLabel: "月營收（百萬）",
   });
@@ -853,7 +853,7 @@ if (monthly) {
     if (!b) return b;
     const yv = mYoy[i];
     const neg = yv != null && Number.isFinite(yv) && yv < 0;
-    return { ...b, fill: neg ? "#1D9E75" : "#E24B4A", stroke: neg ? "#1D9E75" : "#E24B4A" };
+    return { ...b, fill: neg ? "var(--down)" : "var(--up)", stroke: neg ? "var(--down)" : "var(--up)" };
   });
   if (mYoy.some((v) => v != null && Number.isFinite(v))) {
     mYoyLine = lineChartSvg(
@@ -1232,7 +1232,7 @@ const mRevYTickMarks =
                 <span class="fin-dash__leg-dot" style="background:#378ADD" />{qRevGrouped.nameA}
               </li>
               <li>
-                <span class="fin-dash__leg-dot" style="background:#1D9E75" />{qRevGrouped.nameB}
+                <span class="fin-dash__leg-dot" style="background:var(--down)" />{qRevGrouped.nameB}
               </li>
             </ul>
             <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--tall">
@@ -1621,7 +1621,7 @@ const mRevYTickMarks =
             <ul class="fin-dash__legend">
               <li><span class="fin-dash__leg-dot" style="background:#378ADD" />推銷費用率</li>
               <li><span class="fin-dash__leg-dot" style="background:#D85A30" />研發費用率</li>
-              <li><span class="fin-dash__leg-dot" style="background:#888780" />管理費用率</li>
+              <li><span class="fin-dash__leg-dot" style="background:var(--flat)" />管理費用率</li>
             </ul>
             <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--triple">
               <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -1698,8 +1698,8 @@ const mRevYTickMarks =
           <figure class="fin-dash__chart">
             <p class="fin-dash__sl">{mRevBars.title}（百萬元）</p>
             <ul class="fin-dash__legend">
-              <li><span class="fin-dash__leg-dot" style="background:#E24B4A" />營收成長(YoY≥0)</li>
-              <li><span class="fin-dash__leg-dot" style="background:#1D9E75" />營收衰退</li>
+              <li><span class="fin-dash__leg-dot" style="background:var(--up)" />營收成長(YoY≥0)</li>
+              <li><span class="fin-dash__leg-dot" style="background:var(--down)" />營收衰退</li>
             </ul>
             <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--tall">
               <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -1973,7 +1973,7 @@ const mRevYTickMarks =
 
     const W = 720, HT = 210, P = { l: 12, r: 12, t: 18, b: 22 };
     const pw = W - P.l - P.r, ph = HT - P.t - P.b;
-    const UP = "#e24b4a", DOWN = "#1d9e75", GOLD = "#d6a64a", BLUE = "#4a9ed6", PURP = "#b07bd6";
+    const UP = "var(--up)", DOWN = "var(--down)", GOLD = "#d6a64a", BLUE = "#4a9ed6", PURP = "#b07bd6";
     const p2 = (n) => (n < 10 ? "0" : "") + n;
     const toYmd = (t) => {
       if (t == null) return "";
@@ -1996,7 +1996,7 @@ const mRevYTickMarks =
       const NS = "http://www.w3.org/2000/svg";
       const cross = document.createElementNS(NS, "line");
       cross.setAttribute("y1", P.t); cross.setAttribute("y2", P.t + ph);
-      cross.setAttribute("stroke", "rgba(255,255,255,.32)"); cross.setAttribute("stroke-dasharray", "3 3");
+      cross.setAttribute("stroke", "rgba(var(--ink), .32)"); cross.setAttribute("stroke-dasharray", "3 3");
       cross.style.display = "none"; svg.appendChild(cross);
       const tip = getTip();
       el.addEventListener("mousemove", (e) => {
@@ -2062,7 +2062,7 @@ const mRevYTickMarks =
       const n = dates.length, am = Math.max(1, ...net3.map((v) => (v == null ? 0 : Math.abs(v)))), zy = P.t + ph / 2, bw = Math.max(1.5, (pw / n) * 0.62);
       let bars = "";
       for (let i = 0; i < n; i++) { const v = net3[i]; if (v == null || !isFinite(v)) continue; const h = (Math.abs(v) / am) * (ph / 2); const x = xAt(i, n) - bw / 2; const y = v >= 0 ? zy - h : zy; bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h, 0.5).toFixed(1)}" fill="${v >= 0 ? UP : DOWN}" opacity="0.85"/>`; }
-      el.innerHTML = `<svg viewBox="0 0 ${W} ${HT}" class="ct-svg"><line x1="${P.l}" x2="${W - P.r}" y1="${zy}" y2="${zy}" stroke="rgba(255,255,255,.16)"/>${bars}${priceLine(dates, pbd)}${xticks(dates)}</svg>`;
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${HT}" class="ct-svg"><line x1="${P.l}" x2="${W - P.r}" y1="${zy}" y2="${zy}" stroke="rgba(var(--ink), .16)"/>${bars}${priceLine(dates, pbd)}${xticks(dates)}</svg>`;
       attachHover(el, { dates, n, series: [
         { label: "三大法人", signColor: true, values: net3, fmt: fmtLots },
         { label: "股價", color: GOLD, values: dates.map((d) => pbd[d] ?? null), fmt: fmtPrice },

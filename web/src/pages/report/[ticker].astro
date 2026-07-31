@@ -913,32 +913,33 @@ const reportLd = [
   .report-watch {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 5px 12px; border-radius: 999px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+    border: 1px solid var(--border, rgba(var(--ink), 0.2));
     background: transparent; color: var(--muted, #b3b3b3);
     cursor: pointer; font-size: 0.85rem; white-space: nowrap; align-self: flex-start;
     margin-top: 0.7rem;
   }
-  .report-watch:hover { color: var(--fg, #ececec); border-color: rgba(255, 255, 255, 0.35); }
-  .report-watch.is-on { color: #f0b429; border-color: rgba(240, 180, 41, 0.5); }
+  .report-watch:hover { color: var(--fg, var(--text)); border-color: rgba(var(--ink), 0.35); }
+  .report-watch.is-on { color: var(--accent); border-color: var(--accent-glow); }
   .report-watch__star { font-size: 1rem; line-height: 1; }
 
   /* ④ 所屬投資題材 */
   .report-themes { margin: 1.1rem 0 0.3rem; }
   .report-themes-h {
-    font-size: 0.95rem; font-weight: 600; color: var(--fg, #ececec); margin: 0 0 0.55rem;
+    font-size: 0.95rem; font-weight: 600; color: var(--fg, var(--text)); margin: 0 0 0.55rem;
   }
   .report-themes-chips { display: flex; flex-wrap: wrap; gap: 7px; }
   .report-theme-chip {
     display: inline-flex; align-items: center;
     padding: 4px 11px; border-radius: 999px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.18));
-    background: var(--accent-soft, rgba(240, 180, 41, 0.1));
-    color: var(--accent, #f0b429);
+    border: 1px solid var(--border, rgba(var(--ink), 0.18));
+    background: var(--accent-soft, var(--accent-glow));
+    /* 金字疊在金色淡底上,用 --accent-hover(深色更亮/淺色更深)才過 AA */
+    color: var(--accent-hover);
     font-size: 0.82rem; text-decoration: none; white-space: nowrap;
     transition: background 0.15s, border-color 0.15s;
   }
   .report-theme-chip:hover {
-    border-color: var(--accent, #f0b429);
-    background: var(--accent-soft, rgba(240, 180, 41, 0.18));
+    border-color: var(--accent, var(--accent));
+    background: var(--accent-soft, var(--accent-glow));
   }
 </style>

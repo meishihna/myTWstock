@@ -198,7 +198,8 @@ const anchor = (tier: string, node: string) => `n-${tier}-${node}`;
   .chain-tier.multi .chain-nodes { display: grid; align-content: start; }
   .chain-node { display: flex; justify-content: space-between; align-items: center; gap: 0.3rem; width: 100%; padding: 0.45rem 0.45rem; white-space: nowrap; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 7px; font-family: inherit; font-size: 0.72rem; font-weight: 600; line-height: 1.2; color: var(--text); text-align: left; text-decoration: none; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
   .chain-node:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated)); }
-  .chain-node.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface-elevated)); color: var(--accent); }
+  /* 選中狀態已由金框+金底表達;文字用 --text 確保在淺金底上仍過 AA */
+  .chain-node.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface-elevated)); color: var(--text); font-weight: 700; }
   .cn-n { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
   .chain-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 1.1rem; }
 
