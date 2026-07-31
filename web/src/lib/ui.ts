@@ -316,6 +316,35 @@ export const NEWS_PAGE = {
     "本頁僅聚合公開連結與摘要，不儲存全文；新聞內容、圖像與商標歸各媒體所有。",
 } as const;
 
+/** 回測(/signals):私有引擎產出的 signals 資料;僅歷史統計、非投資建議 */
+export const SIGNALS_PAGE = {
+  nav: "回測",
+  title: "策略回測",
+  lead: "以官方公開資料進行的歷史回測統計。僅供教育與研究參考,不代表未來績效、非投資建議。",
+} as const;
+
+/** 交易(/trades):Phase 2 — 使用者登入後自行輸入交易,系統以公開股價計算損益 */
+export const TRADES_PAGE = {
+  nav: "交易",
+  title: "投資組合",
+  phase: "Phase 2 · 登入後可用",
+  lead: "登入後手動輸入你自己的交易,系統以公開股價自動計算損益與績效。",
+  privacy: "你的交易資料只存在你的帳號、不公開;本平台不代下單、不連接券商。",
+  emptyCta: "登入後手動輸入你的交易,系統用公開股價自動算損益",
+  demoNote: "以下為版型示意,尚無資料。",
+} as const;
+
+/** 報告(/research):Phase 2 — 使用者自建投資研究 */
+export const RESEARCH_PAGE = {
+  nav: "報告",
+  title: "投資研究",
+  phase: "Phase 2 · 登入後可用",
+  lead: "在這裡建立、分類並回顧你自己的投資研究筆記。",
+  privacy: "研究內容只存在你的帳號、不公開。",
+  emptyCta: "登入後在這裡建立你自己的投資研究",
+  demoNote: "以下為版型示意,尚無資料。",
+} as const;
+
 export const FOOTER = {
   source: bi("資料來源", "Data source"),
   disclaimer: bi(

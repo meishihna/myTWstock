@@ -1,0 +1,201 @@
+---
+/**
+ * /signals — 策略回測
+ *
+ * 資料來源:私有引擎 repo(tw-stock-public)產出的 signals 資料【檔案】,
+ * 本 repo【不含任何引擎程式碼】,只讀取算好的 JSON。
+ *
+ * 目前狀態:等待引擎側輸出富版資料契約(逐筆 trades / 價格序列 / reason 對照表)。
+ * 在資料就緒前,本頁顯示誠實的空狀態,【不呈現任何假造或示意數字】。
+ */
+import Layout from "../layouts/Layout.astro";
+import { SIGNALS_PAGE, SITE } from "../lib/ui";
+import fs from "node:fs";
+import path from "node:path";
+
+export const prerender = true;
+
+/** 讀取 signals 索引(若尚未匯入 → 空狀態;prerender 不可因缺檔失敗) */
+const idxPath = path.join(process.cwd(), "public/data/signals/index.json");
+let idx: {
+  updatedAt?: string;
+  windowMonths?: number;
+  source?: string;
+  disclaimer?: string;
+  stocks?: { code: string; name: string }[];
+} | null = null;
+if (fs.existsSync(idxPath)) {
+  try {
+    idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+  } catch {
+    idx = null;
+  }
+}
+const hasData = !!idx?.stocks?.length;
+
+/** 版面骨架(資料就緒後逐區塊填入) */
+const BLOCKS = [
+  "個股選擇 · 期間／交易日數／同期 Buy&Hold",
+  "官方籌碼列(投信10日、外資10日、融資20日、券資比、本益比、淨值比)",
+  "確認層切換(無／投信／法人同買／大盤多頭／浮額清洗)",
+  "組合排行(依規則順序)＋ 組合詳情六格 KPI",
+  "確認層對照(同規則在各層的表現,中性比較)",
+  "走勢圖 ＋ 進出點標記",
+  "逐筆權益曲線",
+  "逐筆明細表",
+] as const;
+
+/** 站內固定免責(資料就緒後,另需原樣顯示引擎提供的 source / disclaimer) */
+const DISCLAIMER = [
+  "本頁為【歷史回測統計】,僅供教育與研究用途。",
+  "歷史績效【不代表未來】表現;任何組合的過去報酬都不保證重現。",
+  "非投資建議、不構成任何買賣邀約,亦不代為執行交易。",
+  "回測可能存在【過度最佳化、存活者偏誤、流動性與滑價未完全反映】等限制。",
+  "本站不提供、也不會顯示「現在該買／該賣」之當前操作訊號。",
+] as const;
+---
+
+<Layout
+  title={`${SIGNALS_PAGE.title} — ${SITE.name}`}
+  description="以台灣官方公開資料進行的歷史回測統計;僅供教育與研究參考,不代表未來績效、非投資建議。"
+>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">首頁</a><span class="bc-sep"> / </span><span>{SIGNALS_PAGE.title}</span>
+  </div>
+
+  <header class="ph-head">
+    <div class="ph-head-top">
+      <h1 class="page-h1">{SIGNALS_PAGE.title}</h1>
+      {!hasData && <span class="ph-phase">資料待匯入</span>}
+    </div>
+    <p class="page-lead">{SIGNALS_PAGE.lead}</p>
+  </header>
+
+  {/* 免責放在最上方,不折疊 */}
+  <section class="sg-disc sg-disc--top" aria-label="回測免責聲明">
+    <h2 class="sg-disc-h">重要聲明</h2>
+    <ul class="sg-disc-list">
+      {DISCLAIMER.map((d) => <li>{d}</li>)}
+    </ul>
+    {idx?.source && <p class="sg-src">資料來源:{idx.source}</p>}
+    {idx?.disclaimer && <p class="sg-src">{idx.disclaimer}</p>}
+  </section>
+
+  {
+    hasData ? (
+      <p class="ph-empty-block">
+        已偵測到回測資料({idx!.stocks!.length} 檔)。富版介面將於資料契約確認後啟用。
+      </p>
+    ) : (
+      <section class="sg-pending" aria-labelledby="h-sg-pending">
+        <h2 class="ph-h2" id="h-sg-pending">回測資料尚未匯入</h2>
+        <p class="sg-pending-p">
+          本頁將呈現以【官方公開資料】(證交所／櫃買中心)計算的歷史回測統計。
+          回測結果由獨立的私有引擎產出,本站只讀取算好的資料檔,
+          <strong>不包含任何策略程式碼</strong>。
+        </p>
+        <p class="sg-pending-p sg-pending-p--dim">
+          資料就緒後,本頁會依序呈現下列區塊:
+        </p>
+        <ol class="sg-blocks">
+          {BLOCKS.map((b) => <li>{b}</li>)}
+        </ol>
+        <p class="sg-pending-note">
+          在資料匯入前,本頁刻意<strong>不顯示任何示意或假造數字</strong>,以免被誤讀為真實回測結果。
+        </p>
+      </section>
+    )
+  }
+
+  <section class="sg-disc" aria-label="回測免責聲明(重申)">
+    <h2 class="sg-disc-h">再次提醒</h2>
+    <ul class="sg-disc-list">
+      {DISCLAIMER.map((d) => <li>{d}</li>)}
+    </ul>
+  </section>
+</Layout>
+
+<style is:global>
+  /* /signals(共用 .ph-* 於 trades.astro 定義) */
+  .sg-disc {
+    margin: 0 0 1.5rem;
+    padding: 0.95rem 1.15rem 1.05rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-md);
+  }
+  .sg-disc--top {
+    margin-bottom: 1.8rem;
+  }
+  .sg-disc-h {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0 0 0.55rem;
+    color: var(--text-heading);
+  }
+  .sg-disc-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .sg-disc-list li {
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: var(--text-secondary);
+  }
+  .sg-src {
+    margin: 0.7rem 0 0;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .sg-pending {
+    padding: 1.5rem 1.3rem 1.6rem;
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  .sg-pending-p {
+    margin: 0.6rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+    max-width: 44rem;
+  }
+  .sg-pending-p strong {
+    color: var(--text);
+  }
+  .sg-pending-p--dim {
+    margin-top: 1.2rem;
+    color: var(--muted);
+    font-size: 0.84rem;
+  }
+  .sg-blocks {
+    margin: 0.5rem 0 0;
+    padding-left: 1.3rem;
+    display: grid;
+    gap: 0.32rem;
+  }
+  .sg-blocks li {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .sg-pending-note {
+    margin: 1.3rem 0 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .sg-pending-note strong {
+    color: var(--text-secondary);
+  }
+</style>

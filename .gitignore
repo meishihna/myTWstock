@@ -46,3 +46,17 @@ web/news-snapshot.json
 web/public/data/financials/
 web/public/data/industries-index.json
 web/public/data/search-index.json
+
+# ── 回測引擎防線(本 repo 為【公開】repo)────────────────────────
+# 引擎程式碼一律不得進入此 repo;/signals 只讀「算好的資料 JSON」。
+# 若下列路徑出現,幾乎肯定是誤複製,直接忽略以免外流策略邏輯。
+engine/
+signals_engine/
+backtest_core.py
+backtest*.py
+run_combo*.py
+twse_chips.py
+*.ipynb
+tw-stock-public/
+# 引擎原始輸出(過大/非本站使用者需要):只保留 web/public/data/signals/ 下的成品
+data/signals_raw/

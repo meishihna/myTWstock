@@ -321,11 +321,63 @@ html::-webkit-scrollbar-corner,
   color: var(--accent-hover);
 }
 
+/* 導覽項目(8 個):終端風單行橫向捲動,窄螢幕不換行擠壓;☾/☀ 由 .theme-toggle 固定在右不參與捲動 */
 .nav-links {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem 0.4rem;
   justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* 捲動時邊緣淡出,暗示還有項目 */
+  mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+}
+
+.nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-links a {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.nav-links:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 窄螢幕:品牌與導覽上下分行,導覽自己橫向捲動、觸控目標加大 */
+@media (max-width: 720px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem 0.55rem;
+  }
+
+  .nav-links {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 12px), transparent 100%);
+  }
+
+  .nav-links a {
+    /* 觸控目標 ~44px(0.62rem*2 + 行高) */
+    padding: 0.62rem 0.62rem;
+    font-size: 0.92rem;
+    line-height: 1.3;
+  }
+
+  .theme-toggle {
+    padding: 0.4rem 0.65rem;
+  }
 }
 
 .nav-links a {
@@ -3874,3 +3926,289 @@ a:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ══ Phase 2 介面殼共用樣式(/trades、/research、/signals)══════════════════
+   置於 global.css:Astro 的 <style is:global> 只在該頁渲染時輸出,
+   放在單一頁面會導致其他頁拿不到樣式(曾踩:/research 的按鈕變成瀏覽器預設色)。 */
+  /* Phase 2 介面殼共用樣式(/trades、/research)——財經終端雙色,全部走 token */
+  .ph-head {
+    margin-bottom: 1.1rem;
+  }
+  .ph-head-top {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+  .ph-head-top .page-h1 {
+    margin-bottom: 0;
+  }
+  .ph-phase {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    color: var(--accent-hover);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-glow);
+  }
+  .ph-privacy {
+    margin: 0.45rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    border-left: 2px solid var(--accent);
+    padding-left: 0.65rem;
+  }
+  .ph-demo {
+    margin: 0 0 1.4rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .ph-sec {
+    margin-bottom: 1.9rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .ph-sec-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    margin-bottom: 0.85rem;
+  }
+  .ph-no {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+  .ph-h2 {
+    font-family: var(--font-display);
+    font-size: 1.12rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-heading);
+  }
+  .ph-sec-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* KPI 四格(沿用站上卡片語彙:--surface 底、髮絲邊、近直角) */
+  .ph-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+  .ph-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.8rem 0.9rem 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .ph-kpi-l {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .ph-kpi-v {
+    font-family: var(--font-mono);
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .ph-kpi-h {
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  /* 圖表佔位框 */
+  .ph-plot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 190px;
+    padding: 1.2rem;
+    text-align: center;
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  .ph-plot--sq {
+    min-height: 210px;
+  }
+  .ph-plot-t {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+  .ph-empty-in {
+    font-size: 0.82rem;
+    color: var(--muted);
+    max-width: 30rem;
+    line-height: 1.6;
+  }
+
+  .ph-alloc {
+    display: grid;
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+  .ph-bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .ph-bar-row {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 8rem) 1fr auto;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .ph-bar-l {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+  .ph-bar-track {
+    height: 7px;
+    border-radius: 2px;
+    background: rgba(var(--ink), 0.07);
+    overflow: hidden;
+  }
+  .ph-bar-track i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+  .ph-bar-v {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 表格骨架 */
+  .ph-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+  .ph-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .ph-table th {
+    text-align: left;
+    white-space: nowrap;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border-bottom: 1px solid var(--border);
+  }
+  .ph-tr-empty td {
+    padding: 2.1rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .ph-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.7rem;
+    margin-bottom: 0.75rem;
+  }
+  .ph-btn {
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.42rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+  }
+  .ph-btn--primary {
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-color: transparent;
+  }
+  /* 停用態不用 opacity 變淡(會讓文字對比不足);改以虛線邊 + not-allowed 表達,
+     並由旁邊「Phase 2 · 登入後開放」說明狀態。文字色維持達 AA。 */
+  .ph-btn:disabled {
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border-style: dashed;
+    border-color: var(--border-strong);
+  }
+  .ph-note-inline {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .ph-empty-block {
+    margin: 0;
+    padding: 1.5rem 1.1rem;
+    text-align: center;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  .ph-empty-block a {
+    color: var(--link-report);
+  }
+
+  .ph-foot {
+    margin: 2.2rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  @media (max-width: 900px) {
+    .ph-kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ph-alloc {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .ph-kpis {
+      grid-template-columns: 1fr;
+    }
+  }

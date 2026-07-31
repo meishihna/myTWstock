@@ -1,0 +1,205 @@
+---
+/**
+ * /trades — 投資組合(Phase 2 介面殼)
+ *
+ * 現階段【只有版型,無任何資料】。Phase 2 = 使用者登入後【手動輸入自己的交易】,
+ * 系統以【公開股價】自動計算損益與績效。
+ *
+ * ⚠️ 本頁不讀取、不匯入、不連結任何本機或第三方持股資料(含任何 xlsx / 券商資料)。
+ *    版型參考自作者本機儀表板的【區塊順序】,未複製任何資料內容。
+ */
+import Layout from "../layouts/Layout.astro";
+import { SITE, TRADES_PAGE } from "../lib/ui";
+
+export const prerender = true;
+
+/** 區塊骨架(順序與作者慣用儀表板一致) */
+const SECTIONS = [
+  { id: "sec-perf", no: "01", title: "績效", desc: "淨值走勢與累積報酬(TWR)" },
+  { id: "sec-alloc", no: "02", title: "資產配置", desc: "依產業／個股／現金的配置比重" },
+  { id: "sec-holdings", no: "03", title: "現有持倉", desc: "成本、市值、未實現損益" },
+  { id: "sec-stock", no: "04", title: "個股走勢", desc: "個別持股的走勢與進出點" },
+  { id: "sec-tx", no: "05", title: "交易紀錄", desc: "買賣紀錄(由你自行輸入)" },
+  { id: "sec-monthly", no: "06", title: "月報", desc: "逐月報酬與現金流" },
+  { id: "sec-watch", no: "07", title: "觀察清單", desc: "尚未進場的追蹤標的" },
+] as const;
+
+/** 01 績效的四格 KPI(留空,僅示意欄位) */
+const KPIS = [
+  { label: "淨值", hint: "持倉市值 + 現金" },
+  { label: "合計損益", hint: "已實現 + 未實現" },
+  { label: "累積報酬(TWR)", hint: "時間加權報酬率,排除現金流影響" },
+  { label: "現金水位", hint: "現金占淨值比重" },
+] as const;
+
+const HOLDING_COLS = ["代號", "名稱", "股數", "均價", "現價", "市值", "未實現損益", "報酬率"];
+const TX_COLS = ["日期", "代號", "買/賣", "股數", "價格", "手續費", "稅", "淨額"];
+const MONTHLY_COLS = ["月份", "月報酬%", "累積報酬%", "現金流", "月底淨值"];
+---
+
+<Layout
+  title={`${TRADES_PAGE.title} — ${SITE.name}`}
+  description="投資組合:登入後手動輸入你自己的交易,系統以公開股價計算損益與績效。你的資料只存在你的帳號、不公開。"
+>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">首頁</a><span class="bc-sep"> / </span><span>{TRADES_PAGE.title}</span>
+  </div>
+
+  <header class="ph-head">
+    <div class="ph-head-top">
+      <h1 class="page-h1">{TRADES_PAGE.title}</h1>
+      <span class="ph-phase">{TRADES_PAGE.phase}</span>
+    </div>
+    <p class="page-lead">{TRADES_PAGE.lead}</p>
+    <p class="ph-privacy" role="note">{TRADES_PAGE.privacy}</p>
+  </header>
+
+  <p class="ph-demo" role="note">{TRADES_PAGE.demoNote}</p>
+
+  {/* 01 績效 */}
+  <section class="ph-sec" id="sec-perf" aria-labelledby="h-perf">
+    <div class="ph-sec-head">
+      <span class="ph-no">01</span>
+      <h2 class="ph-h2" id="h-perf">績效</h2>
+      <span class="ph-sec-desc">淨值走勢與累積報酬(TWR)</span>
+    </div>
+    <div class="ph-kpis">
+      {
+        KPIS.map((k) => (
+          <div class="ph-kpi">
+            <span class="ph-kpi-l">{k.label}</span>
+            <span class="ph-kpi-v" aria-label="尚無資料">—</span>
+            <span class="ph-kpi-h">{k.hint}</span>
+          </div>
+        ))
+      }
+    </div>
+    <div class="ph-plot" role="img" aria-label="淨值走勢圖(尚無資料)">
+      <span class="ph-plot-t">淨值走勢</span>
+      <span class="ph-empty-in">輸入交易後,這裡會顯示你的淨值曲線</span>
+    </div>
+  </section>
+
+  {/* 02 資產配置 */}
+  <section class="ph-sec" id="sec-alloc" aria-labelledby="h-alloc">
+    <div class="ph-sec-head">
+      <span class="ph-no">02</span>
+      <h2 class="ph-h2" id="h-alloc">資產配置</h2>
+      <span class="ph-sec-desc">依產業／個股／現金的配置比重</span>
+    </div>
+    <div class="ph-alloc">
+      <div class="ph-plot ph-plot--sq" role="img" aria-label="配置比重圖(尚無資料)">
+        <span class="ph-empty-in">配置比重</span>
+      </div>
+      <ul class="ph-bars" aria-label="配置明細(尚無資料)">
+        {
+          ["產業 A", "產業 B", "產業 C", "現金"].map((n) => (
+            <li class="ph-bar-row">
+              <span class="ph-bar-l">{n}</span>
+              <span class="ph-bar-track"><i style="width:0"></i></span>
+              <span class="ph-bar-v">—</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  {/* 03 現有持倉 */}
+  <section class="ph-sec" id="sec-holdings" aria-labelledby="h-holdings">
+    <div class="ph-sec-head">
+      <span class="ph-no">03</span>
+      <h2 class="ph-h2" id="h-holdings">現有持倉</h2>
+      <span class="ph-sec-desc">成本、市值、未實現損益</span>
+    </div>
+    <div class="ph-table-wrap">
+      <table class="ph-table">
+        <thead>
+          <tr>{HOLDING_COLS.map((c) => <th scope="col">{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          <tr class="ph-tr-empty">
+            <td colspan={HOLDING_COLS.length}>{TRADES_PAGE.emptyCta}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {/* 04 個股走勢 */}
+  <section class="ph-sec" id="sec-stock" aria-labelledby="h-stock">
+    <div class="ph-sec-head">
+      <span class="ph-no">04</span>
+      <h2 class="ph-h2" id="h-stock">個股走勢</h2>
+      <span class="ph-sec-desc">個別持股的走勢與進出點</span>
+    </div>
+    <div class="ph-plot" role="img" aria-label="個股走勢圖(尚無資料)">
+      <span class="ph-plot-t">個股走勢 + 你的進出點</span>
+      <span class="ph-empty-in">選擇持股後,這裡會顯示走勢與你的買賣位置</span>
+    </div>
+  </section>
+
+  {/* 05 交易紀錄 */}
+  <section class="ph-sec" id="sec-tx" aria-labelledby="h-tx">
+    <div class="ph-sec-head">
+      <span class="ph-no">05</span>
+      <h2 class="ph-h2" id="h-tx">交易紀錄</h2>
+      <span class="ph-sec-desc">買賣紀錄(由你自行輸入)</span>
+    </div>
+    <div class="ph-actions" aria-label="交易輸入(Phase 2)">
+      <button class="ph-btn ph-btn--primary" type="button" disabled>＋ 新增交易</button>
+      <button class="ph-btn" type="button" disabled>匯入 CSV</button>
+      <span class="ph-note-inline">Phase 2 · 登入後開放</span>
+    </div>
+    <div class="ph-table-wrap">
+      <table class="ph-table">
+        <thead>
+          <tr>{TX_COLS.map((c) => <th scope="col">{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          <tr class="ph-tr-empty">
+            <td colspan={TX_COLS.length}>{TRADES_PAGE.emptyCta}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {/* 06 月報 */}
+  <section class="ph-sec" id="sec-monthly" aria-labelledby="h-monthly">
+    <div class="ph-sec-head">
+      <span class="ph-no">06</span>
+      <h2 class="ph-h2" id="h-monthly">月報</h2>
+      <span class="ph-sec-desc">逐月報酬與現金流</span>
+    </div>
+    <div class="ph-table-wrap">
+      <table class="ph-table">
+        <thead>
+          <tr>{MONTHLY_COLS.map((c) => <th scope="col">{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          <tr class="ph-tr-empty">
+            <td colspan={MONTHLY_COLS.length}>輸入交易後,系統會自動產生逐月績效</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {/* 07 觀察清單 */}
+  <section class="ph-sec" id="sec-watch" aria-labelledby="h-watch">
+    <div class="ph-sec-head">
+      <span class="ph-no">07</span>
+      <h2 class="ph-h2" id="h-watch">觀察清單</h2>
+      <span class="ph-sec-desc">尚未進場的追蹤標的</span>
+    </div>
+    <p class="ph-empty-block">
+      Phase 2 會與<a href="/watchlist">自選股</a>整合:自選股中的標的可直接加入觀察清單並記錄想法。
+    </p>
+  </section>
+
+  <p class="ph-foot" role="note">
+    本頁為 Phase 2 介面預覽,尚未開放輸入。{TRADES_PAGE.privacy}
+    本平台僅提供資訊與計算工具,不構成投資建議,亦不代為執行任何交易。
+  </p>
+</Layout>

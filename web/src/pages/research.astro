@@ -1,0 +1,324 @@
+---
+/**
+ * /research — 投資研究(Phase 2 介面殼)
+ *
+ * 現階段【只有版型,無任何內容】。Phase 2 = 使用者登入後在此建立【自己的】投資研究。
+ *
+ * ⚠️ 本頁不匯入、不連結任何第三方研究內容(著作權)。版型僅參考作者本機研究庫的
+ *    【介面結構】(清單／分類篩選／評分／閱讀區／新增入口),未複製任何報告內容。
+ */
+import Layout from "../layouts/Layout.astro";
+import { RESEARCH_PAGE, SITE } from "../lib/ui";
+
+export const prerender = true;
+
+/** 分類篩選(骨架;實際分類 Phase 2 由使用者自訂) */
+const TYPE_FILTERS = ["全部", "公司研究", "產業研究", "題材追蹤", "複盤筆記"] as const;
+/** 結論標籤(骨架) */
+const VERDICT_FILTERS = ["全部結論", "看多", "中性", "看空", "待觀察"] as const;
+const SORTS = ["最近更新", "評分高→低", "公司代號"] as const;
+---
+
+<Layout
+  title={`${RESEARCH_PAGE.title} — ${SITE.name}`}
+  description="投資研究:登入後在這裡建立、分類並回顧你自己的投資研究筆記。內容只存在你的帳號、不公開。"
+>
+  <div class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">首頁</a><span class="bc-sep"> / </span><span>{RESEARCH_PAGE.title}</span>
+  </div>
+
+  <header class="ph-head">
+    <div class="ph-head-top">
+      <h1 class="page-h1">{RESEARCH_PAGE.title}</h1>
+      <span class="ph-phase">{RESEARCH_PAGE.phase}</span>
+    </div>
+    <p class="page-lead">{RESEARCH_PAGE.lead}</p>
+    <p class="ph-privacy" role="note">{RESEARCH_PAGE.privacy}</p>
+  </header>
+
+  <p class="ph-demo" role="note">{RESEARCH_PAGE.demoNote}</p>
+
+  {/* 工具列:搜尋 + 新增/產生研究入口 */}
+  <div class="rs-toolbar">
+    <input
+      class="rs-search"
+      type="search"
+      placeholder="搜尋公司、代號或關鍵字…"
+      aria-label="搜尋研究"
+      disabled
+    />
+    <div class="rs-toolbar-r">
+      <button class="ph-btn ph-btn--primary" type="button" disabled>＋ 新增研究</button>
+      <button class="ph-btn" type="button" disabled>由報告產生草稿</button>
+      <span class="ph-note-inline">Phase 2 · 登入後開放</span>
+    </div>
+  </div>
+
+  {/* 篩選列 */}
+  <div class="rs-filters" aria-label="研究篩選(Phase 2)">
+    <div class="rs-fgroup" role="group" aria-label="類型">
+      {
+        TYPE_FILTERS.map((t, i) => (
+          <button class:list={["rs-chip", { "is-active": i === 0 }]} type="button" disabled>
+            {t}
+          </button>
+        ))
+      }
+    </div>
+    <div class="rs-fgroup rs-fgroup--sep" role="group" aria-label="結論">
+      {
+        VERDICT_FILTERS.map((t, i) => (
+          <button class:list={["rs-chip", { "is-active": i === 0 }]} type="button" disabled>
+            {t}
+          </button>
+        ))
+      }
+    </div>
+    <label class="rs-sort">
+      排序
+      <select class="rs-select" aria-label="排序方式" disabled>
+        {SORTS.map((s) => <option>{s}</option>)}
+      </select>
+    </label>
+  </div>
+
+  {/* 主體:左清單 / 右閱讀區 */}
+  <div class="rs-body">
+    <section class="rs-list-wrap" aria-labelledby="h-rs-list">
+      <div class="rs-col-head">
+        <h2 class="ph-h2" id="h-rs-list">研究清單</h2>
+        <span class="ph-sec-desc">公司 · 日期 · 評分</span>
+      </div>
+      <ul class="rs-list" aria-label="研究清單(尚無內容)">
+        {
+          [1, 2, 3].map(() => (
+            <li class="rs-item rs-item--skel" aria-hidden="true">
+              <div class="rs-item-top">
+                <span class="rs-item-co">—</span>
+                <span class="rs-item-score">—</span>
+              </div>
+              <span class="rs-item-meta">—</span>
+              <span class="rs-item-excerpt" />
+            </li>
+          ))
+        }
+      </ul>
+      <p class="rs-empty">{RESEARCH_PAGE.emptyCta}</p>
+    </section>
+
+    <section class="rs-reader" aria-labelledby="h-rs-reader">
+      <div class="rs-col-head">
+        <h2 class="ph-h2" id="h-rs-reader">閱讀區</h2>
+        <span class="ph-sec-desc">選取左側研究後在此閱讀與編輯</span>
+      </div>
+      <div class="rs-reader-body">
+        <p class="rs-reader-empty">
+          尚未選取研究。Phase 2 可在此撰寫論點、估值假設與追蹤紀錄,
+          並與<a href="/sectors">個股報告</a>、<a href="/watchlist">自選股</a>互相連結。
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <p class="ph-foot" role="note">
+    本頁為 Phase 2 介面預覽,尚未開放建立內容。{RESEARCH_PAGE.privacy}
+    研究內容由使用者自行撰寫,本平台不提供投資建議、不代表任何立場。
+  </p>
+</Layout>
+
+<style is:global>
+  /* /research 介面殼(共用 .ph-* 於 trades.astro 定義;此處僅本頁專屬) */
+  .rs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 0.8rem;
+    margin-bottom: 0.85rem;
+  }
+  .rs-search {
+    flex: 1 1 16rem;
+    min-width: 0;
+    font: inherit;
+    font-size: 0.88rem;
+    padding: 0.5rem 0.8rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .rs-search::placeholder {
+    color: var(--muted);
+  }
+  .rs-search:disabled {
+    cursor: not-allowed;
+    border-style: dashed;
+    border-color: var(--border-strong);
+  }
+  .rs-toolbar-r {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.7rem;
+  }
+
+  .rs-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+    padding-bottom: 0.85rem;
+    margin-bottom: 1.2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .rs-fgroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .rs-fgroup--sep {
+    padding-left: 0.9rem;
+    border-left: 1px solid var(--border);
+  }
+  .rs-chip {
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    cursor: not-allowed;
+  }
+  .rs-chip.is-active {
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .rs-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  .rs-select {
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 0.28rem 0.5rem;
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: not-allowed;
+  }
+
+  .rs-body {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    gap: 1.2rem;
+    align-items: start;
+  }
+  .rs-col-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .rs-list {
+    list-style: none;
+    margin: 0 0 0.85rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .rs-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.7rem 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .rs-item--skel {
+    opacity: 0.5;
+  }
+  .rs-item-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  .rs-item-co {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .rs-item-score {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .rs-item-meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .rs-item-excerpt {
+    display: block;
+    height: 0.55rem;
+    border-radius: 2px;
+    background: rgba(var(--ink), 0.06);
+  }
+  .rs-empty {
+    margin: 0;
+    padding: 1.1rem 0.9rem;
+    text-align: center;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+
+  .rs-reader {
+    min-width: 0;
+  }
+  .rs-reader-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    padding: 1.6rem 1.2rem;
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  .rs-reader-empty {
+    margin: 0;
+    max-width: 34rem;
+    text-align: center;
+    font-size: 0.88rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+  }
+  .rs-reader-empty a {
+    color: var(--link-report);
+  }
+
+  @media (max-width: 860px) {
+    .rs-body {
+      grid-template-columns: 1fr;
+    }
+    .rs-sort {
+      margin-left: 0;
+    }
+  }
+</style>

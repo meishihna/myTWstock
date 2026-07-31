@@ -1,6 +1,15 @@
 ---
 import MarketTickerBar from "../components/MarketTickerBar.astro";
-import { DISCOVER_PAGE, FOOTER, MAP_PAGE, NEWS_PAGE, SITE } from "../lib/ui";
+import {
+  DISCOVER_PAGE,
+  FOOTER,
+  MAP_PAGE,
+  NEWS_PAGE,
+  RESEARCH_PAGE,
+  SIGNALS_PAGE,
+  SITE,
+  TRADES_PAGE,
+} from "../lib/ui";
 
 interface Props {
   title: string;
@@ -89,22 +98,25 @@ const navActive = (href: string) =>
     <header class="site-header">
       <nav class="nav" aria-label="Main navigation">
         <a class="brand" href="/">{SITE.name}</a>
-        <div class="nav-links">
+        {/* 導覽:選股/比較已移出(頁面保留,由自選股與比較頁互相連結) */}
+        <div class="nav-links" id="nav-links">
           <a href="/sectors" aria-current={navActive("/sectors") ? "page" : undefined}>產業</a>
           <a href="/map" aria-current={navActive("/map") ? "page" : undefined}>{MAP_PAGE.nav}</a>
-          <a href="/screener" aria-current={navActive("/screener") ? "page" : undefined}>選股</a>
           <a href="/discover" aria-current={navActive("/discover") ? "page" : undefined}>{DISCOVER_PAGE.nav}</a>
           <a href="/watchlist" aria-current={navActive("/watchlist") ? "page" : undefined}>自選</a>
-          <a href="/compare" aria-current={navActive("/compare") ? "page" : undefined}>比較</a>
           <a href="/news" aria-current={navActive("/news") ? "page" : undefined}>{NEWS_PAGE.nav}</a>
-          <button
-            id="tw-theme-btn"
-            class="theme-toggle"
-            type="button"
-            title="切換深／淺色"
-            aria-label="切換深淺色主題"
-          >☾</button>
+          <a href="/signals" aria-current={navActive("/signals") ? "page" : undefined}>{SIGNALS_PAGE.nav}</a>
+          <a href="/trades" aria-current={navActive("/trades") ? "page" : undefined}>{TRADES_PAGE.nav}</a>
+          <a href="/research" aria-current={navActive("/research") ? "page" : undefined}>{RESEARCH_PAGE.nav}</a>
         </div>
+        {/* 切換鈕置於 .nav-links 之外 → 不隨導覽橫向捲動 */}
+        <button
+          id="tw-theme-btn"
+          class="theme-toggle"
+          type="button"
+          title="切換深／淺色"
+          aria-label="切換深淺色主題"
+        >☾</button>
       </nav>
     </header>
     <script is:inline>
