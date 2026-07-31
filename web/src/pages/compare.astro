@@ -253,14 +253,14 @@ import Layout from "../layouts/Layout.astro";
       display: block; margin-top: 8px; font-family: var(--font-display); font-size: 1.02rem; font-weight: 600;
       color: var(--text-heading, var(--text-heading)); text-decoration: none; letter-spacing: -0.01em;
     }
-    .cmp__name:hover { color: var(--link-report); }
+    .cmp__name:hover { color: var(--link-report-hover); }
     .cmp__sector { display: block; margin-top: 2px; font-size: 0.72rem; color: var(--muted); }
     .cmp__rm {
       background: transparent; border: none; color: var(--muted); cursor: pointer;
       font-size: 0.78rem; width: 24px; height: 24px; border-radius: 50%; line-height: 1;
       transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
     }
-    .cmp__rm:hover { background: color-mix(in srgb, var(--up) 15%, transparent); color: var(--up); }
+    .cmp__rm:hover { background: color-mix(in srgb, var(--up) 15%, transparent); color: color-mix(in srgb, var(--up) 72%, var(--text)); }
 
     .cmp__sec td {
       padding: 10px 16px 7px; background: transparent;

@@ -371,7 +371,7 @@ html::-webkit-scrollbar-corner,
 }
 
 .theme-toggle:hover {
-  color: var(--accent);
+  color: var(--accent-hover);
   border-color: var(--accent);
 }
 
@@ -1139,7 +1139,7 @@ a:focus-visible {
 }
 
 .breadcrumb a:hover {
-  color: var(--accent);
+  color: var(--accent-hover);
 }
 
 .breadcrumb a:focus-visible {
@@ -2486,7 +2486,7 @@ a:focus-visible {
 
 .toc-nav a:hover,
 .related-nav a:hover {
-  color: var(--link-report);
+  color: var(--link-report-hover);
   text-decoration: underline;
 }
 
@@ -2551,7 +2551,7 @@ a:focus-visible {
 }
 
 .peer-list a:hover {
-  color: var(--link-report);
+  color: var(--link-report-hover);
   text-decoration: underline;
 }
 
@@ -3191,7 +3191,8 @@ a:focus-visible {
 }
 
 .relation-tab:hover {
-  color: #f0f2f6;
+  /* hover 態不可用固定亮色(淺色主題下會隱形)→ 用主題文字色 */
+  color: var(--text);
 }
 
 .relation-tab:focus-visible {
@@ -3392,7 +3393,7 @@ a:focus-visible {
   transition: color 0.18s ease;
 }
 .relation-news-item a:hover .relation-news-t {
-  color: var(--accent);
+  color: var(--accent-hover);
 }
 .relation-news-m {
   display: block;

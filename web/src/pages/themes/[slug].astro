@@ -625,7 +625,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .theme-related-label { color: var(--muted); font-size: 0.82rem; }
     .rel-n { margin-left: 5px; padding: 0 5px; border-radius: 7px; background: var(--accent-soft); color: var(--accent-hover); font-size: 0.78em; font-weight: 500; font-variant-numeric: tabular-nums; }
     .theme-rel-chip { font-size: 0.78rem; line-height: 1.5; padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--accent-hover); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); transition: background var(--duration) var(--ease-out); }
-    .theme-rel-chip:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+    .theme-rel-chip:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
     .theme-rel-chip.is-plain { color: var(--muted); background: transparent; border-color: var(--border); }
 
     .theme-sec-h { font-family: var(--font-display); font-size: 1.18rem; margin: 1.6rem 0 0.7rem; display: flex; align-items: baseline; gap: 0.5rem; }
@@ -643,7 +643,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .hmp-tab.is-active::after { transform: scaleX(1); }
     .hm-empty { color: var(--muted); text-align: center; padding: 2rem 1rem; }
     .theme-hm { position: relative; width: 100%; height: clamp(220px, 38vh, 380px); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
-    .thm-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; text-decoration: none; color: #f4efe6; border-radius: 2px; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.1s var(--ease-out); }
+    .thm-tile { position: absolute; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 6px; text-decoration: none; color: var(--text); border-radius: 2px; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.1s var(--ease-out); }
     .thm-tile:hover, .thm-tile:focus-visible { outline-color: var(--accent); z-index: 3; }
     .thm-tile-t { font-size: 0.72rem; font-weight: 600; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .thm-tile-p { font-size: 0.68rem; font-variant-numeric: tabular-nums; opacity: 0.95; }
@@ -698,7 +698,7 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
     .sc-card2 { position: relative; display: flex; flex-direction: column; gap: 0.14rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--duration) var(--ease-out), background var(--duration) var(--ease-out); }
     .sc-card2:hover { border-color: var(--accent); background: var(--surface-elevated); }
     .sc-fav { position: absolute; top: 0.45rem; right: 0.5rem; appearance: none; border: none; background: transparent; color: var(--muted); font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 2px 3px; transition: color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out); }
-    .sc-fav:hover { color: var(--accent); transform: scale(1.12); }
+    .sc-fav:hover { color: var(--accent-hover); transform: scale(1.12); }
     .sc-fav.is-on { color: var(--accent); }
     .sc-card2-main { display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
     .sc-meta { font-size: 0.66rem; color: var(--text-secondary); white-space: nowrap; }

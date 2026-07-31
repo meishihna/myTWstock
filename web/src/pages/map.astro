@@ -495,6 +495,8 @@ export const prerender = true;
     .tcat-pill { appearance: none; font: inherit; font-size: 0.78rem; font-weight: 600; padding: 5px 13px; border-radius: 999px; cursor: pointer; color: var(--text-secondary); background: var(--surface-elevated); border: 1px solid var(--border); transition: color var(--duration) var(--ease-out), background var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out); }
     .tcat-pill:hover { border-color: var(--accent); color: var(--text); }
     .tcat-pill.is-active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+    /* 選中態 hover 不可被基礎 :hover 的 --text 蓋掉(金底上需專用墨色) */
+    .tcat-pill.is-active:hover, .tcat-fav.is-active:hover { color: var(--accent-ink); }
     .tcat-fav { margin-left: 0.2rem; }
     .tcat-fav.is-active { color: var(--accent-ink); background: var(--accent); }
 
@@ -505,7 +507,7 @@ export const prerender = true;
     .ind-ico { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent); font-size: 0.85rem; flex: 0 0 auto; }
     .ind-cnt { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
     .ind-fav { margin-left: auto; appearance: none; border: none; background: transparent; color: var(--muted); font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 2px 4px; transition: color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out); }
-    .ind-fav:hover { color: var(--accent); transform: scale(1.12); }
+    .ind-fav:hover { color: var(--accent-hover); transform: scale(1.12); }
     .ind-fav.is-on { color: var(--accent); }
     .ind-card2-body { display: flex; flex-direction: column; gap: 0.28rem; text-decoration: none; }
     .ind-title { font-family: var(--font-display); font-size: 1.05rem; color: var(--text-heading); line-height: 1.25; }

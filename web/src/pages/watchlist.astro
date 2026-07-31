@@ -365,7 +365,7 @@ import Layout from "../layouts/Layout.astro";
     }
     .wl__item:hover .wl__rm,
     .wl__item:focus-within .wl__rm { opacity: 1; }
-    .wl__rm:hover { background: color-mix(in srgb, var(--up) 15%, transparent); color: var(--up); }
+    .wl__rm:hover { background: color-mix(in srgb, var(--up) 15%, transparent); color: color-mix(in srgb, var(--up) 72%, var(--text)); }
     .wl__rm:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 2px; }
     /* 觸控裝置無 hover:移除鈕恆顯示,否則永遠點不到 */
     @media (hover: none) { .wl__rm { opacity: 1; } }
