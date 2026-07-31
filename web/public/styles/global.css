@@ -81,7 +81,10 @@ html[data-theme="light"] {
   --border-subtle: rgba(var(--ink), 0.08);
   --text: #1c1812;
   --text-secondary: #5c5448;
-  --muted: #8f8676;
+  /* 個人版原值 #8f8676 在米白底上小字僅 3.24(未達 WCAG AA 4.5);
+     Coverage 有大量 --muted 小字(導覽/行情名/免責),故淺色略調深至 5.09,色相不變。
+     深色不受影響、其餘 token 與個人版同源。 */
+  --muted: #6f6657;
   --text-heading: #1c1812;
   --accent: #a4611a;
   --accent-hover: #8a4f12;
