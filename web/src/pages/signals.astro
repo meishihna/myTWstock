@@ -1,12 +1,15 @@
 ---
 /**
- * /signals — 策略回測
+ * /signals — 策略回測(富版)
  *
- * 資料來源:私有引擎 repo(tw-stock-public)產出的 signals 資料【檔案】,
- * 本 repo【不含任何引擎程式碼】,只讀取算好的 JSON。
+ * 資料來源:私有引擎產出的【資料檔】(signals-contract v2 三層分檔)。
+ * 本 repo【不含任何引擎程式碼】,只讀算好的 JSON:
+ *   signals-index.json(首屏 ~36KB) / signals/{code}.json / prices/{code}.json(選股票才抓)
  *
- * 目前狀態:等待引擎側輸出富版資料契約(逐筆 trades / 價格序列 / reason 對照表)。
- * 在資料就緒前,本頁顯示誠實的空狀態,【不呈現任何假造或示意數字】。
+ * 誠實性原則:
+ *  - source / disclaimer / exitReasons / confLayers 一律【從 index 讀】,不得 hardcode
+ *  - 0 交易明寫「無交易」;上櫃標「不適用」;combos 依規則順序,不依績效
+ *  - 全頁禁止任何「現在該買/賣」的當前操作語句
  */
 import Layout from "../layouts/Layout.astro";
 import { SIGNALS_PAGE, SITE } from "../lib/ui";
@@ -15,43 +18,48 @@ import path from "node:path";
 
 export const prerender = true;
 
-/** 讀取 signals 索引(若尚未匯入 → 空狀態;prerender 不可因缺檔失敗) */
-const idxPath = path.join(process.cwd(), "public/data/signals/index.json");
-let idx: {
+/** build 時只取「必須出現在 HTML 的合規字串」(來源/免責/註記);互動資料由前端 fetch */
+const idxPath = path.join(process.cwd(), "public/data/signals-index.json");
+let meta: {
   updatedAt?: string;
-  windowMonths?: number;
+  window?: { months?: number; asof?: string };
   source?: string;
   disclaimer?: string;
-  stocks?: { code: string; name: string }[];
+  layerNote?: string;
+  chipsNote?: string;
+  equityNote?: string;
+  maeMfeNote?: string;
+  indexNote?: string;
+  stockCount?: number;
 } | null = null;
 if (fs.existsSync(idxPath)) {
   try {
-    idx = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+    const j = JSON.parse(fs.readFileSync(idxPath, "utf8"));
+    meta = {
+      updatedAt: j.updatedAt,
+      window: j.window,
+      source: j.source,
+      disclaimer: j.disclaimer,
+      layerNote: j.layerNote,
+      chipsNote: j.chipsNote,
+      equityNote: j.equityNote,
+      maeMfeNote: j.maeMfeNote,
+      indexNote: j.indexNote,
+      stockCount: (j.stocks || []).length,
+    };
   } catch {
-    idx = null;
+    meta = null;
   }
 }
-const hasData = !!idx?.stocks?.length;
 
-/** 版面骨架(資料就緒後逐區塊填入) */
-const BLOCKS = [
-  "個股選擇 · 期間／交易日數／同期 Buy&Hold",
-  "官方籌碼列(投信10日、外資10日、融資20日、券資比、本益比、淨值比)",
-  "確認層切換(無／投信／法人同買／大盤多頭／浮額清洗)",
-  "組合排行(依規則順序)＋ 組合詳情六格 KPI",
-  "確認層對照(同規則在各層的表現,中性比較)",
-  "走勢圖 ＋ 進出點標記",
-  "逐筆權益曲線",
-  "逐筆明細表",
-] as const;
-
-/** 站內固定免責(資料就緒後,另需原樣顯示引擎提供的 source / disclaimer) */
-const DISCLAIMER = [
+/** 站方固定免責(與引擎 disclaimer 併陳,兩者都顯示) */
+const RISK = [
   "本頁為【歷史回測統計】,僅供教育與研究用途。",
   "歷史績效【不代表未來】表現;任何組合的過去報酬都不保證重現。",
   "非投資建議、不構成任何買賣邀約,亦不代為執行交易。",
-  "回測可能存在【過度最佳化、存活者偏誤、流動性與滑價未完全反映】等限制。",
-  "本站不提供、也不會顯示「現在該買／該賣」之當前操作訊號。",
+  "回測可能存在【過度最佳化、存活者偏誤、小樣本】等限制;越嚴格的確認層交易次數越少,結果越不穩健。",
+  "成交假設為【訊號次日開盤】,已扣手續費 0.1425%×2 與證交稅 0.3%,但【未計滑價與流動性衝擊】。",
+  "本站不提供、也不會顯示任何「當前應買進或賣出」的操作訊號。",
 ] as const;
 ---
 
@@ -63,139 +71,710 @@ const DISCLAIMER = [
     <a href="/">首頁</a><span class="bc-sep"> / </span><span>{SIGNALS_PAGE.title}</span>
   </div>
 
+  {/* ① hero + 強免責(頂部,不折疊) */}
   <header class="ph-head">
     <div class="ph-head-top">
       <h1 class="page-h1">{SIGNALS_PAGE.title}</h1>
-      {!hasData && <span class="ph-phase">資料待匯入</span>}
+      {
+        meta?.window?.asof && (
+          <span class="ph-phase">
+            回測至 {meta.window.asof} · {meta.window.months} 個月
+          </span>
+        )
+      }
     </div>
     <p class="page-lead">{SIGNALS_PAGE.lead}</p>
   </header>
 
-  {/* 免責放在最上方,不折疊 */}
-  <section class="sg-disc sg-disc--top" aria-label="回測免責聲明">
+  <section class="sg-disc sg-disc--top" aria-label="回測重要聲明">
     <h2 class="sg-disc-h">重要聲明</h2>
-    <ul class="sg-disc-list">
-      {DISCLAIMER.map((d) => <li>{d}</li>)}
-    </ul>
-    {idx?.source && <p class="sg-src">資料來源:{idx.source}</p>}
-    {idx?.disclaimer && <p class="sg-src">{idx.disclaimer}</p>}
+    <ul class="sg-disc-list">{RISK.map((d) => <li>{d}</li>)}</ul>
+    {meta?.disclaimer && <p class="sg-src">{meta.disclaimer}</p>}
+    {meta?.source && <p class="sg-src">資料來源:{meta.source}</p>}
   </section>
 
   {
-    hasData ? (
-      <p class="ph-empty-block">
-        已偵測到回測資料({idx!.stocks!.length} 檔)。富版介面將於資料契約確認後啟用。
-      </p>
+    !meta ? (
+      <p class="ph-empty-block">回測資料尚未匯入。</p>
     ) : (
-      <section class="sg-pending" aria-labelledby="h-sg-pending">
-        <h2 class="ph-h2" id="h-sg-pending">回測資料尚未匯入</h2>
-        <p class="sg-pending-p">
-          本頁將呈現以【官方公開資料】(證交所／櫃買中心)計算的歷史回測統計。
-          回測結果由獨立的私有引擎產出,本站只讀取算好的資料檔,
-          <strong>不包含任何策略程式碼</strong>。
-        </p>
-        <p class="sg-pending-p sg-pending-p--dim">
-          資料就緒後,本頁會依序呈現下列區塊:
-        </p>
-        <ol class="sg-blocks">
-          {BLOCKS.map((b) => <li>{b}</li>)}
-        </ol>
-        <p class="sg-pending-note">
-          在資料匯入前,本頁刻意<strong>不顯示任何示意或假造數字</strong>,以免被誤讀為真實回測結果。
-        </p>
-      </section>
+      <div id="sg-app" data-stocks={String(meta.stockCount ?? 0)}>
+        <p id="sg-loading" class="sg-loading">載入回測資料中…</p>
+
+        <div id="sg-main" hidden>
+          {/* ② 個股選擇 + 概況 */}
+          <section class="sg-sec" aria-labelledby="h-sg-pick">
+            <h2 class="ph-h2" id="h-sg-pick">選擇個股</h2>
+            <div id="sg-stocks" class="sg-stocks" role="tablist" aria-label="回測個股" />
+            <div id="sg-overview" class="sg-overview" />
+          </section>
+
+          {/* ③ 官方籌碼列 */}
+          <section class="sg-sec" aria-labelledby="h-sg-chips">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-chips">官方籌碼與估值</h2>
+              <span id="sg-chips-asof" class="ph-sec-desc" />
+            </div>
+            <div id="sg-chips" class="sg-chips" />
+            {meta.chipsNote && <p class="sg-note">{meta.chipsNote}</p>}
+          </section>
+
+          {/* ④ 確認層切換 */}
+          <section class="sg-sec" aria-labelledby="h-sg-layer">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-layer">確認層</h2>
+              <span class="ph-sec-desc">中性比較,不推薦任何一層</span>
+            </div>
+            <div id="sg-layers" class="sg-layers" role="tablist" aria-label="確認層切換" />
+            {meta.layerNote && <p class="sg-note">{meta.layerNote}</p>}
+            <p id="sg-tpex-note" class="sg-tpex-note" hidden>
+              上櫃・確認層與估值不適用(官方三大法人／融資與 BWIBBU 估值僅上市)。
+            </p>
+          </section>
+
+          {/* ⑤ 左:組合排行 / 右:六格 KPI */}
+          <section class="sg-sec" aria-labelledby="h-sg-combos">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-combos">組合表現</h2>
+              <span class="ph-sec-desc">依規則順序排列(非依績效),避免只看最佳組合</span>
+            </div>
+            <div class="sg-combo-grid">
+              <div class="sg-combo-list-wrap">
+                <div class="sg-combo-tools">
+                  <label class="sg-sortlab">
+                    排序
+                    <select id="sg-sort" class="sg-select" aria-label="組合排序">
+                      <option value="rule">原順序(規則)</option>
+                      <option value="total">總報酬%</option>
+                      <option value="win">勝率%</option>
+                      <option value="n">交易次數</option>
+                    </select>
+                  </label>
+                  <span id="sg-combo-count" class="sg-count" role="status" />
+                </div>
+                <div class="sg-combo-scroll">
+                  <table class="sg-table sg-table--combo">
+                    <thead>
+                      <tr>
+                        <th scope="col">進場</th>
+                        <th scope="col">出場</th>
+                        <th scope="col" class="sg-num">次數</th>
+                        <th scope="col" class="sg-num">勝率%</th>
+                        <th scope="col" class="sg-num">總報酬%</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sg-combo-body" />
+                  </table>
+                </div>
+              </div>
+              <div class="sg-detail">
+                <div id="sg-detail-head" class="sg-detail-head" />
+                <div id="sg-kpis" class="sg-kpis" />
+                <p id="sg-skipped" class="sg-note" />
+              </div>
+            </div>
+          </section>
+
+          {/* ⑥ 確認層對照 */}
+          <section class="sg-sec" aria-labelledby="h-sg-layercmp">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-layercmp">確認層對照</h2>
+              <span class="ph-sec-desc">同一檔在各層的整體表現(中性)</span>
+            </div>
+            <div class="sg-table-wrap">
+              <table class="sg-table">
+                <thead>
+                  <tr>
+                    <th scope="col">層</th>
+                    <th scope="col" class="sg-num">組合數</th>
+                    <th scope="col" class="sg-num">有交易</th>
+                    <th scope="col" class="sg-num">勝率中位</th>
+                    <th scope="col" class="sg-num">總報酬中位%</th>
+                    <th scope="col" class="sg-num">正報酬組數</th>
+                    <th scope="col" class="sg-num">平均交易次數</th>
+                  </tr>
+                </thead>
+                <tbody id="sg-layercmp-body" />
+              </table>
+            </div>
+          </section>
+
+          {/* ⑦ 走勢圖 + 進出點 */}
+          <section class="sg-sec" aria-labelledby="h-sg-chart">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-chart">走勢與進出點</h2>
+              <span class="ph-sec-desc">還原日K;▲ 進場 ▼ 出場</span>
+            </div>
+            <div class="sg-legend" aria-label="圖例">
+              <span class="sg-lg"><i class="sg-lg-ma sg-lg-ma20"></i>20 日均線</span>
+              <span class="sg-lg"><i class="sg-lg-ma sg-lg-ma60"></i>60 日均線</span>
+              <span class="sg-lg"><i class="sg-lg-dot sg-lg-in"></i>進場(訊號次日開盤)</span>
+              <span class="sg-lg"><i class="sg-lg-dot sg-lg-out"></i>出場</span>
+            </div>
+            <div id="sg-chart" class="sg-chart" role="img" aria-label="還原日K與進出點" />
+            <p id="sg-chart-msg" class="sg-note" />
+          </section>
+
+          {/* ⑧ 逐筆權益曲線 */}
+          <section class="sg-sec" aria-labelledby="h-sg-equity">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-equity">逐筆權益曲線</h2>
+              <span class="ph-sec-desc">依逐筆淨報酬複利串接</span>
+            </div>
+            <div id="sg-equity" class="sg-equity" role="img" aria-label="逐筆權益曲線" />
+            {meta.equityNote && <p class="sg-note">{meta.equityNote}</p>}
+          </section>
+
+          {/* ⑨ 逐筆明細 */}
+          <section class="sg-sec" aria-labelledby="h-sg-trades">
+            <div class="ph-sec-head">
+              <h2 class="ph-h2" id="h-sg-trades">逐筆明細</h2>
+              <span id="sg-trades-count" class="ph-sec-desc" />
+            </div>
+            <div class="sg-table-wrap sg-table-wrap--tall">
+              <table class="sg-table">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">訊號日</th>
+                    <th scope="col">進場日</th>
+                    <th scope="col">出場日</th>
+                    <th scope="col" class="sg-num">進場價</th>
+                    <th scope="col" class="sg-num">出場價</th>
+                    <th scope="col" class="sg-num">持有(交易日)</th>
+                    <th scope="col" class="sg-num">淨報酬%</th>
+                    <th scope="col" class="sg-num">MAE%</th>
+                    <th scope="col" class="sg-num">MFE%</th>
+                    <th scope="col">出場原因</th>
+                  </tr>
+                </thead>
+                <tbody id="sg-trades-body" />
+              </table>
+            </div>
+            {meta.maeMfeNote && <p class="sg-note">{meta.maeMfeNote}</p>}
+          </section>
+        </div>
+
+        <p id="sg-error" class="ph-empty-block" hidden>回測資料載入失敗,請重新整理頁面。</p>
+      </div>
     )
   }
 
-  <section class="sg-disc" aria-label="回測免責聲明(重申)">
+  {/* ⑩ 底部完整免責 */}
+  <section class="sg-disc" aria-label="回測重要聲明(重申)">
     <h2 class="sg-disc-h">再次提醒</h2>
-    <ul class="sg-disc-list">
-      {DISCLAIMER.map((d) => <li>{d}</li>)}
-    </ul>
+    <ul class="sg-disc-list">{RISK.map((d) => <li>{d}</li>)}</ul>
+    {meta?.disclaimer && <p class="sg-src">{meta.disclaimer}</p>}
+    {meta?.source && <p class="sg-src">資料來源:{meta.source}</p>}
+    {meta?.updatedAt && <p class="sg-src">資料產生時間:{meta.updatedAt}</p>}
   </section>
 </Layout>
 
-<style is:global>
-  /* /signals(共用 .ph-* 於 trades.astro 定義) */
-  .sg-disc {
-    margin: 0 0 1.5rem;
-    padding: 0.95rem 1.15rem 1.05rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--radius-md);
-  }
-  .sg-disc--top {
-    margin-bottom: 1.8rem;
-  }
-  .sg-disc-h {
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin: 0 0 0.55rem;
-    color: var(--text-heading);
-  }
-  .sg-disc-list {
-    margin: 0;
-    padding-left: 1.1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-  .sg-disc-list li {
-    font-size: 0.82rem;
-    line-height: 1.65;
-    color: var(--text-secondary);
-  }
-  .sg-src {
-    margin: 0.7rem 0 0;
-    font-size: 0.76rem;
-    line-height: 1.6;
-    color: var(--muted);
-  }
+<script>
+  import { createChart, CrosshairMode, type IChartApi, type ISeriesApi } from "lightweight-charts";
 
-  .sg-pending {
-    padding: 1.5rem 1.3rem 1.6rem;
-    background: var(--surface);
-    border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-md);
+  interface Idx {
+    confLayers: string[];
+    entryRules: string[];
+    exitRules: string[];
+    exitReasons: string[];
+    comboFields: string[];
+    tradeFields: string[];
+    stocks: Stock[];
   }
-  .sg-pending-p {
-    margin: 0.6rem 0 0;
-    font-size: 0.9rem;
-    line-height: 1.75;
-    color: var(--text-secondary);
-    max-width: 44rem;
+  interface Chips {
+    asof: string; priceAsof: string;
+    [k: string]: unknown;
+    百分位5年?: Record<string, number>;
   }
-  .sg-pending-p strong {
-    color: var(--text);
+  interface Stock {
+    code: string; name: string; market: string;
+    期間: [string, string]; 交易日數: number;
+    buyhold: { "總報酬%": number; "最大回撤%": number };
+    confLayers: string[];
+    files: { signals: string; prices: string };
+    combos: number; trades: number;
+    chips: Chips | null;
+    layerSummary: Record<string, number | string>[];
   }
-  .sg-pending-p--dim {
-    margin-top: 1.2rem;
-    color: var(--muted);
-    font-size: 0.84rem;
+  interface Detail { code: string; combos: { s: (number | null)[]; t: number[][] }[] }
+  interface Prices { dates: string[]; o: number[]; h: number[]; l: number[]; c: number[]; v: number[] }
+
+  const $ = (id: string) => document.getElementById(id);
+  const app = $("sg-app");
+  if (app) {
+    /** ── 主題色:canvas 圖表不支援 CSS var(),須傳解析後實色,並於切主題重新套用 ── */
+    const rootCS = () => getComputedStyle(document.documentElement);
+    const tc = (n: string, fb: string) => rootCS().getPropertyValue(n).trim() || fb;
+    const inkA = (a: number) => `rgba(${tc("--ink", "255, 255, 255")}, ${a})`;
+    const upC = () => tc("--up", "#e24f43");
+    const downC = () => tc("--down", "#2fa572");
+
+    const esc = (s: unknown) =>
+      String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
+    const fmt = (v: unknown, d = 2) =>
+      typeof v === "number" && Number.isFinite(v) ? v.toFixed(d) : "—";
+    const sign = (v: number) => (v > 0 ? "+" : "");
+    const cls = (v: unknown) =>
+      typeof v === "number" && Number.isFinite(v) ? (v > 0 ? "is-pos" : v < 0 ? "is-neg" : "") : "";
+
+    let IDX: Idx | null = null;
+    let stock: Stock | null = null;
+    let detail: Detail | null = null;
+    let prices: Prices | null = null;
+    let layerIdx = 0;
+    let comboIdx = -1;
+    let sortMode = "rule";
+    let chart: IChartApi | null = null;
+    let candle: ISeriesApi<"Candlestick"> | null = null;
+    let maSeries: ISeriesApi<"Line">[] = [];
+
+    /** comboFields / tradeFields 位置(不 hardcode 順序,一律由 index 查) */
+    let F = { ei: 0, xi: 1, ci: 2, n: 3, win: 4, avg: 5, tot: 6, mdd: 7, hold: 8, skip: 9 };
+    let T = { si: 0, ei: 1, xi: 2, ep: 3, xp: 4, rc: 5, r: 6, mae: 7, mfe: 8 };
+
+    const fail = () => { $("sg-loading")!.hidden = true; $("sg-error")!.hidden = false; };
+
+    fetch("/data/signals-index.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j: Idx) => {
+        IDX = j;
+        const cf = j.comboFields, tf = j.tradeFields;
+        F = { ei: cf.indexOf("ei"), xi: cf.indexOf("xi"), ci: cf.indexOf("ci"), n: cf.indexOf("交易次數"),
+              win: cf.indexOf("勝率%"), avg: cf.indexOf("平均報酬%"), tot: cf.indexOf("總報酬%"),
+              mdd: cf.indexOf("最大回撤%"), hold: cf.indexOf("平均持有天數"), skip: cf.indexOf("skipped") };
+        T = { si: tf.indexOf("si"), ei: tf.indexOf("ei"), xi: tf.indexOf("xi"), ep: tf.indexOf("ep"),
+              xp: tf.indexOf("xp"), rc: tf.indexOf("rc"), r: tf.indexOf("r"), mae: tf.indexOf("mae"), mfe: tf.indexOf("mfe") };
+        renderStocks();
+        $("sg-loading")!.hidden = true;
+        $("sg-main")!.hidden = false;
+        selectStock(j.stocks[0]!.code);
+      })
+      .catch(fail);
+
+    /* ② 個股選擇 */
+    function renderStocks() {
+      const box = $("sg-stocks")!;
+      box.innerHTML = IDX!.stocks
+        .map((s) => `<button class="sg-stock" type="button" role="tab" aria-selected="false" data-code="${esc(s.code)}">
+          <span class="sg-stock-c">${esc(s.code)}</span><span class="sg-stock-n">${esc(s.name)}</span>
+          ${s.market === "tpex" ? '<span class="sg-mkt">櫃</span>' : ""}</button>`)
+        .join("");
+      box.querySelectorAll<HTMLButtonElement>(".sg-stock").forEach((b) =>
+        b.addEventListener("click", () => selectStock(b.dataset.code!)));
+    }
+
+    function selectStock(code: string) {
+      stock = IDX!.stocks.find((s) => s.code === code) || null;
+      if (!stock) return;
+      document.querySelectorAll<HTMLButtonElement>(".sg-stock").forEach((b) => {
+        const on = b.dataset.code === code;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      layerIdx = 0; comboIdx = -1; detail = null; prices = null;
+      renderOverview(); renderChips(); renderLayers(); renderLayerCmp();
+      $("sg-combo-body")!.innerHTML = `<tr><td colspan="5" class="sg-td-empty">載入中…</td></tr>`;
+      Promise.all([
+        fetch("/data/" + stock.files.signals).then((r) => (r.ok ? r.json() : null)),
+        fetch("/data/" + stock.files.prices).then((r) => (r.ok ? r.json() : null)),
+      ]).then(([d, p]) => {
+        detail = d; prices = p;
+        renderCombos();
+      }).catch(() => {
+        $("sg-combo-body")!.innerHTML = `<tr><td colspan="5" class="sg-td-empty">資料載入失敗</td></tr>`;
+      });
+    }
+
+    function renderOverview() {
+      const s = stock!;
+      const bh = s.buyhold;
+      $("sg-overview")!.innerHTML = `
+        <div class="sg-ov"><span class="sg-ov-l">回測期間</span><span class="sg-ov-v">${esc(s.期間[0])} ~ ${esc(s.期間[1])}</span></div>
+        <div class="sg-ov"><span class="sg-ov-l">交易日數</span><span class="sg-ov-v">${s.交易日數.toLocaleString("zh-TW")}</span></div>
+        <div class="sg-ov"><span class="sg-ov-l">同期買進持有</span><span class="sg-ov-v ${cls(bh["總報酬%"])}">${sign(bh["總報酬%"])}${fmt(bh["總報酬%"])}%</span></div>
+        <div class="sg-ov"><span class="sg-ov-l">買進持有最大回撤</span><span class="sg-ov-v is-neg">-${fmt(bh["最大回撤%"])}%</span></div>
+        <div class="sg-ov"><span class="sg-ov-l">組合 / 逐筆</span><span class="sg-ov-v">${s.combos} 組 · ${s.trades.toLocaleString("zh-TW")} 筆</span></div>`;
+    }
+
+    /* ③ 籌碼列 */
+    function renderChips() {
+      const s = stock!, box = $("sg-chips")!, asofEl = $("sg-chips-asof")!;
+      if (!s.chips) {
+        asofEl.textContent = "";
+        box.innerHTML = `<p class="sg-na">上櫃・官方籌碼與估值不適用(T86／MI_MARGN／BWIBBU 僅上市)</p>`;
+        return;
+      }
+      const c = s.chips;
+      const pct = c.百分位5年 || {};
+      asofEl.textContent = `籌碼日 ${c.asof} · 行情日 ${c.priceAsof}`;
+      const cell = (label: string, val: unknown, unit = "", signed = false, p?: number) => {
+        const v = typeof val === "number" && Number.isFinite(val) ? val : null;
+        const txt = v == null ? "—" : (signed ? sign(v) : "") + v.toLocaleString("zh-TW", { maximumFractionDigits: 2 }) + unit;
+        return `<div class="sg-chip"><span class="sg-chip-l">${esc(label)}</span>
+          <span class="sg-chip-v ${signed ? cls(v) : ""}">${txt}</span>
+          ${p != null && Number.isFinite(p) ? `<span class="sg-chip-p">5年百分位 ${p.toFixed(0)}%</span>` : ""}</div>`;
+      };
+      box.innerHTML = [
+        cell("投信 10 日", c["投信10日張"], " 張", true),
+        cell("外資 10 日", c["外資10日張"], " 張", true),
+        cell("融資 20 日變化", c["融資20日變化張"], " 張", true),
+        cell("券資比", c["券資比%"], "%"),
+        cell("本益比", c["本益比"], "", false, pct["本益比"]),
+        cell("股價淨值比", c["股價淨值比"], "", false, pct["股價淨值比"]),
+        `<div class="sg-chip sg-chip--ph"><span class="sg-chip-l">營收 YoY</span><span class="sg-chip-v">—</span><span class="sg-chip-p">Phase 2 · 連接你自己的 FinMind 金鑰</span></div>`,
+        `<div class="sg-chip sg-chip--ph"><span class="sg-chip-l">EPS 成長</span><span class="sg-chip-v">—</span><span class="sg-chip-p">Phase 2 · 連接你自己的 FinMind 金鑰</span></div>`,
+      ].join("");
+    }
+
+    /* ④ 確認層 */
+    function renderLayers() {
+      const s = stock!, box = $("sg-layers")!;
+      box.innerHTML = IDX!.confLayers.map((L) => {
+        const has = s.confLayers.includes(L);
+        const i = s.confLayers.indexOf(L);
+        return `<button class="sg-layer${i === layerIdx && has ? " is-active" : ""}" type="button" role="tab"
+          aria-selected="${i === layerIdx && has}" data-li="${i}" ${has ? "" : "disabled"}>${esc(L)}${has ? "" : "<span class='sg-layer-na'>不適用</span>"}</button>`;
+      }).join("");
+      box.querySelectorAll<HTMLButtonElement>(".sg-layer:not([disabled])").forEach((b) =>
+        b.addEventListener("click", () => { layerIdx = Number(b.dataset.li); comboIdx = -1; renderLayers(); renderCombos(); }));
+      ($("sg-tpex-note") as HTMLElement).hidden = s.market !== "tpex";
+    }
+
+    /* ⑤ 組合排行 + KPI */
+    function currentCombos() {
+      if (!detail) return [];
+      const list = detail.combos.map((c, i) => ({ c, i })).filter((x) => x.c.s[F.ci] === layerIdx);
+      if (sortMode === "rule") return list;
+      const key = sortMode === "total" ? F.tot : sortMode === "win" ? F.win : F.n;
+      return [...list].sort((a, b) => (Number(b.c.s[key] ?? -Infinity)) - (Number(a.c.s[key] ?? -Infinity)));
+    }
+
+    function renderCombos() {
+      const body = $("sg-combo-body")!;
+      if (!detail) {
+        body.innerHTML = `<tr><td colspan="5" class="sg-td-empty">載入中…</td></tr>`;
+        $("sg-combo-count")!.textContent = "";
+        renderDetail(null); return;
+      }
+      const list = currentCombos();
+      const withTrades = list.filter((x) => Number(x.c.s[F.n]) > 0).length;
+      $("sg-combo-count")!.textContent = `${list.length} 組 · 有交易 ${withTrades} 組`;
+      if (!list.length) {
+        body.innerHTML = `<tr><td colspan="5" class="sg-td-empty">此層無組合</td></tr>`;
+        renderDetail(null); return;
+      }
+      /* 先定位選取列,再產生列(否則首次渲染右側有內容、左側卻無高亮) */
+      if (comboIdx < 0 || !list.some((x) => x.i === comboIdx)) comboIdx = list[0]!.i;
+      body.innerHTML = list.map(({ c, i }) => {
+        const s = c.s, n = Number(s[F.n]);
+        const tot = s[F.tot] as number;
+        return `<tr class="sg-row${i === comboIdx ? " is-active" : ""}" data-i="${i}" tabindex="0" role="button" aria-label="檢視此組合">
+          <td>${esc(IDX!.entryRules[s[F.ei] as number])}</td>
+          <td>${esc(IDX!.exitRules[s[F.xi] as number])}</td>
+          <td class="sg-num">${n === 0 ? '<span class="sg-none">無交易</span>' : n}</td>
+          <td class="sg-num">${n === 0 ? "—" : fmt(s[F.win], 1)}</td>
+          <td class="sg-num ${cls(tot)}">${n === 0 ? "—" : sign(tot) + fmt(tot)}</td></tr>`;
+      }).join("");
+      body.querySelectorAll<HTMLElement>(".sg-row").forEach((tr) => {
+        const go = () => { comboIdx = Number(tr.dataset.i); renderCombos(); };
+        tr.addEventListener("click", go);
+        tr.addEventListener("keydown", (e) => {
+          if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") { e.preventDefault(); go(); }
+        });
+      });
+      renderDetail(detail.combos[comboIdx]!);
+      const active = body.querySelector<HTMLElement>(".sg-row.is-active");
+      if (active) active.scrollIntoView({ block: "nearest" });
+    }
+
+    function renderDetail(c: { s: (number | null)[]; t: number[][] } | null) {
+      const head = $("sg-detail-head")!, kpis = $("sg-kpis")!, skip = $("sg-skipped")!;
+      if (!c) { head.textContent = ""; kpis.innerHTML = ""; skip.textContent = ""; drawChart(null); drawEquity(null); renderTrades(null); return; }
+      const s = c.s, n = Number(s[F.n]);
+      head.innerHTML = `<span class="sg-detail-t">${esc(IDX!.entryRules[s[F.ei] as number])}</span>
+        <span class="sg-detail-arrow">→</span><span class="sg-detail-t">${esc(IDX!.exitRules[s[F.xi] as number])}</span>
+        <span class="sg-detail-layer">確認層:${esc(stock!.confLayers[s[F.ci] as number])}</span>`;
+      const mdd = s[F.mdd] as number | null;
+      const K = [
+        ["總報酬%", n === 0 ? null : (s[F.tot] as number), true],
+        ["對比買進持有", n === 0 ? null : (s[F.tot] as number) - stock!.buyhold["總報酬%"], true],
+        ["勝率%", s[F.win], false],
+        ["平均報酬%", s[F.avg], true],
+        ["平均持有天數", s[F.hold], false],
+        ["最大回撤%", mdd == null ? null : -mdd, true],
+      ] as [string, number | null, boolean][];
+      kpis.innerHTML = K.map(([l, v, signed]) => `<div class="sg-kpi">
+        <span class="sg-kpi-l">${esc(l)}</span>
+        <span class="sg-kpi-v ${signed ? cls(v) : ""}">${v == null ? (n === 0 ? "無交易" : "—") : (signed ? sign(v) : "") + fmt(v, 1)}</span></div>`).join("");
+      const sk = Number(s[F.skip] ?? 0);
+      skip.textContent = n === 0
+        ? "此組合在此確認層【無成交】—— 誠實呈現,不隱藏。"
+        : sk > 0 ? `另有 ${sk} 次訊號成立但次日開盤已達漲停(≥ +9.95%)而買不到,未計入交易。` : "";
+      drawChart(c); drawEquity(c); renderTrades(c);
+    }
+
+    /* ⑦ 走勢圖 + 進出點 */
+    function sma(arr: number[], p: number) {
+      const out: (number | null)[] = [];
+      let sum = 0;
+      for (let i = 0; i < arr.length; i++) {
+        sum += arr[i]!;
+        if (i >= p) sum -= arr[i - p]!;
+        out.push(i >= p - 1 ? sum / p : null);
+      }
+      return out;
+    }
+    function chartOpts() {
+      return {
+        autoSize: true,
+        layout: { background: { color: "transparent" }, textColor: tc("--text-secondary", "#a09c92"), fontSize: 11 },
+        grid: { vertLines: { color: inkA(0.05) }, horzLines: { color: inkA(0.05) } },
+        rightPriceScale: { borderColor: inkA(0.12) },
+        timeScale: { borderColor: inkA(0.12), rightOffset: 4 },
+        crosshair: { mode: CrosshairMode.Normal },
+      };
+    }
+    function drawChart(c: { s: (number | null)[]; t: number[][] } | null) {
+      const host = $("sg-chart")!, msg = $("sg-chart-msg")!;
+      if (!prices || !prices.dates?.length) {
+        if (chart) { chart.remove(); chart = null; candle = null; maSeries = []; }
+        host.innerHTML = ""; msg.textContent = "無價格資料"; return;
+      }
+      msg.textContent = "";
+      if (!chart) {
+        host.innerHTML = "";
+        chart = createChart(host, chartOpts());
+        candle = chart.addCandlestickSeries({ upColor: upC(), downColor: downC(), borderVisible: false, wickUpColor: upC(), wickDownColor: downC() });
+        maSeries = [20, 60].map((p, k) =>
+          chart!.addLineSeries({ color: k === 0 ? tc("--series-3", "#5b9ce6") : tc("--series-5", "#9085e9"),
+            lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }));
+      }
+      const P = prices;
+      candle!.setData(P.dates.map((d, i) => ({ time: d, open: P.o[i]!, high: P.h[i]!, low: P.l[i]!, close: P.c[i]! })));
+      [20, 60].forEach((p, k) => {
+        const m = sma(P.c, p);
+        maSeries[k]!.setData(P.dates.map((d, i) => ({ time: d, value: m[i] })).filter((x) => x.value != null) as { time: string; value: number }[]);
+      });
+      const marks = c ? c.t.flatMap((t) => ([
+        { time: P.dates[t[T.ei]!]!, position: "belowBar" as const, color: upC(), shape: "arrowUp" as const, text: "進" },
+        { time: P.dates[t[T.xi]!]!, position: "aboveBar" as const, color: downC(), shape: "arrowDown" as const, text: "出" },
+      ])) : [];
+      marks.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+      candle!.setMarkers(marks);
+      chart!.timeScale().fitContent();
+    }
+    function applyChartTheme() {
+      try {
+        if (!chart) return;
+        chart.applyOptions(chartOpts());
+        candle?.applyOptions({ upColor: upC(), downColor: downC(), wickUpColor: upC(), wickDownColor: downC() });
+        maSeries[0]?.applyOptions({ color: tc("--series-3", "#5b9ce6") });
+        maSeries[1]?.applyOptions({ color: tc("--series-5", "#9085e9") });
+        if (comboIdx >= 0 && detail) drawChart(detail.combos[comboIdx]!);
+      } catch { /* 尚未就緒 */ }
+    }
+    window.addEventListener("tw-theme-change", applyChartTheme);
+
+    /* ⑧ 權益曲線(SVG:var() 可用,自動跟主題) */
+    function drawEquity(c: { s: (number | null)[]; t: number[][] } | null) {
+      const host = $("sg-equity")!;
+      if (!c || !c.t.length) { host.innerHTML = `<p class="sg-na">此組合無交易,無權益曲線。</p>`; return; }
+      let eq = 1; const pts = [0];
+      for (const t of c.t) { eq *= 1 + t[T.r]! / 100; pts.push((eq - 1) * 100); }
+      const W = 900, H = 220, PAD = 26;
+      const min = Math.min(...pts), max = Math.max(...pts);
+      const range = max - min || 1;
+      const x = (i: number) => PAD + (i / (pts.length - 1 || 1)) * (W - PAD * 2);
+      const y = (v: number) => H - PAD - ((v - min) / range) * (H - PAD * 2);
+      const line = pts.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+      const last = pts[pts.length - 1]!;
+      const col = last >= 0 ? "var(--up)" : "var(--down)";
+      const zeroY = y(0).toFixed(1);
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img"
+          aria-label="權益曲線,終值 ${last.toFixed(2)}%">
+        <line x1="${PAD}" y1="${zeroY}" x2="${W - PAD}" y2="${zeroY}" stroke="var(--border-strong)" stroke-dasharray="3 3" stroke-width="1"/>
+        <path d="${line}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/>
+        <text x="${PAD}" y="14" fill="var(--muted)" font-size="11">起始 0%</text>
+        <text x="${W - PAD}" y="14" fill="${col}" font-size="11" text-anchor="end">終值 ${last >= 0 ? "+" : ""}${last.toFixed(2)}%</text>
+      </svg>`;
+    }
+
+    /* ⑨ 逐筆明細 */
+    function renderTrades(c: { s: (number | null)[]; t: number[][] } | null) {
+      const body = $("sg-trades-body")!, cnt = $("sg-trades-count")!;
+      if (!c || !c.t.length || !prices) {
+        cnt.textContent = "";
+        body.innerHTML = `<tr><td colspan="11" class="sg-td-empty">此組合無交易</td></tr>`;
+        return;
+      }
+      cnt.textContent = `${c.t.length} 筆`;
+      const P = prices;
+      body.innerHTML = c.t.map((t, i) => {
+        /* 引擎的「平均持有天數」= mean(xi-ei+1),交易日含首尾;此處對齊同一定義 */
+        const r = t[T.r]!, hold = t[T.xi]! - t[T.ei]! + 1;
+        return `<tr>
+          <td class="sg-num sg-dim">${i + 1}</td>
+          <td class="sg-dim">${esc(P.dates[t[T.si]!])}</td>
+          <td>${esc(P.dates[t[T.ei]!])}</td>
+          <td>${esc(P.dates[t[T.xi]!])}</td>
+          <td class="sg-num">${fmt(t[T.ep])}</td>
+          <td class="sg-num">${fmt(t[T.xp])}</td>
+          <td class="sg-num sg-dim">${hold}</td>
+          <td class="sg-num ${cls(r)}">${sign(r)}${fmt(r)}</td>
+          <td class="sg-num sg-dim">${fmt(t[T.mae], 1)}</td>
+          <td class="sg-num sg-dim">${fmt(t[T.mfe], 1)}</td>
+          <td>${esc(IDX!.exitReasons[t[T.rc]!] ?? "—")}</td></tr>`;
+      }).join("");
+    }
+
+    /* ⑥ 層對照 */
+    function renderLayerCmp() {
+      const body = $("sg-layercmp-body")!;
+      const ls = stock!.layerSummary || [];
+      if (!ls.length) { body.innerHTML = `<tr><td colspan="7" class="sg-td-empty">無層資料</td></tr>`; return; }
+      const shown = new Set(ls.map((r) => String(r["層"])));
+      const rows = ls.map((r) => {
+        const tot = Number(r["總報酬中位%"]);
+        return `<tr><td>${esc(r["層"])}</td>
+          <td class="sg-num">${esc(r["組合數"])}</td>
+          <td class="sg-num">${Number(r["有交易"]) === 0 ? '<span class="sg-none">無交易</span>' : esc(r["有交易"])}</td>
+          <td class="sg-num">${fmt(r["勝率中位"], 1)}</td>
+          <td class="sg-num ${cls(tot)}">${Number.isFinite(tot) ? sign(tot) + fmt(tot) : "—"}</td>
+          <td class="sg-num">${esc(r["正報酬組數"])}</td>
+          <td class="sg-num">${fmt(r["平均交易次數"], 1)}</td></tr>`;
+      });
+      const na = IDX!.confLayers.filter((L) => !shown.has(L));
+      const naRows = na.map((L) => `<tr class="sg-tr-na"><td>${esc(L)}</td>
+        <td class="sg-num" colspan="6">上櫃・不適用(官方籌碼僅上市)</td></tr>`);
+      body.innerHTML = rows.concat(naRows).join("");
+    }
+
+    $("sg-sort")?.addEventListener("change", (e) => {
+      sortMode = (e.target as HTMLSelectElement).value; comboIdx = -1; renderCombos();
+    });
   }
-  .sg-blocks {
-    margin: 0.5rem 0 0;
-    padding-left: 1.3rem;
-    display: grid;
-    gap: 0.32rem;
-  }
-  .sg-blocks li {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    line-height: 1.55;
-    color: var(--text-secondary);
-  }
-  .sg-pending-note {
-    margin: 1.3rem 0 0;
-    padding-top: 0.85rem;
-    border-top: 1px solid var(--border);
-    font-size: 0.8rem;
-    line-height: 1.65;
-    color: var(--muted);
-  }
-  .sg-pending-note strong {
-    color: var(--text-secondary);
+</script>
+
+<style is:global>
+  /* /signals 富版(共用 .ph-* 於 global.css) */
+  .sg-disc { margin: 0 0 1.5rem; padding: 0.95rem 1.15rem 1.05rem; background: var(--surface);
+    border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-md); }
+  .sg-disc--top { margin-bottom: 1.8rem; }
+  .sg-disc-h { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin: 0 0 0.55rem; color: var(--text-heading); }
+  .sg-disc-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .sg-disc-list li { font-size: 0.82rem; line-height: 1.65; color: var(--text-secondary); }
+  .sg-src { margin: 0.7rem 0 0; font-size: 0.76rem; line-height: 1.6; color: var(--muted); }
+  .sg-note { margin: 0.6rem 0 0; font-size: 0.76rem; line-height: 1.6; color: var(--muted); }
+  .sg-loading { padding: 2rem 1rem; text-align: center; color: var(--muted); }
+
+  .sg-sec { margin-bottom: 1.9rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+  .sg-stocks { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+  .sg-stock { display: inline-flex; align-items: baseline; gap: 0.35rem; font: inherit; font-size: 0.8rem;
+    padding: 0.35rem 0.7rem; cursor: pointer; color: var(--text-secondary);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    transition: color var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out); }
+  .sg-stock:hover { color: var(--text); border-color: var(--accent); }
+  .sg-stock:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sg-stock.is-active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+  .sg-stock.is-active:hover { color: var(--accent-ink); }
+  .sg-stock-c { font-family: var(--font-mono); font-weight: 700; }
+  .sg-mkt { font-size: 0.68rem; padding: 0 4px; border-radius: 3px; background: rgba(var(--ink), 0.1); }
+
+  .sg-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.6rem; }
+  .sg-ov { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.65rem 0.8rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .sg-ov-l { font-size: 0.74rem; color: var(--text-secondary); }
+  .sg-ov-v { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .sg-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.6rem; }
+  .sg-chip { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.65rem 0.8rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .sg-chip--ph { border-style: dashed; border-color: var(--border-strong); }
+  .sg-chip-l { font-size: 0.74rem; color: var(--text-secondary); }
+  .sg-chip-v { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .sg-chip-p { font-size: 0.7rem; color: var(--muted); }
+  .sg-na { margin: 0; padding: 1rem; text-align: center; font-size: 0.85rem; color: var(--muted);
+    background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--radius-md); }
+
+  .sg-layers { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid rgba(var(--ink), 0.12); }
+  .sg-layer { position: relative; font: inherit; font-size: 0.82rem; font-weight: 600; padding: 8px 14px 10px;
+    border: none; border-radius: 0; background: none; color: var(--muted); cursor: pointer;
+    transition: color var(--duration) var(--ease-out); }
+  .sg-layer::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px;
+    border-radius: 1px; background: var(--accent); transform: scaleX(0);
+    transition: transform 0.22s cubic-bezier(0.2, 0.6, 0.2, 1); }
+  .sg-layer:hover:not(:disabled) { color: var(--text); }
+  .sg-layer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sg-layer.is-active { color: var(--text-heading); font-weight: 700; }
+  .sg-layer.is-active::after { transform: scaleX(1); }
+  .sg-layer:disabled { color: var(--muted); cursor: not-allowed; }
+  .sg-layer-na { margin-left: 4px; font-size: 0.68rem; }
+  .sg-tpex-note { margin: 0.6rem 0 0; font-size: 0.78rem; color: var(--text-secondary); }
+
+  .sg-combo-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .sg-combo-tools { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+  .sg-sortlab { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text-secondary); }
+  .sg-select { font: inherit; font-size: 0.78rem; padding: 0.25rem 0.5rem; color: var(--text);
+    background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+  .sg-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sg-count { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); }
+  .sg-combo-scroll { max-height: 24rem; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+
+  .sg-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+  .sg-table-wrap--tall { max-height: 28rem; overflow-y: auto; }
+  .sg-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .sg-table th { position: sticky; top: 0; z-index: 1; text-align: left; white-space: nowrap;
+    padding: 0.5rem 0.7rem; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);
+    background: var(--surface-elevated); border-bottom: 1px solid var(--border); }
+  .sg-table td { padding: 0.42rem 0.7rem; white-space: nowrap; color: var(--text);
+    border-top: 1px solid rgba(var(--ink), 0.05); }
+  .sg-num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .sg-dim { color: var(--text-secondary); }
+  .sg-none { color: var(--muted); font-size: 0.76rem; }
+  .sg-td-empty { text-align: center; padding: 1.6rem 1rem; color: var(--muted); }
+  .sg-table td.is-pos, .sg-table .is-pos { color: var(--up); }
+  .sg-table td.is-neg, .sg-table .is-neg { color: var(--down); }
+  .sg-row { cursor: pointer; }
+  /* 選取／hover 底色刻意【不用 --accent-soft】:金色調會把 --up 紅字壓到 4.0(AA 不過)。
+     改用中性的 --surface-elevated(暗 4.61 / 亮 5.41 皆過),選取狀態改以金色左標示區分。 */
+  .sg-row:hover td { background: var(--surface-elevated); }
+  .sg-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .sg-row.is-active td { background: var(--surface-elevated); }
+  .sg-row.is-active td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .sg-tr-na td { color: var(--muted); }
+
+  .sg-detail { position: sticky; top: 4.5rem; }
+  .sg-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.7rem; }
+  .sg-detail-t { font-family: var(--font-display); font-size: 0.92rem; font-weight: 600; color: var(--text-heading); }
+  .sg-detail-arrow { color: var(--muted); }
+  .sg-detail-layer { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;
+    color: var(--accent-hover); background: var(--accent-soft); border: 1px solid var(--accent-glow); }
+  .sg-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }
+  .sg-kpi { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.6rem 0.7rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .sg-kpi-l { font-size: 0.72rem; color: var(--text-secondary); }
+  .sg-kpi-v { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .sg-kpi-v.is-pos { color: var(--up); }
+  .sg-kpi-v.is-neg { color: var(--down); }
+
+  .sg-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; margin: 0 0 0.5rem; }
+  .sg-lg { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text-secondary); }
+  .sg-lg-ma { width: 14px; height: 2px; border-radius: 1px; }
+  .sg-lg-ma20 { background: var(--series-3); }
+  .sg-lg-ma60 { background: var(--series-5); }
+  .sg-lg-dot { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; }
+  .sg-lg-in { border-bottom: 8px solid var(--up); }
+  .sg-lg-out { border-top: 8px solid var(--down); }
+
+  .sg-chart { width: 100%; height: clamp(300px, 46vh, 460px); border: 1px solid var(--border);
+    border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
+  .sg-equity { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: 0.4rem; }
+  .sg-equity svg { display: block; }
+
+  @media (max-width: 900px) {
+    .sg-combo-grid { grid-template-columns: 1fr; }
+    .sg-detail { position: static; }
+    .sg-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 </style>
