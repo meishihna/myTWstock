@@ -1,9 +1,24 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+/** 有回測資料的代號(build 時由 signals-index.json 動態取,不 hardcode);只帶代號,約數百 bytes */
+let signalCodes: string[] = [];
+try {
+  const p = path.join(process.cwd(), "public/data/signals-index.json");
+  if (fs.existsSync(p)) {
+    signalCodes = (JSON.parse(fs.readFileSync(p, "utf8")).stocks || [])
+      .map((s: { code: string }) => s.code)
+      .filter(Boolean);
+  }
+} catch {
+  signalCodes = [];
+}
 ---
 
 <Layout title="自選股 Watchlist — TWstock" description="你收藏追蹤的台股清單與關鍵財務指標。">
-  <main class="wl">
+  <main class="wl" data-signals={signalCodes.join(",")}>
     <header class="wl__head">
       <div>
         <h1 class="wl__h1">自選股</h1>
@@ -37,6 +52,10 @@ import Layout from "../layouts/Layout.astro";
     const _rootCss = getComputedStyle(document.documentElement);
     const UP_COLOR = _rootCss.getPropertyValue("--up").trim() || "#e24f43";
     const DOWN_COLOR = _rootCss.getPropertyValue("--down").trim() || "#2fa572";
+    /** 有回測資料的代號(build 時寫入 data-signals),用來決定是否顯示「看回測」 */
+    const SIGNAL_CODES = new Set(
+      (document.querySelector<HTMLElement>(".wl")?.dataset.signals || "").split(",").filter(Boolean),
+    );
 
     const metric = (label: string, val: string, cls = "") =>
       `<div class="wl__m"><dt>${label}</dt><dd class="${cls}">${val}</dd></div>`;
@@ -232,6 +251,7 @@ import Layout from "../layouts/Layout.astro";
               ${metric("EPS", fmt(r.eps, 2))}
               ${yoyMetric(r.revYoy)}
             </dl>
+            ${SIGNAL_CODES.has(t) ? `<a class="wl__bt" href="/signals?code=${t}">看回測 →</a>` : ""}
           </article>`;
         })
         .join("");
@@ -321,6 +341,13 @@ import Layout from "../layouts/Layout.astro";
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 0.85rem 0.6rem; margin: 1rem 0 0;
     }
+    /* 有回測資料的標的才出現;連到 /signals 並直接選中該檔 */
+    .wl__bt {
+      display: inline-block; margin-top: 0.85rem;
+      font-size: 0.75rem; font-weight: 600; color: var(--accent);
+      padding-top: 0.6rem; border-top: 1px solid var(--border); width: 100%;
+    }
+    .wl__bt:hover { color: var(--accent-hover); }
     .wl__m dt {
       font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
       color: var(--text-secondary); opacity: 0.85; margin-bottom: 3px; white-space: nowrap;
