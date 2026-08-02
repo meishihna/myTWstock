@@ -2,7 +2,6 @@
 # monthlyRevenue 區塊(純加法,不動年報/季報)。commit → push → Vercel 自動重新部署。
 #
 # 台灣上市櫃公司月營收須於次月 10 日前公告,故於每月 11 日盤前執行,抓上一月營收。
-# 需 repo secret FINMIND_TOKEN(已存在,refresh-snapshots 亦使用)。
 # 全市場約 1,700+ 檔、限流 580 次/hr → 約 3 小時;GitHub 單 job 上限 6 小時,足夠。
 name: Refresh monthly revenue
 
@@ -40,14 +39,9 @@ jobs:
         run: python scripts/build_stock_codes.py
         continue-on-error: true
 
-      # 純加法:逐檔只更新 monthlyRevenue;抓不到最新月的檔取其現有最新、不影響年報季報。
-      # 限流 580/hr 以留餘裕於 FinMind 免費額度(約 600/hr),避免尾段 402/429。
-      - name: Update monthly revenue (--all)
-        env:
-          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-          FINMIND_MAX_CALLS_PER_HOUR: "580"
-        run: python -u scripts/update_month_revenue.py --all
-        continue-on-error: true
+      # 月營收已改由【官方 MOPS t21】產出(web/public/data/monthly-revenue.json),
+      # 原本在此的 update_month_revenue.py(FinMind)已移除。
+      # ⚠️ 上一步的 build_stock_codes.py 是【官方代碼表】、與 FinMind 無關 → 必須保留。
 
       - name: Commit & push if changed
         run: |

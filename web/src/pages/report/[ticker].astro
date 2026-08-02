@@ -193,7 +193,14 @@ const finReadPath = fs.existsSync(finStorePath)
     : null;
 if (finReadPath) {
   try {
-    financialsJson = JSON.parse(fs.readFileSync(finReadPath, "utf8"));
+    const raw = JSON.parse(fs.readFileSync(finReadPath, "utf8"));
+    /**
+     * ⚠️ public/data/financials 現在放的是【官方 MOPS 新格式】(fields/quarters/annual.v),
+     *    與本頁下游期待的 store 形狀(annual.periods/annual.series、quarterlyYtd、valuation)不同。
+     *    直接餵進去會讀到一堆 undefined —— 圖表與 KPI 靜默空白而不報錯。
+     *    因此只接受 store 形狀;官方格式的接入需要專用轉接層(獨立一輪處理)。
+     */
+    financialsJson = raw?.annual?.series ? raw : null;
   } catch {
     financialsJson = null;
   }

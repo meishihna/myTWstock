@@ -40,11 +40,11 @@ jobs:
         working-directory: web
         run: node scripts/build-data.mjs
 
-      - name: 三大法人 + 資券 (market-focus.json)
-        env:
-          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-        run: python scripts/update_market_focus.py
-        continue-on-error: true
+      # 三大法人 + 資券(market-focus.json)已改由【官方】BFI82U + MI_MARGN 產出,
+      # 原本在此的 update_market_focus.py(FinMind)已移除。
+      # ⚠️ 本 workflow 其餘步驟(top-movers / today-themes / heatmap-stats /
+      #    valuation-index / chips-index / chips-history)【全部是官方來源】,
+      #    不可因為移除上面那一步而停掉整支。
 
       - name: 今日強勢股 (top-movers.json)
         working-directory: web

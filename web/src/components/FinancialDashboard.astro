@@ -21,6 +21,7 @@ import {
   MARGIN_LINE_DASHES,
   MARGIN_LINE_LABELS,
 } from "../lib/industryConfig";
+import { getMonthlyRevenue } from "../lib/monthlyRevenue";
 import type { ChipsRow } from "../lib/chipsSnapshot";
 import type { ChipsHistory } from "../lib/chipsHistory";
 
@@ -822,13 +823,21 @@ const qNiYTickMarks =
           .filter((o) => o.yy >= PAD.t - 4 && o.yy <= PLOT_BOTTOM + 4);
       })();
 
-// ── 月營收(Monthly revenue,FinMind)──
-const monthly =
+/* ── 月營收 ──────────────────────────────────────────────────────────
+ * 來源已由第三方(FinMind,寫在 financials_store 內的 monthlyRevenue 區塊)
+ * 改為【官方 MOPS t21 營業收入彙總表】(public/data/monthly-revenue.json)。
+ * 官方檔只存當月營收,YoY/累計由 lib/monthlyRevenue.ts 依契約計算。
+ * financials_store 的舊區塊保留為 fallback(該檔尚未汰除,見 financials-contract 的上櫃 pe 問題),
+ * 官方查無時才回退,確保不減少現有功能。 */
+const monthlyOfficial = getMonthlyRevenue(financialsJson.ticker);
+const monthlyLegacy =
   financialsJson.monthlyRevenue &&
   Array.isArray(financialsJson.monthlyRevenue.periods) &&
   financialsJson.monthlyRevenue.periods.length > 0
     ? financialsJson.monthlyRevenue
     : null;
+const monthly =
+  monthlyOfficial && monthlyOfficial.periods.length > 0 ? monthlyOfficial : monthlyLegacy;
 
 let mRevBars: ReturnType<typeof barChartMillion> | null = null;
 let mYoyLine: ReturnType<typeof lineChartSvg> | null = null;

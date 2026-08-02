@@ -648,8 +648,11 @@ const RISK = [
         ki("本益比", v(c["本益比"], "", false, p("本益比"))),
         ki("股價淨值比", v(c["股價淨值比"], "", false, p("股價淨值比"))),
         ki("殖利率", v(c["殖利率%"], "%", false, p("殖利率"))),
-        ki("營收 YoY", `<div class="kv ph">—<span class="ks">Phase 2 · 自帶 FinMind 金鑰</span></div>`),
-        ki("EPS 成長", `<div class="kv ph">—<span class="ks">Phase 2 · 自帶 FinMind 金鑰</span></div>`),
+        /* BYOK 已取消:營收與 EPS 現已有【官方 MOPS】來源(monthly-revenue.json /
+           financials/{ticker}.json),待引擎側於月度再生時預算進 signals-index 的 chips。
+           在那之前顯示中性佔位,不再提「自帶金鑰」以免誤導。 */
+        ki("營收 YoY", `<div class="kv ph">—<span class="ks">官方資料接入中</span></div>`),
+        ki("EPS 成長", `<div class="kv ph">—<span class="ks">官方資料接入中</span></div>`),
       ].join("");
     }
 

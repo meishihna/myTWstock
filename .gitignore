@@ -42,8 +42,10 @@ web/public/data/map-index.json
 web/public/data/momentum.json
 # /news-digest 技能的暫存輸入(每次重生;news-digest.json 本身為內容,需追蹤)
 web/news-snapshot.json
-# 舊財務鏡像（app 已改讀 data/financials_store/；保留磁碟檔但不追蹤）
-web/public/data/financials/
+# 註:web/public/data/financials/ 曾是「舊財務鏡像」(可由 financials_store 再生)而不追蹤。
+#     現在同一路徑改放【官方 MOPS 季報/年報/資產負債表】(1,974 檔),
+#     那是【無法由本 repo 再生】的交付物,且 build-screener-index 依賴它 —— 必須追蹤,
+#     否則線上 build 會靜默退回 yfinance,改動變成無效。故移除該忽略規則。
 web/public/data/industries-index.json
 web/public/data/search-index.json
 
