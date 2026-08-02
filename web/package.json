@@ -17,6 +17,7 @@
     "test:news-resolve": "npx --yes tsx scripts/test-news-resolve.ts",
     "test:news-nlp": "npx --yes tsx scripts/test-news-nlp.ts",
     "test:reconcile": "node tests/reconcile-live.mjs",
+    "test:fin-compare": "npx --yes tsx tests/compare-financials-migration.ts",
     "check:selfcontained": "node scripts/check-selfcontained.mjs",
     "check:selfcontained:self-test": "node scripts/check-selfcontained.mjs --self-test"
   },
