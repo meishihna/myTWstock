@@ -1,40 +1,46 @@
 ---
 /**
- * /trades — 投資組合(Phase 2 介面殼)
+ * /trades — 投資組合(Phase 2 介面殼,終端佈局)
  *
- * 現階段【只有版型,無任何資料】。Phase 2 = 使用者登入後【手動輸入自己的交易】,
- * 系統以【公開股價】自動計算損益與績效。
+ * 版面權威 = 本地版「投資組合儀表板」的骨架:
+ *   報頭 kicker → 巨大淨值數字 → 目標軌道 → 4 格 KPI 帶
+ *   → 01–07 編號區塊(金色 idx 徽章 + 標題 + 副標 + 髮絲線卡頭)
+ * 密度與終端感對齊 /signals。
  *
- * ⚠️ 本頁不讀取、不匯入、不連結任何本機或第三方持股資料(含任何 xlsx / 券商資料)。
- *    版型參考自作者本機儀表板的【區塊順序】,未複製任何資料內容。
+ * ⚠️ 本頁【不讀取、不匯入、不連結】任何本機或第三方持股資料
+ *    (不碰 永豐持股.xlsx、券商匯出檔、或任何真實持倉)。
+ *    僅參考該儀表板的【版面結構】,未複製任何資料內容。
+ *
+ * 現階段【只有版型,零資料】。Phase 2 = 使用者登入後【手動輸入自己的交易】,
+ * 系統以【公開股價】自動計算損益與績效;不代下單、不連接券商。
  */
 import Layout from "../layouts/Layout.astro";
 import { SITE, TRADES_PAGE } from "../lib/ui";
 
 export const prerender = true;
 
-/** 區塊骨架(順序與作者慣用儀表板一致) */
-const SECTIONS = [
-  { id: "sec-perf", no: "01", title: "績效", desc: "淨值走勢與累積報酬(TWR)" },
-  { id: "sec-alloc", no: "02", title: "資產配置", desc: "依產業／個股／現金的配置比重" },
-  { id: "sec-holdings", no: "03", title: "現有持倉", desc: "成本、市值、未實現損益" },
-  { id: "sec-stock", no: "04", title: "個股走勢", desc: "個別持股的走勢與進出點" },
-  { id: "sec-tx", no: "05", title: "交易紀錄", desc: "買賣紀錄(由你自行輸入)" },
-  { id: "sec-monthly", no: "06", title: "月報", desc: "逐月報酬與現金流" },
-  { id: "sec-watch", no: "07", title: "觀察清單", desc: "尚未進場的追蹤標的" },
-] as const;
+/** 目標軌道刻度(Phase 2 由使用者自訂;此處為版型示意) */
+const GOAL_TICKS = ["0", "25 萬", "50 萬", "75 萬", "100 萬"] as const;
 
-/** 01 績效的四格 KPI(留空,僅示意欄位) */
+/** 頭條下的 4 格 KPI */
 const KPIS = [
-  { label: "淨值", hint: "持倉市值 + 現金" },
-  { label: "合計損益", hint: "已實現 + 未實現" },
-  { label: "累積報酬(TWR)", hint: "時間加權報酬率,排除現金流影響" },
-  { label: "現金水位", hint: "現金占淨值比重" },
+  { label: "合計損益", foot: "已實現 + 未實現", meter: false },
+  { label: "累積報酬 TWR", foot: "時間加權,排除現金流影響", meter: false },
+  { label: "VS 0050 超額", foot: "同期對照 元大台灣50", meter: false },
+  { label: "現金水位", foot: "現金占淨值比重", meter: true },
 ] as const;
 
 const HOLDING_COLS = ["代號", "名稱", "股數", "均價", "現價", "市值", "未實現損益", "報酬率"];
 const TX_COLS = ["日期", "代號", "買/賣", "股數", "價格", "手續費", "稅", "淨額"];
-const MONTHLY_COLS = ["月份", "月報酬%", "累積報酬%", "現金流", "月底淨值"];
+const WATCH_COLS = ["代號", "名稱", "現價", "距離目標價", "加入日", "想法"];
+
+/** 06 月報的統計格 */
+const MONTHLY_STATS = [
+  { label: "當月報酬", wide: false },
+  { label: "當月已實現", wide: false },
+  { label: "當月現金流", wide: false },
+  { label: "月底淨值", wide: true },
+] as const;
 ---
 
 <Layout
@@ -45,161 +51,498 @@ const MONTHLY_COLS = ["月份", "月報酬%", "累積報酬%", "現金流", "月
     <a href="/">首頁</a><span class="bc-sep"> / </span><span>{TRADES_PAGE.title}</span>
   </div>
 
-  <header class="ph-head">
-    <div class="ph-head-top">
-      <h1 class="page-h1">{TRADES_PAGE.title}</h1>
-      <span class="ph-phase">{TRADES_PAGE.phase}</span>
-    </div>
-    <p class="page-lead">{TRADES_PAGE.lead}</p>
-    <p class="ph-privacy" role="note">{TRADES_PAGE.privacy}</p>
-  </header>
+  <div id="tr-app">
+    {/* 隱私與範圍聲明(頂部,不折疊) */}
+    <p class="tr-privacy" role="note">
+      <b>你的資料只存在你的帳號、不公開。</b>
+      本平台<b>不代下單、不連接券商</b>,也不會讀取任何本機檔案或券商匯出檔;
+      損益由你自行輸入的交易搭配<b>公開股價</b>計算。
+    </p>
 
-  <p class="ph-demo" role="note">{TRADES_PAGE.demoNote}</p>
-
-  {/* 01 績效 */}
-  <section class="ph-sec" id="sec-perf" aria-labelledby="h-perf">
-    <div class="ph-sec-head">
-      <span class="ph-no">01</span>
-      <h2 class="ph-h2" id="h-perf">績效</h2>
-      <span class="ph-sec-desc">淨值走勢與累積報酬(TWR)</span>
-    </div>
-    <div class="ph-kpis">
-      {
-        KPIS.map((k) => (
-          <div class="ph-kpi">
-            <span class="ph-kpi-l">{k.label}</span>
-            <span class="ph-kpi-v" aria-label="尚無資料">—</span>
-            <span class="ph-kpi-h">{k.hint}</span>
-          </div>
-        ))
-      }
-    </div>
-    <div class="ph-plot" role="img" aria-label="淨值走勢圖(尚無資料)">
-      <span class="ph-plot-t">淨值走勢</span>
-      <span class="ph-empty-in">輸入交易後,這裡會顯示你的淨值曲線</span>
-    </div>
-  </section>
-
-  {/* 02 資產配置 */}
-  <section class="ph-sec" id="sec-alloc" aria-labelledby="h-alloc">
-    <div class="ph-sec-head">
-      <span class="ph-no">02</span>
-      <h2 class="ph-h2" id="h-alloc">資產配置</h2>
-      <span class="ph-sec-desc">依產業／個股／現金的配置比重</span>
-    </div>
-    <div class="ph-alloc">
-      <div class="ph-plot ph-plot--sq" role="img" aria-label="配置比重圖(尚無資料)">
-        <span class="ph-empty-in">配置比重</span>
+    {/* ① 報頭 + 巨大淨值 */}
+    <section class="tr-hero" aria-labelledby="tr-hero-h">
+      <div class="tr-kicker">
+        <span class="rule" aria-hidden="true"></span>
+        <span class="txt">每日投資簡報</span>
+        <span class="dt" id="tr-date">—</span>
+        <span class="tr-phase">{TRADES_PAGE.phase}</span>
       </div>
-      <ul class="ph-bars" aria-label="配置明細(尚無資料)">
+      <h1 class="tr-num" id="tr-hero-h">
+        <span class="cur">NT$</span><span class="tr-na">—</span>
+      </h1>
+      <p class="tr-sub">
+        vs 總存入 <b class="tr-na">—</b>
+        <span class="sep" aria-hidden="true">·</span>
+        證券 <b class="tr-na">—</b> ＋ 現金 <b class="tr-na">—</b>
+      </p>
+
+      {/* ② 目標獲利進度條 */}
+      <div class="tr-goal">
+        <div class="g-head">
+          <span class="lbl">目標獲利進度</span>
+          <span class="right">尚無資料 · <b>登入後設定你的目標</b></span>
+        </div>
+        <div
+          class="g-track"
+          role="progressbar"
+          aria-label="目標獲利進度"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuetext="尚無資料"
+        >
+          <div class="g-fill" style="width:0"></div>
+          {
+            GOAL_TICKS.map((_, i) => (
+              <span
+                class:list={["g-station", { end: i === GOAL_TICKS.length - 1 }]}
+                style={`left:${(i / (GOAL_TICKS.length - 1)) * 100}%`}
+                aria-hidden="true"
+              />
+            ))
+          }
+        </div>
+        {/* 刻度標籤是【軌道外】的獨立一列:與軌道同層會讓它們疊在軌道底色上(對比度會被誤算,也不是實際視覺) */}
+        <div class="g-ticks">
+          {
+            GOAL_TICKS.map((t, i) => (
+              <span
+                class:list={["g-tick-lbl", { first: i === 0, last: i === GOAL_TICKS.length - 1 }]}
+                style={`left:${(i / (GOAL_TICKS.length - 1)) * 100}%`}
+              >{t}</span>
+            ))
+          }
+        </div>
+      </div>
+
+      {/* ③ 4 格 KPI */}
+      <div class="tr-stats">
         {
-          ["產業 A", "產業 B", "產業 C", "現金"].map((n) => (
-            <li class="ph-bar-row">
-              <span class="ph-bar-l">{n}</span>
-              <span class="ph-bar-track"><i style="width:0"></i></span>
-              <span class="ph-bar-v">—</span>
-            </li>
+          KPIS.map((k) => (
+            <div class="tr-stat">
+              <div class="micro">{k.label}</div>
+              <div class="value tr-na">—</div>
+              {k.meter && (
+                <div class="meter" aria-hidden="true">
+                  <div style="width:0"></div>
+                </div>
+              )}
+              <div class="foot">{k.foot}</div>
+            </div>
           ))
         }
-      </ul>
-    </div>
-  </section>
+      </div>
+    </section>
 
-  {/* 03 現有持倉 */}
-  <section class="ph-sec" id="sec-holdings" aria-labelledby="h-holdings">
-    <div class="ph-sec-head">
-      <span class="ph-no">03</span>
-      <h2 class="ph-h2" id="h-holdings">現有持倉</h2>
-      <span class="ph-sec-desc">成本、市值、未實現損益</span>
-    </div>
-    <div class="ph-table-wrap">
-      <table class="ph-table">
-        <thead>
-          <tr>{HOLDING_COLS.map((c) => <th scope="col">{c}</th>)}</tr>
-        </thead>
-        <tbody>
-          <tr class="ph-tr-empty">
-            <td colspan={HOLDING_COLS.length}>{TRADES_PAGE.emptyCta}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    {/* ④ 01–07 編號區塊 */}
+    <section class="tr-block" id="sec-perf">
+      <div class="duo">
+        <div class="panel">
+          <div class="p-head">
+            <span class="idx">01</span>
+            <h2>績效走勢</h2>
+            <span class="sub">淨值曲線與回撤</span>
+          </div>
+          <div class="plot" role="img" aria-label="淨值走勢圖(尚無資料)">
+            <span class="plot-t">淨值 / 累積報酬</span>
+            <span class="plot-e">{TRADES_PAGE.emptyCta}</span>
+          </div>
+          <div class="dd-head">
+            <span class="t">回撤</span><span class="hint">自高點回落</span>
+          </div>
+          <div class="plot plot--sm" role="img" aria-label="回撤圖(尚無資料)">
+            <span class="plot-e">尚無資料</span>
+          </div>
+        </div>
 
-  {/* 04 個股走勢 */}
-  <section class="ph-sec" id="sec-stock" aria-labelledby="h-stock">
-    <div class="ph-sec-head">
-      <span class="ph-no">04</span>
-      <h2 class="ph-h2" id="h-stock">個股走勢</h2>
-      <span class="ph-sec-desc">個別持股的走勢與進出點</span>
-    </div>
-    <div class="ph-plot" role="img" aria-label="個股走勢圖(尚無資料)">
-      <span class="ph-plot-t">個股走勢 + 你的進出點</span>
-      <span class="ph-empty-in">選擇持股後,這裡會顯示走勢與你的買賣位置</span>
-    </div>
-  </section>
+        <div class="panel">
+          <div class="p-head">
+            <span class="idx">02</span>
+            <h2>資產配置</h2>
+            <span class="sub">市值 vs 風險曝險</span>
+          </div>
+          <div class="alloc">
+            <div class="alloc-donut" role="img" aria-label="配置比重圖(尚無資料)">
+              <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="var(--border)" stroke-width="11"></circle>
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="none"
+                  stroke="var(--border-strong)"
+                  stroke-width="11"
+                  stroke-dasharray="4 6"
+                ></circle>
+              </svg>
+            </div>
+            <ul class="alloc-list" aria-label="配置明細(尚無資料)">
+              {
+                ["產業／個股", "現金", "其他"].map((n) => (
+                  <li class="a-row">
+                    <span class="a-l">{n}</span>
+                    <span class="a-track">
+                      <i style="width:0"></i>
+                    </span>
+                    <span class="a-v tr-na">—</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          <p class="note">輸入交易後,這裡會依你的持倉自動分群。</p>
+        </div>
+      </div>
+    </section>
 
-  {/* 05 交易紀錄 */}
-  <section class="ph-sec" id="sec-tx" aria-labelledby="h-tx">
-    <div class="ph-sec-head">
-      <span class="ph-no">05</span>
-      <h2 class="ph-h2" id="h-tx">交易紀錄</h2>
-      <span class="ph-sec-desc">買賣紀錄(由你自行輸入)</span>
-    </div>
-    <div class="ph-actions" aria-label="交易輸入(Phase 2)">
-      <button class="ph-btn ph-btn--primary" type="button" disabled>＋ 新增交易</button>
-      <button class="ph-btn" type="button" disabled>匯入 CSV</button>
-      <span class="ph-note-inline">Phase 2 · 登入後開放</span>
-    </div>
-    <div class="ph-table-wrap">
-      <table class="ph-table">
-        <thead>
-          <tr>{TX_COLS.map((c) => <th scope="col">{c}</th>)}</tr>
-        </thead>
-        <tbody>
-          <tr class="ph-tr-empty">
-            <td colspan={TX_COLS.length}>{TRADES_PAGE.emptyCta}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <section class="tr-block" id="sec-holdings">
+      <div class="panel">
+        <div class="p-head">
+          <span class="idx">03</span>
+          <h2>現有持倉</h2>
+          <span class="sub">成本、市值、未實現損益(金額單位:新台幣元)</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>{HOLDING_COLS.map((c, i) => <th scope="col" class:list={[{ l: i < 2 }]}>{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              <tr class="tr-empty">
+                <td colspan={HOLDING_COLS.length}>{TRADES_PAGE.emptyCta}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
-  {/* 06 月報 */}
-  <section class="ph-sec" id="sec-monthly" aria-labelledby="h-monthly">
-    <div class="ph-sec-head">
-      <span class="ph-no">06</span>
-      <h2 class="ph-h2" id="h-monthly">月報</h2>
-      <span class="ph-sec-desc">逐月報酬與現金流</span>
-    </div>
-    <div class="ph-table-wrap">
-      <table class="ph-table">
-        <thead>
-          <tr>{MONTHLY_COLS.map((c) => <th scope="col">{c}</th>)}</tr>
-        </thead>
-        <tbody>
-          <tr class="ph-tr-empty">
-            <td colspan={MONTHLY_COLS.length}>輸入交易後,系統會自動產生逐月績效</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <section class="tr-block" id="sec-stock">
+      <div class="panel">
+        <div class="p-head">
+          <span class="idx">04</span>
+          <h2>個股走勢與買賣點</h2>
+          <span class="sub">以公開收盤價繪製,標上你自己的進出點</span>
+        </div>
+        <div class="stock-flex">
+          <div class="stock-list" aria-label="持股清單(尚無資料)">
+            {
+              [1, 2, 3, 4].map(() => (
+                <div class="s-row" aria-hidden="true">
+                  <span class="s-tk">—</span>
+                  <span class="s-bar"><i style="width:0"></i></span>
+                </div>
+              ))
+            }
+            <p class="s-empty">尚無持股</p>
+          </div>
+          <div class="stock-main">
+            <div class="plot" role="img" aria-label="個股走勢圖(尚無資料)">
+              <span class="plot-t">個股走勢 + 你的買賣點</span>
+              <span class="plot-e">選擇持股後,這裡會顯示走勢與你的買賣位置</span>
+            </div>
+            <p class="note">股價來源:臺灣證券交易所／證券櫃檯買賣中心公開收盤價(非即時報價)。</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  {/* 07 觀察清單 */}
-  <section class="ph-sec" id="sec-watch" aria-labelledby="h-watch">
-    <div class="ph-sec-head">
-      <span class="ph-no">07</span>
-      <h2 class="ph-h2" id="h-watch">觀察清單</h2>
-      <span class="ph-sec-desc">尚未進場的追蹤標的</span>
-    </div>
-    <p class="ph-empty-block">
-      Phase 2 會與<a href="/watchlist">自選股</a>整合:自選股中的標的可直接加入觀察清單並記錄想法。
+    <section class="tr-block" id="sec-tx">
+      <div class="panel">
+        <div class="p-head">
+          <span class="idx">05</span>
+          <h2>交易紀錄</h2>
+          <span class="sub">由你自行輸入;不連接券商、不自動匯入</span>
+        </div>
+        <div class="tr-actions">
+          <button class="tr-btn tr-btn--primary" type="button" disabled>＋ 新增交易</button>
+          <button class="tr-btn" type="button" disabled>貼上 CSV</button>
+          <span class="tr-hint">Phase 2 · 登入後開放</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>{TX_COLS.map((c, i) => <th scope="col" class:list={[{ l: i < 3 }]}>{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              <tr class="tr-empty">
+                <td colspan={TX_COLS.length}>{TRADES_PAGE.emptyCta}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="tr-block" id="sec-monthly">
+      <div class="panel">
+        <div class="p-head">
+          <span class="idx">06</span>
+          <h2>月報</h2>
+          <span class="sub">逐月報酬與現金流</span>
+        </div>
+        <div class="rz-stats">
+          {
+            MONTHLY_STATS.map((s) => (
+              <div class:list={["rstat", { wide: s.wide }]}>
+                <div class="micro">{s.label}</div>
+                <div class:list={["value", "tr-na", { big: s.wide }]}>—</div>
+              </div>
+            ))
+          }
+        </div>
+        <p class="note">輸入交易後,系統會自動產生逐月績效與現金流。</p>
+      </div>
+    </section>
+
+    <section class="tr-block" id="sec-watch">
+      <div class="panel">
+        <div class="p-head">
+          <span class="idx">07</span>
+          <h2>觀察清單</h2>
+          <span class="sub">尚未進場的追蹤標的</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>{WATCH_COLS.map((c, i) => <th scope="col" class:list={[{ l: i < 2 || i === 5 }]}>{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              <tr class="tr-empty">
+                <td colspan={WATCH_COLS.length}>
+                  Phase 2 會與<a href="/watchlist">自選股</a>整合:自選中的標的可直接加入並記錄想法。
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="tr-foot" role="note">
+      本頁為 Phase 2 介面預覽,尚未開放輸入,頁面上所有數值皆為空值示意。
+      {TRADES_PAGE.privacy}
+      本平台僅提供資訊與計算工具,不構成投資建議,亦不代為執行任何交易。
+      紅=獲利、綠=虧損(台股慣例)。
     </p>
-  </section>
+  </div>
 
-  <p class="ph-foot" role="note">
-    本頁為 Phase 2 介面預覽,尚未開放輸入。{TRADES_PAGE.privacy}
-    本平台僅提供資訊與計算工具,不構成投資建議,亦不代為執行任何交易。
-  </p>
+  <script>
+    /* 只填今天的日期;本頁不載入任何資料 */
+    const el = document.getElementById("tr-date");
+    if (el) {
+      const d = new Date();
+      const p = (n: number) => String(n).padStart(2, "0");
+      el.textContent = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
+  </script>
 </Layout>
+
+<style is:global>
+  /* ══ /trades 終端佈局(版面對齊本地版「投資組合儀表板」) ══ */
+  #tr-app { font-variant-numeric: tabular-nums; }
+  #tr-app .tr-na { color: var(--muted); font-weight: 500; }
+
+  .tr-privacy {
+    margin: 0 0 0.9rem; padding: 0.55rem 0.85rem; font-size: 0.78rem; line-height: 1.6;
+    color: var(--text-secondary); background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
+  }
+  .tr-privacy b { color: var(--text); font-weight: 700; }
+
+  /* ① 報頭 + 巨大淨值 */
+  .tr-hero { padding: 26px 0 4px; }
+  .tr-kicker { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .tr-kicker .rule { width: 30px; height: 2px; background: var(--accent); flex: none; }
+  .tr-kicker .txt { font-size: 11px; letter-spacing: .24em; color: var(--muted); font-weight: 700; }
+  .tr-kicker .dt { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+  .tr-phase {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .08em; color: var(--accent-hover);
+    border: 1px solid var(--accent-glow); border-radius: var(--radius-sm); padding: 1px 6px;
+  }
+  .tr-num {
+    font-family: var(--font-display);
+    font-size: clamp(46px, 6.6vw, 74px); font-weight: 700;
+    letter-spacing: -0.028em; line-height: 1.04; margin: 14px 0 0; color: var(--text-heading);
+  }
+  .tr-num .cur { font-size: .34em; font-weight: 600; color: var(--muted); margin-right: 10px; letter-spacing: -0.01em; }
+  .tr-sub { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+  .tr-sub b { font-family: var(--font-mono); font-weight: 700; }
+  .tr-sub .sep { margin: 0 8px; }
+
+  /* ② 目標軌道 */
+  .tr-goal { margin-top: 22px; }
+  .tr-goal .g-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .tr-goal .g-head .lbl { font-size: 10.5px; letter-spacing: .18em; color: var(--muted); font-weight: 700; }
+  .tr-goal .g-head .right { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+  .tr-goal .g-head .right b { font-size: 12.5px; font-weight: 700; color: var(--text-secondary); }
+  /* margin-inline 讓端點站牌(半徑 8.5px)留在容器內,避免 scrollWidth 溢出 */
+  .g-track {
+    position: relative; height: 9px; border-radius: 5px;
+    background: rgba(var(--ink), 0.08); margin: 12px 9px 0;
+  }
+  .g-ticks { position: relative; height: 14px; margin: 6px 9px 24px; }
+  .g-fill {
+    position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  }
+  .g-station {
+    position: absolute; top: 50%; transform: translate(-50%, -50%); box-sizing: border-box;
+    width: 13px; height: 13px; border-radius: 50%; z-index: 1;
+    background: rgba(var(--ink), 0.12); border: 2px solid var(--bg);
+  }
+  .g-station.end { width: 17px; height: 17px; box-shadow: inset 0 0 0 2px var(--border-strong); }
+  .g-tick-lbl {
+    position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap;
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--text-secondary); letter-spacing: .03em;
+  }
+  /* 頭尾標籤改為靠齊端點,否則會超出容器造成橫向溢出 */
+  .g-tick-lbl.first { transform: translateX(0); }
+  .g-tick-lbl.last { transform: translateX(-100%); }
+
+  /* ③ KPI 帶 */
+  .tr-stats {
+    display: flex; flex-wrap: wrap; margin-top: 22px; padding-top: 17px;
+    border-top: 1px solid var(--border);
+  }
+  .tr-stat {
+    flex: 1 1 0; border-left: 1px solid var(--border); padding: 2px 16px 2px 22px; min-width: 128px;
+    display: flex; flex-direction: column;
+  }
+  .tr-stat:first-child { border-left: none; padding-left: 0; }
+  #tr-app .micro {
+    font-size: 9px; letter-spacing: .12em; color: var(--muted); font-weight: 700; white-space: nowrap;
+  }
+  .tr-stat .value {
+    font-family: var(--font-mono); font-size: 23px; font-weight: 700;
+    letter-spacing: -0.013em; margin-top: 3px; color: var(--text);
+  }
+  .tr-stat .foot { font-size: 10.5px; color: var(--muted); margin-top: auto; padding-top: 6px; }
+  .tr-stat .meter {
+    height: 3px; border-radius: 2px; background: rgba(var(--ink), 0.08);
+    margin-top: 8px; max-width: 110px; overflow: hidden;
+  }
+  .tr-stat .meter > div { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* ④ 編號區塊 */
+  .tr-block { margin-top: 16px; }
+  #tr-app .panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px 18px; position: relative; min-width: 0;
+    transition: border-color var(--duration) var(--ease-out);
+  }
+  #tr-app .panel:hover { border-color: var(--border-strong); }
+  #tr-app .p-head {
+    display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
+    margin: 0 0 14px; padding-bottom: 11px; border-bottom: 1px solid var(--border);
+  }
+  #tr-app .p-head .idx {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+    color: var(--accent); letter-spacing: .1em;
+  }
+  #tr-app .p-head h2 {
+    font-family: var(--font-display); font-size: 14.5px; font-weight: 700;
+    margin: 0; letter-spacing: -0.005em; color: var(--text-heading);
+  }
+  #tr-app .p-head .sub { color: var(--muted); font-size: 11.5px; }
+  .duo { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; align-items: start; }
+
+  /* 空狀態繪圖區 */
+  .plot {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    min-height: 190px; padding: 1.1rem; text-align: center;
+    background: var(--surface-elevated); border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  .plot--sm { min-height: 92px; }
+  .plot-t { font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--muted); }
+  .plot-e { font-size: 11.5px; color: var(--text-secondary); max-width: 26rem; line-height: 1.6; }
+  #tr-app .note { font-size: 10.5px; color: var(--muted); margin: 10px 0 0; line-height: 1.6; }
+  .dd-head { display: flex; align-items: baseline; gap: 11px; margin: 18px 0 7px; }
+  .dd-head .t { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+  .dd-head .hint { font-size: 10.5px; color: var(--muted); }
+
+  /* 02 配置 */
+  .alloc { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .alloc-donut { flex: none; width: 124px; height: 124px; }
+  .alloc-list { flex: 1 1 12rem; min-width: 0; list-style: none; margin: 0; padding: 0; }
+  .a-row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 3rem; align-items: center;
+    gap: 9px; padding: 5px 0; font-size: 11.5px; }
+  .a-l { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .a-track { height: 5px; border-radius: 3px; background: rgba(var(--ink), 0.08); overflow: hidden; }
+  .a-track i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .a-v { font-family: var(--font-mono); text-align: right; }
+
+  /* 表格 */
+  .tbl-wrap { overflow-x: auto; border-radius: var(--radius-sm); }
+  #tr-app table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  #tr-app th, #tr-app td { padding: 6px 10px; text-align: right; white-space: nowrap; }
+  #tr-app th.l, #tr-app td.l { text-align: left; }
+  #tr-app th:first-child, #tr-app td:first-child { padding-left: 2px; }
+  #tr-app thead th {
+    font-size: 9.5px; font-weight: 600; letter-spacing: .04em; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  #tr-app tbody td { border-bottom: 1px solid rgba(var(--ink), 0.05); color: var(--text); }
+  .tr-empty td {
+    padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 11.5px; line-height: 1.7;
+  }
+  .tr-empty a { color: var(--link-report); }
+  .tr-empty a:hover { color: var(--link-report-hover); }
+
+  /* 05 動作列 */
+  .tr-actions { display: flex; align-items: center; gap: 0.6rem 0.8rem; flex-wrap: wrap; margin-bottom: 12px; }
+  .tr-btn {
+    font: inherit; font-size: 11.5px; font-weight: 600; padding: 0.35rem 0.8rem;
+    color: var(--text-secondary); background: var(--surface-elevated);
+    border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); cursor: not-allowed;
+  }
+  .tr-btn--primary { color: var(--accent-hover); border-color: var(--accent-glow); }
+  .tr-hint { font-size: 10.5px; color: var(--muted); }
+
+  /* 04 個股 */
+  .stock-flex { display: flex; gap: 18px; align-items: stretch; flex-wrap: wrap; }
+  .stock-list {
+    flex: 0 0 190px; max-width: 100%; display: flex; flex-direction: column; gap: 4px;
+    padding: 8px 10px; background: var(--surface-elevated);
+    border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
+  }
+  .s-row { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); align-items: center; gap: 8px; padding: 4px 0; }
+  .s-tk { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .s-bar { height: 4px; border-radius: 2px; background: rgba(var(--ink), 0.08); overflow: hidden; }
+  .s-bar i { display: block; height: 100%; background: var(--accent); }
+  .s-empty { margin: 6px 0 0; font-size: 10.5px; color: var(--muted); text-align: center; }
+  .stock-main { flex: 1 1 18rem; min-width: 0; }
+
+  /* 06 月報 */
+  .rz-stats { display: flex; flex-wrap: wrap; margin: 4px 0 2px; }
+  .rstat {
+    flex: 1 1 0; border-left: 1px solid var(--border); padding: 4px 14px; min-width: 128px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  }
+  .rstat.wide { flex: 1.5 1 0; min-width: 168px; }
+  .rstat:first-child { border-left: none; }
+  .rstat .value { font-family: var(--font-mono); font-size: 17px; font-weight: 700; margin-top: 3px; }
+  .rstat .value.big { font-size: 25px; letter-spacing: -0.015em; }
+
+  .tr-foot {
+    margin: 1.2rem 0 0; padding: 0.8rem 1rem; font-size: 0.74rem; line-height: 1.7;
+    color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: var(--radius-md);
+  }
+
+  /* RWD:min-width:0 防止表格 min-content 撐爆 grid 欄 */
+  @media (max-width: 900px) {
+    .duo { grid-template-columns: minmax(0, 1fr); }
+    .tr-num { font-size: clamp(38px, 11vw, 54px); }
+    .tr-stat { padding: 2px 14px 2px 12px; min-width: 44%; margin-bottom: 12px; }
+    .tr-stat:nth-child(odd) { border-left: none; padding-left: 0; }
+    .stock-list { flex-basis: 100%; }
+  }
+  @media (max-width: 620px) {
+    .g-tick-lbl { font-size: 9px; }
+    .rstat { min-width: 46%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #tr-app *, #tr-app *::before, #tr-app *::after { animation: none !important; transition: none !important; }
+  }
+</style>
