@@ -1,0 +1,52 @@
+# 自足性守門:擋住「本機有檔、repo 沒檔」。
+#
+# 這類錯誤【不會讓 build 失敗】—— 資料讀不到就退回 fallback 或空值,本機一切正常,
+# 只有線上靜默壞掉。實際發生過:.gitignore 忽略了 web/public/data/financials/,
+# 整批官方財務遷移在線上是 no-op,screener 的 roe 空白數悄悄退回 303。
+#
+# 對應 web/scripts/check-selfcontained.mjs(純 Node 標準庫 + git,無需 npm install)。
+#
+# ⚠️ 誠實說明這個 job 抓得到什麼:
+#   這道檢查【本質上是開發機的檢查】。CI 的 checkout 裡每個檔都來自 repo,
+#   「本機有、repo 沒有」的檔在 CI 根本不存在 → 掃描結果必然是 0。
+#   真正的守門在 web 的 predev / prebuild。
+#   本 job 的價值是【第一步的自我驗證】:證明這支檢查工具本身還活著
+#   (注入已知違規 → 必須抓到)。工具死掉而沒人發現,是本專案抓過 9 次的失效模式。
+name: Self-contained data
+
+on:
+  push:
+    paths:
+      - ".gitignore"
+      - "web/scripts/**"
+      - "web/public/data/**"
+      - "web/public/scripts/**"
+      - "web/docs/**"
+      - "data/financials_store/**"
+      - "data/enrichment_store/**"
+      - ".github/workflows/selfcontained.yml"
+  pull_request:
+    paths:
+      - ".gitignore"
+      - "web/scripts/**"
+      - "web/public/data/**"
+      - "web/public/scripts/**"
+      - "web/docs/**"
+      - "data/financials_store/**"
+      - "data/enrichment_store/**"
+
+jobs:
+  selfcontained:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # 先證明這支檢查是活的(注入已知違規 → 必須抓到),再相信它報的「0」。
+      - name: Self-test the checker
+        working-directory: web
+        run: node scripts/check-selfcontained.mjs --self-test
+      - name: Check self-contained data
+        working-directory: web
+        run: node scripts/check-selfcontained.mjs --list

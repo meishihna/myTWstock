@@ -7,16 +7,18 @@
     "node": "20.x"
   },
   "scripts": {
-    "predev": "node scripts/build-data.mjs",
+    "predev": "node scripts/build-data.mjs && node scripts/check-selfcontained.mjs",
     "dev": "astro dev",
     "dev:plain": "astro dev",
-    "prebuild": "node scripts/build-data.mjs",
+    "prebuild": "node scripts/build-data.mjs && node scripts/check-selfcontained.mjs",
     "build": "astro build",
     "postbuild": "node scripts/generate-sitemap.mjs",
     "preview": "astro preview",
     "test:news-resolve": "npx --yes tsx scripts/test-news-resolve.ts",
     "test:news-nlp": "npx --yes tsx scripts/test-news-nlp.ts",
-    "test:reconcile": "node tests/reconcile-live.mjs"
+    "test:reconcile": "node tests/reconcile-live.mjs",
+    "check:selfcontained": "node scripts/check-selfcontained.mjs",
+    "check:selfcontained:self-test": "node scripts/check-selfcontained.mjs --self-test"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.4",
