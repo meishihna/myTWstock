@@ -58,6 +58,18 @@ if (fs.existsSync(idxPath)) {
   }
 }
 
+/**
+ * 位元圖的 asof —— 現場計算的快取 key 需要它。
+ * 在 build 時取出(只取一個欄位),避免前端為了查快取而先載 889KB 的 chips-bits.json。
+ */
+let bitsAsof = "";
+try {
+  const bp = path.join(process.cwd(), "public/data/chips-bits.json");
+  if (fs.existsSync(bp)) bitsAsof = JSON.parse(fs.readFileSync(bp, "utf8")).asof ?? "";
+} catch {
+  bitsAsof = "";
+}
+
 const RISK = [
   "本頁為【歷史回測統計】,僅供教育與研究用途。",
   "歷史績效【不代表未來】表現;任何組合的過去報酬都不保證重現。",
@@ -76,7 +88,7 @@ const RISK = [
     !meta ? (
       <p class="ph-empty-block">回測資料尚未匯入。</p>
     ) : (
-      <div id="sg-app">
+      <div id="sg-app" data-bits-asof={bitsAsof} data-asof={meta.window?.asof ?? ""} data-months={String(meta.window?.months ?? 61)}>
         <p class="sg-warn" role="note">
           <b>歷史回測統計</b>・僅供教育與研究・<b>不代表未來績效</b>・非投資建議・不含任何當前買賣訊號
           <a href="#sg-disc-foot">完整聲明 ↓</a>
@@ -186,6 +198,12 @@ const RISK = [
 <script>
   import { createChart, CrosshairMode, type IChartApi, type ISeriesApi } from "lightweight-charts";
   import { getWatchlist } from "../lib/watchlist";
+  import SUFFIX from "../lib/stockSuffix.json";
+  import {
+    computeLive, getResult, putResult, resultKey, marketOf, quota,
+    idbAvailable, LiveBacktestError, MAX_RESULTS,
+    type LiveResult, type Progress,
+  } from "../lib/liveBacktest";
 
   interface Idx {
     confLayers: string[]; entryRules: string[]; exitRules: string[]; exitReasons: string[];
@@ -221,6 +239,11 @@ const RISK = [
     const sgn = (v: number) => (v > 0 ? "+" : "");
     const cls = (v: unknown) => { const n = num(v); return n == null ? "" : n > 0 ? "up" : n < 0 ? "down" : ""; };
     const sd = (v: unknown, d = 2) => { const n = num(v); return n == null ? "—" : sgn(n) + n.toFixed(d); };
+
+    /* 現場計算用的視窗參數與位元圖 asof(build 時寫入,避免為查快取先載 889KB) */
+    const ASOF = app.dataset.asof || "";
+    const MONTHS = Number(app.dataset.months || 61);
+    const BITS_ASOF = app.dataset.bitsAsof || "";
 
     let IDX: Idx | null = null;
     let stock: Stock | null = null;
@@ -284,24 +307,231 @@ const RISK = [
         wlHas.map((c) => tab(c, true)).join("") +
         (wlHas.length && rest.length ? '<span class="tabsep" aria-hidden="true"></span>' : "") +
         rest.map((c) => tab(c, false)).join("") +
-        wlMiss.map((c) =>
-          `<button class="stab off" type="button" disabled aria-disabled="true"
-             title="尚未納入回測範圍"><span class="wl">★</span><span class="code">${esc(c)}</span><span class="na">尚未納入回測範圍</span></button>`).join("");
+        /* 自選但無預算資料:上市 → 可現場計算;上櫃 → TPEx 無 CORS,明確標示不支援 */
+        wlMiss.map((c) => {
+          const mk = marketOf(c, SUFFIX as Record<string, string>);
+          if (mk === "twse") {
+            return `<button class="stab live" type="button" role="tab" aria-selected="false"
+              data-code="${esc(c)}" data-live="1" title="尚未預先計算,可由你的瀏覽器現場計算"
+              ><span class="wl">★</span><span class="code">${esc(c)}</span><span class="na">可現場計算</span></button>`;
+          }
+          const why = mk === "tpex" ? "上櫃暫不支援" : "非上市個股";
+          return `<button class="stab off" type="button" disabled aria-disabled="true"
+             title="${esc(why)}"><span class="wl">★</span><span class="code">${esc(c)}</span><span class="na">${esc(why)}</span></button>`;
+        }).join("");
 
       box.querySelectorAll<HTMLButtonElement>(".stab:not([disabled])").forEach((b) =>
-        b.addEventListener("click", () => selectStock(b.dataset.code!)));
+        b.addEventListener("click", () =>
+          b.dataset.live ? selectLive(b.dataset.code!) : selectStock(b.dataset.code!)));
 
+      const liveCount = wlMiss.filter((c) => marketOf(c, SUFFIX as Record<string, string>) === "twse").length;
+      const blockedCount = wlMiss.length - liveCount;
       if (!wl.length) {
         note.hidden = false;
         note.innerHTML = `目前顯示全部可回測標的(${avail.length} 檔)。到<a href="/watchlist">自選股</a>加入股票,這裡會優先顯示你的股票。`;
       } else if (wlMiss.length) {
         note.hidden = false;
-        note.innerHTML = `你的自選有 ${wlMiss.length} 檔尚未納入回測範圍(已標示、不可點選)。目前回測涵蓋 ${avail.length} 檔。`;
+        const parts: string[] = [];
+        if (liveCount) parts.push(`${liveCount} 檔可由你的瀏覽器<b>現場計算</b>`);
+        if (blockedCount) parts.push(`${blockedCount} 檔暫不支援(上櫃官方端點不允許瀏覽器直接存取)`);
+        note.innerHTML = `你的自選有 ${parts.join("、")}。目前已預先計算 ${avail.length} 檔。`;
       } else {
         note.hidden = true;
         note.innerHTML = "";
       }
       return order;
+    }
+
+    /* ── 現場計算 ──────────────────────────────────────────────
+     * 資料由【使用者瀏覽器】直接向臺灣證券交易所取得,結果只存在瀏覽器,不上傳。
+     * 數值與預先計算的 signals/{code}.json 逐格相同(tests/reconcile-live.mjs 把關)。 */
+    let liveAbort: AbortController | null = null;
+    let liveBusy = false;
+    /** 代號→中文名。現場計算的個股不在 signals-index 內,名字要另外查,
+     *  否則會顯示「1101」而不是「台泥」,與預算股有視覺落差。
+     *  與抓取並行載入 → 不增加等待時間;只在使用者真的選了現場計算個股時才抓。 */
+    let nameMap: Record<string, string> | null = null;
+    let namePromise: Promise<void> | null = null;
+    function loadNames() {
+      if (nameMap || namePromise) return namePromise ?? Promise.resolve();
+      namePromise = fetch("/data/reports-index.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          const bt = j?.byTicker ?? {};
+          nameMap = {};
+          for (const k of Object.keys(bt)) nameMap[k] = bt[k]?.name ?? k;
+        })
+        .catch(() => { nameMap = {}; });
+      return namePromise;
+    }
+    const nameOf = (code: string) =>
+      IDX?.stocks.find((s) => s.code === code)?.name || nameMap?.[code] || code;
+
+    /** 由 LiveResult 合成與預算股相容的 stock/detail/prices,讓十區塊完全共用 */
+    function adoptLive(rec: LiveResult) {
+      const m = rec.meta as Record<string, unknown>;
+      stock = {
+        code: rec.code,
+        name: nameOf(rec.code),
+        market: "twse",
+        期間: (m["期間"] as [string, string]) ?? [rec.prices.dates[0]!, rec.prices.dates.at(-1)!],
+        交易日數: (m["交易日數"] as number) ?? rec.barsCount,
+        buyhold: rec.buyhold,
+        confLayers: rec.confirmed ? (m["confLayers"] as string[]) : ["無"],
+        files: { signals: "", prices: "" },
+        combos: rec.combos.length,
+        trades: rec.combos.reduce((a, c) => a + c.t.length, 0),
+        chips: null,
+        layerSummary: [],
+        __live: rec,
+      } as unknown as Stock;
+      detail = { code: rec.code, combos: rec.combos } as unknown as Detail;
+      prices = rec.prices as unknown as Prices;
+    }
+
+    function liveOf(): LiveResult | null {
+      return (stock as unknown as { __live?: LiveResult })?.__live ?? null;
+    }
+
+    function livePanel(inner: string) {
+      $("sg-main")!.hidden = false;
+      $("sg-detail")!.innerHTML = "";
+      $("sg-list")!.innerHTML = "";
+      $("sg-kgrid")!.innerHTML = "";
+      $("sg-chips")!.innerHTML = "";
+      $("sg-layers")!.innerHTML = "";
+      $("sg-bhcard")!.innerHTML = "";
+      $("sg-lnote")!.textContent = "";
+      $("sg-stk-adv")!.textContent = "";
+      $("sg-stk-meta")!.textContent = "";
+      $("sg-detail")!.innerHTML = `<div class="lvp">${inner}</div>`;
+    }
+
+    async function selectLive(code: string) {
+      if (liveBusy) return;
+      document.querySelectorAll<HTMLButtonElement>(".stab").forEach((b) => {
+        const on = b.dataset.code === code;
+        b.classList.toggle("active", on);
+        if (!b.disabled) b.setAttribute("aria-selected", on ? "true" : "false");
+        if (on) b.scrollIntoView({ block: "nearest", inline: "nearest" });
+      });
+      layerIdx = 0; comboIdx = -1; detail = null; prices = null; range = "all";
+      stock = null;
+      loadNames();
+      $("sg-stk-top")!.innerHTML = `<span class="stk-name">${esc(nameOf(code))}</span>
+        <span class="stk-code">${esc(code)}</span><span class="badge">尚未預先計算</span>`;
+      ($("sg-tpex-note") as HTMLElement).hidden = true;
+
+      /* 已算過就直接讀快取(秒開) */
+      const cached = BITS_ASOF ? await getResult(resultKey(code, ASOF, BITS_ASOF)) : null;
+      if (cached) { await loadNames(); adoptLive(cached); renderLiveAll(); return; }
+
+      livePanel(`
+        <div class="lv-head"><span class="lv-cap">現場計算回測</span>
+          <h2>${esc(code)}</h2></div>
+        <p class="lv-lead">此檔尚未預先計算。可由<b>你的瀏覽器</b>直接向臺灣證券交易所取得近
+          ${IDX!.stocks.length ? MONTHS : 61} 個月日K,在本機算出 450 組回測。
+          <span class="lv-sub">約 20–30 秒 · 資料不經過本站伺服器 · 結果只存在你的瀏覽器</span></p>
+        <details class="lv-more"><summary>這是怎麼運作的?</summary>
+          <ul>
+            <li>日K 由你的瀏覽器直接向證交所公開端點取得,本站不轉發、不儲存。</li>
+            <li>計算使用與本站預先計算<b>完全相同</b>的引擎,數值逐格一致。</li>
+            <li>結果存在你瀏覽器的本機儲存空間,最多保留 ${MAX_RESULTS} 檔,可隨時清除。</li>
+            <li>歷史月份會被快取,之後重算同一檔只需補抓當月。</li>
+          </ul>
+        </details>
+        <div class="lv-actions"><button class="lv-btn" id="lv-go" type="button">開始計算</button></div>
+        <p class="lv-status" id="lv-status" role="status"></p>`);
+      $("lv-go")!.addEventListener("click", () => runLive(code));
+    }
+
+    async function runLive(code: string, resumeNote = "") {
+      if (liveBusy) return;
+      liveBusy = true;
+      liveAbort = new AbortController();
+      livePanel(`
+        <div class="lv-head"><span class="lv-cap">現場計算中</span><h2>${esc(code)}</h2></div>
+        ${resumeNote ? `<p class="lv-resume">${resumeNote}</p>` : ""}
+        <p class="lv-phase" id="lv-phase" role="status">準備中…</p>
+        <div class="lv-track" role="progressbar" aria-label="計算進度" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="0" id="lv-track"><i id="lv-fill" style="width:0"></i></div>
+        <div class="lv-actions"><button class="lv-btn lv-btn--ghost" id="lv-cancel" type="button">取消</button></div>`);
+      $("lv-cancel")!.addEventListener("click", () => liveAbort?.abort());
+
+      let lastP: { done: number; total: number } | null = null;
+      const onProgress = (p: Progress) => {
+        if (p.phase === "fetch") lastP = { done: p.done, total: p.total };
+        const phase = $("lv-phase"), fill = $("lv-fill"), track = $("lv-track");
+        if (!phase || !fill || !track) return;
+        let pct = 0, txt = "";
+        if (p.phase === "fetch") {
+          pct = Math.round((p.done / p.total) * 90);
+          txt = `抓取日K… 第 ${p.done} / ${p.total} 個月` + (p.cacheHits ? `(${p.cacheHits} 個月來自本機快取)` : "");
+        } else if (p.phase === "chips") { pct = 93; txt = "載入確認層資料…"; }
+        else if (p.phase === "compute") { pct = 96; txt = "計算 450 組…"; }
+        else { pct = 100; txt = "完成"; }
+        phase.textContent = txt;
+        fill.style.width = pct + "%";
+        track.setAttribute("aria-valuenow", String(pct));
+      };
+
+      try {
+        const rec = await computeLive(code, {
+          asof: ASOF, months: MONTHS, signal: liveAbort.signal, onProgress,
+        });
+        const saved = await putResult(rec);
+        await loadNames();          // 與抓取並行,此時通常已完成
+        adoptLive(rec);
+        renderLiveAll(saved.cached ? "" : "本機儲存空間不足,本次結果未快取(重新整理後會消失)。");
+      } catch (e) {
+        const err = e as LiveBacktestError & { name?: string };
+        /* 取消也要給續傳提示:已抓的月份都在快取裡,不講使用者會以為要重等 20 秒 */
+        if (err?.name === "AbortError") { renderLiveError(code, "cancel", lastP); }
+        else { renderLiveError(code, err?.kind ?? "fetch", err?.progress ?? null); }
+      } finally {
+        liveBusy = false; liveAbort = null;
+      }
+    }
+
+    function renderLiveError(code: string, kind: string, progress: { done: number; total: number } | null) {
+      /* 訊息一律描述現象,不臆測原因 —— 瀏覽器分不出額度/維護/網路 */
+      const MSG: Record<string, [string, string]> = {
+        cancel: ["已取消計算。", ""],
+        fetch: ["暫時取不到日K資料。", "已抓到的月份會保留,重試時不需重來。"],
+        not_listed: ["查無此代號的上市日K資料。", "本功能僅支援上市個股。"],
+        insufficient: ["此檔歷史資料不足以計算回測。", ""],
+        engine: ["計算失敗。", ""],
+        tpex: ["上櫃個股暫不支援現場計算。", "官方端點不允許瀏覽器直接存取。"],
+      };
+      const [msg, hint] = MSG[kind] ?? MSG.fetch;
+      const resume = progress && progress.done > 0
+        ? `<p class="lv-resume">已完成 ${progress.done} / ${progress.total} 個月,<b>重試將從中斷處繼續</b>,不需重等。</p>`
+        : "";
+      livePanel(`
+        <div class="lv-head"><span class="lv-cap">現場計算</span><h2>${esc(code)}</h2></div>
+        <p class="lv-err">${esc(msg)}</p>
+        ${hint ? `<p class="lv-sub">${esc(hint)}</p>` : ""}
+        ${resume}
+        <div class="lv-actions"><button class="lv-btn" id="lv-retry" type="button">重試</button></div>`);
+      $("lv-retry")!.addEventListener("click", () =>
+        runLive(code, progress && progress.done > 0
+          ? `接續上次:已有 ${progress.done} / ${progress.total} 個月在本機快取。` : ""));
+    }
+
+    /** 現場結果 → 完全套用預算股的十區塊渲染 */
+    function renderLiveAll(warn = "") {
+      const rec = liveOf();
+      if (!rec) return;
+      renderIdBlock(); renderChips(); renderLayers();
+      renderKgrid(); renderAdvice(); renderList();
+      const meta = $("sg-stk-meta")!;
+      const cov = rec.covered != null && rec.covered < rec.barsCount
+        ? ` · 確認層資料截至 ${rec.bitsAsof}(未涵蓋最後 ${rec.barsCount - rec.covered} 個交易日)`
+        : rec.confirmed ? ` · 確認層資料截至 ${rec.bitsAsof}` : "";
+      meta.innerHTML = `${rec.combos.length} 個組合 · ${rec.combos.reduce((a, c) => a + c.t.length, 0).toLocaleString("zh-TW")} 筆歷史交易` +
+        `<span class="lv-tag">本機計算</span>` +
+        `資料至 ${esc(rec.asof)}${esc(cov)}` +
+        (warn ? `<span class="lv-warn">${esc(warn)}</span>` : "");
     }
 
     function selectStock(code: string) {
@@ -395,7 +625,11 @@ const RISK = [
     function renderChips() {
       const s = stock!, box = $("sg-chips")!;
       if (!s.chips) {
-        box.innerHTML = `<div class="ki"><div class="kl">官方籌碼與估值</div><div class="kv ph">上櫃・不適用<span class="ks">T86／MI_MARGN／BWIBBU 僅上市</span></div></div>`;
+        /* 現場計算沒有官方籌碼列(那是資料端另外抓 T86/MI_MARGN/BWIBBU 產生的),
+           與「上櫃不適用」是兩種不同原因,不可共用同一句話 */
+        box.innerHTML = liveOf()
+          ? `<div class="ki"><div class="kl">官方籌碼與估值</div><div class="kv ph">現場計算不提供<span class="ks">此列需資料端預先抓取 T86／MI_MARGN／BWIBBU</span></div></div>`
+          : `<div class="ki"><div class="kl">官方籌碼與估值</div><div class="kv ph">上櫃・不適用<span class="ks">T86／MI_MARGN／BWIBBU 僅上市</span></div></div>`;
         return;
       }
       const c = s.chips, pct = c.百分位5年 || {};
@@ -862,6 +1096,48 @@ const RISK = [
   .sortsel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .sg-tpex-note { margin: 6px 0 0; font-size: 11px; color: var(--text-secondary); }
 
+  /* 現場計算面板 */
+  /* 面板 wrapper 用 .lvp:層對照列已有 .lv(數值欄),同名會讓 max-width 洩到那裡 */
+  .lvp { max-width: 46rem; }
+  .lv-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .lv-cap { font-size: 9.5px; font-weight: 700; letter-spacing: .14em; color: var(--accent); }
+  .lv-head h2 { font-family: var(--font-display); margin: 0; font-size: 17px;
+    font-weight: 750; color: var(--text-heading); }
+  .lv-lead { font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 10px 0 0; }
+  .lv-sub { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
+  .lv-more { margin: 10px 0 0; }
+  .lv-more summary { cursor: pointer; font-size: 11.5px; color: var(--muted); }
+  .lv-more summary:hover { color: var(--text); }
+  .lv-more summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lv-more ul { margin: 8px 0 0; padding-left: 1.1rem; }
+  .lv-more li { font-size: 11.5px; line-height: 1.7; color: var(--text-secondary); }
+  .lv-actions { display: flex; gap: 0.6rem; margin-top: 14px; flex-wrap: wrap; }
+  .lv-btn { font: inherit; font-size: 12.5px; font-weight: 700; padding: 0.42rem 1.1rem;
+    cursor: pointer; color: var(--accent-ink); background: var(--accent);
+    border: 1px solid var(--accent); border-radius: var(--radius-sm);
+    transition: background var(--duration) var(--ease-out); }
+  .lv-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+  .lv-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lv-btn--ghost { color: var(--text-secondary); background: var(--surface-elevated);
+    border-color: var(--border-strong); }
+  .lv-btn--ghost:hover { color: var(--text); background: var(--surface-elevated); border-color: var(--accent); }
+  .lv-phase { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); margin: 14px 0 6px; }
+  .lv-track { position: relative; height: 6px; border-radius: 3px;
+    background: rgba(var(--ink), 0.08); overflow: hidden; }
+  .lv-track > i { display: block; height: 100%; border-radius: 3px; background: var(--accent);
+    transition: width .25s var(--ease-out); }
+  .lv-resume { font-size: 11.5px; line-height: 1.7; color: var(--text-secondary);
+    margin: 10px 0 0; padding: 0.5rem 0.75rem; background: var(--surface-elevated);
+    border-left: 2px solid var(--accent); border-radius: var(--radius-sm); }
+  .lv-resume b { color: var(--text); }
+  .lv-err { font-size: 13px; font-weight: 700; color: var(--text); margin: 12px 0 0; }
+  .lv-status { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+  .lv-tag { display: inline-block; margin: 0 6px; padding: 0 6px; font-size: 9.5px; font-weight: 700;
+    letter-spacing: .06em; color: var(--accent-hover); border: 1px solid var(--accent-glow);
+    border-radius: var(--radius-sm); }
+  .lv-warn { display: block; margin-top: 3px; color: var(--text-secondary); }
+  .stab.live .na { font-size: 9.5px; margin-left: 4px; color: var(--accent-hover); }
+
   /* ⑦ 左右分欄 */
   .sg-layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 14px; padding: 14px 0 10px; }
   /* min-width:0 是必要的:grid/flex 子項預設 min-width:auto,會被 11 欄表格的 min-content 撐爆容器 */
@@ -1016,6 +1292,10 @@ const RISK = [
     .sg-tabs { order: 3; flex-basis: 100%; }
     .stab { height: 38px; }
     .kinfo .ki { padding: 0 11px; }
+    /* 佔位/說明型的籌碼列(現場計算不提供、上櫃不適用)是整句話,
+       窄幅必須允許斷行,否則 nowrap 會撐破容器把字切掉 */
+    .kinfo .kv.ph { white-space: normal; }
+    .kinfo .kv.ph .ks { display: block; margin-left: 0; margin-top: 2px; }
     .pbox { height: 200px; }
     .dstats { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
   }

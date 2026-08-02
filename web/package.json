@@ -15,7 +15,8 @@
     "postbuild": "node scripts/generate-sitemap.mjs",
     "preview": "astro preview",
     "test:news-resolve": "npx --yes tsx scripts/test-news-resolve.ts",
-    "test:news-nlp": "npx --yes tsx scripts/test-news-nlp.ts"
+    "test:news-nlp": "npx --yes tsx scripts/test-news-nlp.ts",
+    "test:reconcile": "node tests/reconcile-live.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.4",
