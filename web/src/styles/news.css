@@ -379,7 +379,9 @@
   content: "·";
   display: inline;
   margin: 0 0.4rem;
-  color: color-mix(in srgb, var(--news-ink-faint) 65%, transparent);
+  /* 不可再用 65% 透明:--news-ink-faint 本身已接近 AA 下限,再打薄會掉到 2.6–3.0。
+     分隔點與相鄰文字同色即可,靠 margin 區隔而非靠淡化。 */
+  color: var(--news-ink-faint);
   font-weight: 400;
 }
 
@@ -703,7 +705,9 @@
 }
 .news-cluster-badge:hover,
 .news-cluster-badge.is-open {
-  background: color-mix(in srgb, var(--news-link) 22%, transparent);
+  /* 22% 底會把 --news-link-hover 壓到 4.41(淺色 AA 不過);底色收斂並同時加深文字 */
+  background: color-mix(in srgb, var(--news-link) 14%, transparent);
+  color: color-mix(in srgb, var(--news-link-hover) 70%, var(--news-ink-bright));
 }
 
 /* 同事件其他來源:預設收合,展開時內縮顯示 */

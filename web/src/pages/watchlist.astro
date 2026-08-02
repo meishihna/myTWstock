@@ -378,9 +378,11 @@ try {
       font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
       border-radius: 999px; white-space: nowrap; cursor: help;
     }
-    .wl__rev--surge { border-color: color-mix(in srgb, var(--up) 40%, transparent); background: color-mix(in srgb, var(--up) 8%, transparent); }
+    /* 底色不用 --up 8%:同色淡底會把區塊內的 --up 紅數字壓到 4.43(AA 不過)。
+       語意改由左邊框承載,底色維持中性。 */
+    .wl__rev--surge { border-color: color-mix(in srgb, var(--up) 40%, transparent); background: rgba(var(--ink), 0.03); }
     .wl__rev--surge .wl__rev-flag { color: color-mix(in srgb, var(--up) 72%, var(--text)); background: color-mix(in srgb, var(--up) 15%, transparent); }
-    .wl__rev--drop { border-color: color-mix(in srgb, var(--down) 40%, transparent); background: color-mix(in srgb, var(--down) 8%, transparent); }
+    .wl__rev--drop { border-color: color-mix(in srgb, var(--down) 40%, transparent); background: rgba(var(--ink), 0.03); }
     .wl__rev--drop .wl__rev-flag { color: color-mix(in srgb, var(--down) 72%, var(--text)); background: color-mix(in srgb, var(--down) 18%, transparent); }
 
     .wl__rm {

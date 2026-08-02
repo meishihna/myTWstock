@@ -623,7 +623,10 @@ const pageTitle = `${theme.title} — ${THEMES_PAGE.nav} — ${SITE.name}`;
 
     .theme-related { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; margin: 0.2rem 0 1.3rem; }
     .theme-related-label { color: var(--muted); font-size: 0.82rem; }
-    .rel-n { margin-left: 5px; padding: 0 5px; border-radius: 7px; background: var(--accent-soft); color: var(--accent-hover); font-size: 0.78em; font-weight: 500; font-variant-numeric: tabular-nums; }
+    /* 底色必須用【隨主題翻轉】的 --surface:
+       --accent-soft(金底)在淺色 hover 掉到 3.93;rgba(--ink,.07) 在淺色是【變暗】,
+       深色文字配變暗的底一樣不過(4.47/3.83)。--surface 淺色亮、深色暗,兩邊都拉得開。 */
+    .rel-n { margin-left: 5px; padding: 0 5px; border-radius: 7px; background: var(--surface); color: var(--accent-hover); font-size: 0.78em; font-weight: 500; font-variant-numeric: tabular-nums; }
     .theme-rel-chip { font-size: 0.78rem; line-height: 1.5; padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--accent-hover); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); transition: background var(--duration) var(--ease-out); }
     .theme-rel-chip:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
     .theme-rel-chip.is-plain { color: var(--muted); background: transparent; border-color: var(--border); }

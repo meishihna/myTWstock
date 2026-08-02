@@ -116,7 +116,21 @@ export function tileTextColor(pct: number | null): string {
   const L = relLum(r, g, b);
   const cr = (a: number, x: number) =>
     (Math.max(a, x) + 0.05) / (Math.min(a, x) + 0.05);
-  const dark = relLum(11, 12, 14);
-  const light = relLum(245, 243, 238);
-  return cr(L, dark) >= cr(L, light) ? "#0b0c0e" : "#f5f3ee";
+  /**
+   * 候選再加入純黑/純白:最差的中紅磚 rgb(172,98,95) 用主題墨色 #0b0c0e 僅 4.35(AA 不過),
+   * 純黑可達 4.67。磚底色是資料編碼不可動,唯一能動的是標籤墨色 → 四候選取對比最高者。
+   */
+  const cands: [string, number][] = [
+    ["#0b0c0e", relLum(11, 12, 14)],
+    ["#f5f3ee", relLum(245, 243, 238)],
+    ["#000000", relLum(0, 0, 0)],
+    ["#ffffff", relLum(255, 255, 255)],
+  ];
+  let best = cands[0]![0];
+  let bestCr = -1;
+  for (const [hex, lum] of cands) {
+    const c = cr(L, lum);
+    if (c > bestCr) { bestCr = c; best = hex; }
+  }
+  return best;
 }
