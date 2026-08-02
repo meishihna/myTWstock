@@ -330,6 +330,123 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
             return ((i % tabs.length) + tabs.length) % tabs.length;
           }
 
+          /* ── FinMind:一律由【使用者瀏覽器】匿名直抓 ────────────────────────
+           * 本站【不】在伺服器端抓取、【不】快取後供其他訪客、【不】使用任何金鑰。
+           * 使用者自己就是 FinMind 的用戶,本站只提供介面。
+           *
+           * 實測(2026-08-02):成功回應帶 access-control-allow-origin: *,可跨域;
+           * 但【錯誤回應(400 等)不帶 CORS 標頭】→ 瀏覽器只會拿到不透明的 Failed to fetch,
+           * 無從分辨「額度用完 / 服務異常 / 使用者網路問題」→ 因此一律顯示「暫時取不到」,
+           * 絕不臆測原因、絕不自動重試轟炸。
+           */
+          var FINMIND_V4 = "https://api.finmindtrade.com/api/v4/data";
+          var NEWS_DAYS = 5;
+          var MAX_HEADLINES = 8;
+          var SRC_BLACKLIST = ["CMoney", "facebook", "Facebook", "玩股網", "PTT", "Dcard"];
+          var TITLE_BLACKLIST = [
+            "股市爆料同學會", "期貨服務", "盤前規劃", "盤後", "當沖", "籌碼K線", "技術分析",
+            "股東會", "股東常會", "股東人數", "除息", "除權", "配息", "現金股利", "減資", "增資",
+            "庫藏股", "買回", "董事會決議", "停牌", "變更交易", "選擇權", "權證",
+            "能不能接", "還能買", "該不該", "跌破", "漲破", "回跌", "軋空", "作帳",
+          ];
+          var STRONG = [
+            "訂單", "接單", "轉單", "出貨", "拉貨", "擴產", "產能", "漲價", "報價", "調漲",
+            "毛利", "營收", "業績", "財報", "財測", "EPS", "純益", "稅後", "需求", "缺貨",
+            "得標", "標案", "認證", "打入", "量產", "併購", "旺季", "暢旺", "強勁", "暴增",
+            "激增", "年增", "月增", "衰退", "銳減", "轉盈", "轉虧", "去化", "報喜", "法說",
+            "展望", "新客戶", "供應鏈", "接獲", "簽約", "合約", "投產", "新廠",
+          ];
+          /* 只快取在本分頁記憶體(同一 session 切換頁籤不重打);不跨使用者、不落地 */
+          var newsMemo = {};
+
+          function cleanTitle(t) {
+            var s = (t || "").trim();
+            s = s.replace(/\s*[-–—]\s*[^-–—]{1,20}$/, "").trim();
+            s = s.replace(/^\d{4,6}\s+\S+\s*[-–—]\s*/, "").trim();
+            return s;
+          }
+          function strongScore(t) {
+            var n = 0;
+            for (var i = 0; i < STRONG.length; i++) if (t.indexOf(STRONG[i]) >= 0) n++;
+            return n;
+          }
+          /** 成功回陣列(可能為空);【失敗回 null】——
+           *  失敗與「當天真的沒新聞」必須分得開,否則全掛時會誤顯示「近期無相關新聞」 */
+          function fetchDay(tk, day, signal) {
+            var url =
+              FINMIND_V4 + "?dataset=TaiwanStockNews&data_id=" + encodeURIComponent(tk) +
+              "&start_date=" + day;
+            return fetch(url, { signal })
+              .then(function (r) {
+                if (!r.ok) return null;
+                return r.json().then(
+                  function (j) {
+                    return j && j.status === 200 && Array.isArray(j.data) ? j.data : null;
+                  },
+                  function () { return null; }
+                );
+              })
+              .catch(function () { return null; });
+          }
+          /** 回傳 Promise<heads[]>;整批皆失敗則 reject(讓 UI 顯示「暫時取不到」) */
+          function fetchNews(tk) {
+            if (newsMemo[tk]) return Promise.resolve(newsMemo[tk]);
+            var today = new Date();
+            var days = [];
+            for (var i = 0; i < NEWS_DAYS; i++) {
+              days.push(new Date(today.getTime() - i * 86400000).toISOString().slice(0, 10));
+            }
+            var ctrl = typeof AbortController === "function" ? new AbortController() : null;
+            var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 9000);
+            return Promise.all(
+              days.map(function (d) { return fetchDay(tk, d, ctrl ? ctrl.signal : undefined); })
+            ).then(function (batches) {
+              clearTimeout(timer);
+              var rows = [];
+              var okCount = 0;
+              batches.forEach(function (b) {
+                if (b === null) return;      /* 該日請求失敗 */
+                okCount++;
+                rows = rows.concat(b);
+              });
+              /* 【全部日期都失敗】→ 視為取不到,丟出錯誤讓 UI 顯示「暫時取不到」+ 重試。
+                 只要有任一日成功(即使回空陣列),就是有效結果 → 可顯示「近期無相關新聞」。 */
+              if (okCount === 0) throw new Error("unavailable");
+              var seen = {};
+              var cand = [];
+              rows.forEach(function (r) {
+                var rawTitle = String((r && r.title) || "");
+                var src = String((r && r.source) || "");
+                for (var i = 0; i < SRC_BLACKLIST.length; i++)
+                  if (src.indexOf(SRC_BLACKLIST[i]) >= 0) return;
+                for (var k = 0; k < TITLE_BLACKLIST.length; k++)
+                  if (rawTitle.indexOf(TITLE_BLACKLIST[k]) >= 0) return;
+                var t = cleanTitle(rawTitle);
+                var key = t.replace(/\s+/g, "").slice(0, 24);
+                if (!t || seen[key]) return;
+                seen[key] = 1;
+                cand.push({
+                  d: String((r && r.date) || "").slice(0, 10),
+                  t: t,
+                  s: src,
+                  u: r && typeof r.link === "string" && r.link ? r.link : null,
+                  _st: strongScore(t),
+                });
+              });
+              cand.sort(function (a, b) {
+                return b._st - a._st || (a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
+              });
+              var heads = cand.slice(0, MAX_HEADLINES).map(function (h) {
+                return { d: h.d, t: h.t, s: h.s, u: h.u };
+              });
+              newsMemo[tk] = heads;   /* 走到這裡代表至少一日成功,結果有效可快取(僅本分頁記憶體) */
+              return heads;
+            }, function () {
+              clearTimeout(timer);
+              throw new Error("unavailable");
+            });
+          }
+
           function renderNews(panel, heads) {
             var status = panel.querySelector(".relation-news-status");
             if (!heads || !heads.length) {
@@ -364,10 +481,38 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
             var src = document.createElement("p");
             src.className = "relation-news-src";
             src.textContent =
-              "資料來源：公開新聞（FinMind）；僅供參考，非投資建議。";
+              "資料來源：FinMind（第三方，非官方）。由你的瀏覽器直接取得，本站不儲存、不轉發。僅供參考，非投資建議。";
             panel.textContent = "";
             panel.appendChild(ul);
             panel.appendChild(src);
+          }
+
+          /** 失敗一律顯示「暫時取不到」+ 重試鈕;不臆測原因、不自動重試 */
+          function renderNewsError(panel) {
+            panel.textContent = "";
+            var p = document.createElement("p");
+            p.className = "relation-news-status";
+            p.textContent = "暫時取不到新聞。";
+            var hint = document.createElement("p");
+            hint.className = "relation-news-src";
+            hint.textContent =
+              "本欄位由你的瀏覽器直接向 FinMind（第三方，非官方）取得，本站不儲存、不轉發。";
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "relation-news-retry";
+            btn.textContent = "重試";
+            btn.addEventListener("click", function () {
+              panel.removeAttribute("data-news-loaded");
+              panel.textContent = "";
+              var s = document.createElement("p");
+              s.className = "relation-news-status";
+              s.textContent = "載入中…";
+              panel.appendChild(s);
+              loadNews(panel.closest(".relation-tabpanel") || panel.parentNode);
+            });
+            panel.appendChild(p);
+            panel.appendChild(btn);
+            panel.appendChild(hint);
           }
 
           function loadNews(panelWrap) {
@@ -377,17 +522,14 @@ const relationIdBase = entries.map((e) => e.key).join("-") || "relation";
             var tk = panel.getAttribute("data-news-ticker");
             if (!tk) return;
             panel.setAttribute("data-news-loaded", "1");
-            var status = panel.querySelector(".relation-news-status");
-            fetch("/api/revenue-news/" + encodeURIComponent(tk))
-              .then(function (r) {
-                return r.ok ? r.json() : null;
-              })
-              .then(function (j) {
-                renderNews(panel, j && j.heads ? j.heads : []);
+            /* 瀏覽器直抓 FinMind;不經本站伺服器 */
+            fetchNews(tk)
+              .then(function (heads) {
+                renderNews(panel, heads);
               })
               .catch(function () {
-                panel.removeAttribute("data-news-loaded"); /* 允許重試 */
-                if (status) status.textContent = "新聞載入失敗，請稍後再試。";
+                panel.removeAttribute("data-news-loaded"); /* 允許使用者按重試 */
+                renderNewsError(panel);
               });
           }
 
