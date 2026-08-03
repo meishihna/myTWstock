@@ -25,8 +25,16 @@ const FIN_TABLE_ROW_EN_TO_ZH: Record<string, string> = {
   CAPEX: "資本支出",
 };
 
-function translateFinancialTableFirstColumn(md: string): string {
-  const sorted = Object.entries(FIN_TABLE_ROW_EN_TO_ZH).sort(
+/**
+ * @param gaLabel 覆寫 `General & Admin Exp` 的中文列名。
+ *   store 寫進該欄的其實是【營業費用合計】(推銷+管理+研發),不是管理費用 ——
+ *   由呼叫端依 financialsAdapter 的 `gaIsTotalOpex` 決定要顯示哪一個名稱。
+ */
+function translateFinancialTableFirstColumn(md: string, gaLabel?: string): string {
+  const map = gaLabel
+    ? { ...FIN_TABLE_ROW_EN_TO_ZH, "General & Admin Exp": gaLabel }
+    : FIN_TABLE_ROW_EN_TO_ZH;
+  const sorted = Object.entries(map).sort(
     (a, b) => b[0].length - a[0].length
   );
   return md
@@ -52,7 +60,8 @@ function translateFinancialTableFirstColumn(md: string): string {
 export function renderReportMarkdown(
   md: string,
   nameToTicker: Record<string, string>,
-  labelToWikiSlug?: Record<string, string>
+  labelToWikiSlug?: Record<string, string>,
+  opts?: { gaLabel?: string }
 ): string {
   const wiki = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
   const processed = md.replace(wiki, (_m, raw: string) => {
@@ -64,6 +73,6 @@ export function renderReportMarkdown(
     const slug = labelToWikiSlug?.[label] ?? wikiLinkSlug(label);
     return `[${label}](/wiki/${slug})`;
   });
-  const withZhRows = translateFinancialTableFirstColumn(processed);
+  const withZhRows = translateFinancialTableFirstColumn(processed, opts?.gaLabel);
   return marked.parse(withZhRows) as string;
 }

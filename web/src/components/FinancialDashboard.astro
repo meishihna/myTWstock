@@ -33,10 +33,23 @@ interface Props {
   chips?: ChipsRow | null;
   chipsDate?: string | null;
   chipsHistory?: ChipsHistory | null;
+  /**
+   * store 的 `General & Admin Exp` 實為【營業費用合計】(見 financialsAdapter 的同名 flag)。
+   * 為 true 時費用相關的標籤與堆疊圖都要改走「營業費用」語意,否則畫面是錯的。
+   */
+  gaIsTotalOpex?: boolean;
 }
 
-const { financialsJson, companyName, ticker, industryType, chips, chipsDate, chipsHistory } =
-  Astro.props;
+const {
+  financialsJson,
+  companyName,
+  ticker,
+  industryType,
+  chips,
+  chipsDate,
+  chipsHistory,
+  gaIsTotalOpex = false,
+} = Astro.props;
 const indCfg = getIndustryConfig(industryType);
 
 // ── 籌碼面分頁(三大法人最新一日 + 融資融券)──
@@ -122,7 +135,9 @@ const quarterly = qSrc
   ? tailBlock(qSrc, DASHBOARD_QUARTERLY_MAX_PERIODS)
   : null;
 
-const annualKpis = buildAnnualKpis(annual, financialsJson.valuation, industryType);
+const annualKpis = buildAnnualKpis(annual, financialsJson.valuation, industryType, {
+  gaLabel: gaIsTotalOpex ? "營業費用" : "管理費用",
+});
 
 type LineSpec = {
   name: string;
@@ -419,14 +434,29 @@ if (CF_KEYS.some((k) => seriesHasFinite(annual.series[k]))) {
   );
 }
 
-/** 三項費用占營收％堆疊柱（由底而上：推銷、研發、管理） */
+/**
+ * 三項費用占營收％堆疊柱（由底而上：推銷、研發、管理）。
+ *
+ * ⚠️ `singleTotal` = store 的 `General & Admin Exp` 其實是【營業費用合計】時,
+ *    三段疊起來會【重複計算】—— 推銷與研發已經含在合計裡。
+ *    全市場實測:1,595 檔可比對者中,1,546 檔(96.9%)的 G&A 與「毛利 − 營益」誤差 <10%
+ *    (亦即它就是營業費用合計),而 1,441 檔(90.3%)的三項相加超出真實營業費用 115%。
+ *    例:1101 台泥 推1,684 + 研1,324 + GA17,480 = 20,489,真實營業費用 17,480。
+ *    這種情況只畫【一段「營業費用率」】(= 合計 ÷ 營收,唯一正確的量);
+ *    等引擎交付官方 admin/sell/rd 三欄後 flag 自動翻 false,三段堆疊才會恢復且正確。
+ */
 function stackedExpensePctSvg(
   xLabels: string[],
   revenue: (number | null)[],
   selling: (number | null)[],
   rd: (number | null)[],
-  ga: (number | null)[]
+  ga: (number | null)[],
+  singleTotal = false
 ) {
+  if (singleTotal) {
+    selling = [];
+    rd = [];
+  }
   const n = xLabels.length;
   const segA: (number | null)[] = [];
   const segB: (number | null)[] = [];
@@ -492,11 +522,19 @@ function stackedExpensePctSvg(
   const tooltipSpec = {
     kind: "stackedBar" as const,
     xLabels,
-    segments: [
-      { name: "推銷費用率", color: "var(--series-3)", values: segA.map((v) => (v == null ? null : v)) },
-      { name: "研發費用率", color: "var(--series-8)", values: segB.map((v) => (v == null ? null : v)) },
-      { name: "管理費用率", color: "var(--flat)", values: segC.map((v) => (v == null ? null : v)) },
-    ],
+    segments: singleTotal
+      ? [
+          {
+            name: "營業費用率",
+            color: "var(--flat)",
+            values: segC.map((v) => (v == null ? null : v)),
+          },
+        ]
+      : [
+          { name: "推銷費用率", color: "var(--series-3)", values: segA.map((v) => (v == null ? null : v)) },
+          { name: "研發費用率", color: "var(--series-8)", values: segB.map((v) => (v == null ? null : v)) },
+          { name: "管理費用率", color: "var(--flat)", values: segC.map((v) => (v == null ? null : v)) },
+        ],
     pad: PAD,
     w: CHART_W,
     h: CHART_H,
@@ -508,7 +546,8 @@ function stackedExpensePctSvg(
     maxSum,
     baseY,
     tickVals,
-    title: "費用結構（占營收％）",
+    title: singleTotal ? "營業費用率（占營收％）" : "費用結構（占營收％）",
+    legend: tooltipSpec.segments.map((g) => ({ name: g.name, color: g.color })),
     tooltipSpec,
   };
 }
@@ -726,7 +765,8 @@ if (quarterly) {
         quarterly.series.Revenue ?? [],
         sRow ?? [],
         rRow ?? [],
-        gRow ?? []
+        gRow ?? [],
+        gaIsTotalOpex
       );
     }
   }
@@ -1628,9 +1668,12 @@ const mRevYTickMarks =
           <figure class="fin-dash__chart">
             <p class="fin-dash__sl">{qExpenseStack.title}</p>
             <ul class="fin-dash__legend">
-              <li><span class="fin-dash__leg-dot" style="background:var(--series-3)" />推銷費用率</li>
-              <li><span class="fin-dash__leg-dot" style="background:var(--series-8)" />研發費用率</li>
-              <li><span class="fin-dash__leg-dot" style="background:var(--flat)" />管理費用率</li>
+              {qExpenseStack.legend.map((g) => (
+                <li>
+                  <span class="fin-dash__leg-dot" style={`background:${g.color}`} />
+                  {g.name}
+                </li>
+              ))}
             </ul>
             <div class="fin-dash__canvas-wrap fin-dash__canvas-wrap--triple">
               <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">

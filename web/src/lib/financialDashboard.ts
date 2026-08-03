@@ -256,12 +256,19 @@ function cardFromSpec(
   yl: string,
   annual: TailedBlock,
   valuation: FinancialsJson["valuation"],
+  /**
+   * `General & Admin Exp` 卡的中文標籤覆寫。store 寫進該欄的其實是【營業費用合計】,
+   * 由呼叫端依 financialsAdapter 的 `gaIsTotalOpex` 決定顯示哪一個名稱。
+   */
+  gaLabel?: string,
 ): KpiCard | null {
+  const specLabel =
+    gaLabel && spec.metricKey === "General & Admin Exp" ? gaLabel : spec.label;
   /** ROE 來自 valuation 單點，非年表序列 */
   if (spec.metricKey === "ROE") {
     const roe = coerceValuationRoePercent(valuation?.ROE);
     if (roe != null) {
-      return { label: `${yl} ${spec.label}`, value: fmtPct1(roe), note: "估值資料" };
+      return { label: `${yl} ${specLabel}`, value: fmtPct1(roe), note: "估值資料" };
     }
     return null;
   }
@@ -284,7 +291,7 @@ function cardFromSpec(
       const y = spec.yoyMode === "pct" ? yoyPct(p.cur, p.prev) : null;
       const d = y != null ? fmtDeltaPct(y) : null;
       return {
-        label: `${yl} ${spec.label}`,
+        label: `${yl} ${specLabel}`,
         value: fmtM(p.cur),
         delta: d?.text,
         trend: d?.trend,
@@ -292,7 +299,7 @@ function cardFromSpec(
       };
     }
     return {
-      label: `${yl} ${spec.label}`,
+      label: `${yl} ${specLabel}`,
       value: fmtM(lastFin),
       emphasize: spec.emphasize,
     };
@@ -308,14 +315,14 @@ function cardFromSpec(
       const y = spec.yoyMode === "pct" ? yoyPct(p.cur, p.prev) : null;
       const d = y != null ? fmtDeltaPct(y) : null;
       return {
-        label: `${yl} ${spec.label}`,
+        label: `${yl} ${specLabel}`,
         value: `${p.cur.toFixed(2)} 元`,
         delta: d?.text,
         trend: d?.trend,
         emphasize: spec.emphasize,
       };
     }
-    return { label: `${yl} ${spec.label}`, value: "—", note: "JSON 未含 EPS", emphasize: spec.emphasize };
+    return { label: `${yl} ${specLabel}`, value: "—", note: "JSON 未含 EPS", emphasize: spec.emphasize };
   }
 
   if (!p) return null;
@@ -337,24 +344,25 @@ function cardFromSpec(
     trend = d?.trend;
   }
 
-  return { label: `${yl} ${spec.label}`, value: val, delta, trend, emphasize: spec.emphasize };
+  return { label: `${yl} ${specLabel}`, value: val, delta, trend, emphasize: spec.emphasize };
 }
 
 export function buildAnnualKpis(
   annual: TailedBlock,
   valuation: FinancialsJson["valuation"],
   industryType?: string | null,
+  opts?: { gaLabel?: string },
 ): { yearLabel: string; primary: KpiCard[]; secondary: KpiCard[] } {
   const yl = annualXLabel(annual.periods[annual.periods.length - 1]!);
   const cfg = getIndustryConfig(industryType);
   const primary: KpiCard[] = [];
   for (const spec of cfg.summaryCardsRow1) {
-    const c = cardFromSpec(spec, yl, annual, valuation);
+    const c = cardFromSpec(spec, yl, annual, valuation, opts?.gaLabel);
     if (c) primary.push(c);
   }
   const secondary: KpiCard[] = [];
   for (const spec of cfg.summaryCardsRow2) {
-    const c = cardFromSpec(spec, yl, annual, valuation);
+    const c = cardFromSpec(spec, yl, annual, valuation, opts?.gaLabel);
     if (c) secondary.push(c);
   }
   return { yearLabel: yl, primary, secondary };

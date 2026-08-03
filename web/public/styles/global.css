@@ -1790,6 +1790,16 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* 市值與企業價值的資料時點不同(前者跟收盤價走、後者是靜態值),各卡自己標。 */
+.meta-card-asof {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .report-fin-data-unavailable {
   margin: 1.25rem 0 1.5rem;
   padding: 1rem 1.25rem;

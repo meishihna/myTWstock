@@ -99,7 +99,9 @@
       t === "General & Admin Exp" ||
       t === "銷售及行銷費用" ||
       t === "研發費用" ||
-      t === "一般及管理費用"
+      t === "一般及管理費用" ||
+      // store 來源時 renderReport 會把 General & Admin Exp 標成「營業費用」(它實為營業費用合計)
+      t === "營業費用"
     );
   }
 
@@ -150,7 +152,7 @@
       "營業毛利": 1, "毛利率 (%)": 1,
       "Selling & Marketing Exp": 1, "R&D Exp": 1,
       "銷售及行銷費用": 1, "研發費用": 1,
-      "General & Admin Exp": 1, "一般及管理費用": 1,
+      "General & Admin Exp": 1, "一般及管理費用": 1, "營業費用": 1,
       "CAPEX": 1, "資本支出": 1
     },
     other: {
@@ -159,7 +161,7 @@
       "營業毛利": 1, "毛利率 (%)": 1,
       "Selling & Marketing Exp": 1, "R&D Exp": 1,
       "銷售及行銷費用": 1, "研發費用": 1,
-      "General & Admin Exp": 1, "一般及管理費用": 1,
+      "General & Admin Exp": 1, "一般及管理費用": 1, "營業費用": 1,
       "Operating Income": 1, "Operating Margin (%)": 1,
       "營業利益": 1, "營業利益率 (%)": 1,
       "CAPEX": 1, "資本支出": 1
@@ -208,6 +210,8 @@
     "淨利率 (%)": "Net Margin (%)",
     "銷售及行銷費用": "Selling & Marketing Exp",
     "一般及管理費用": "General & Admin Exp",
+    // 同一列在 gaIsTotalOpex=true 時顯示為「營業費用」(見 financialsAdapter 的 flag)
+    "營業費用": "General & Admin Exp",
     "營業成本": "Cost of Revenue",
     "營業利益": "Operating Income",
     "營業毛利": "Gross Profit",

@@ -50,7 +50,11 @@ import {
   type ValuationParsed,
 } from "../../lib/parseReport";
 import { showFinancialDashboard } from "../../lib/financialDashboard";
-import { valuationSnapshotRow } from "../../lib/valuationSnapshot";
+import { adaptFinancials } from "../../lib/financialsAdapter";
+import {
+  valuationSnapshotRow,
+  valuationSnapshotGeneratedAt,
+} from "../../lib/valuationSnapshot";
 import { chipsSnapshotRow, chipsInstDate } from "../../lib/chipsSnapshot";
 import { chipsHistoryForTicker } from "../../lib/chipsHistory";
 import { themesForTicker } from "../../lib/themeXref";
@@ -138,7 +142,28 @@ if (fs.existsSync(hubJsonPath)) {
   }
 }
 
-let html = renderReportMarkdown(rawBody, nameToTicker, labelToWikiSlug);
+/**
+ * 財務資料:官方 MOPS 優先、store 補位的轉接層(web/src/lib/financialsAdapter.ts)。
+ * 這裡先取,是因為內文財務表的列名要依 `gaIsTotalOpex` 決定 —— 見下方說明。
+ * pb 由 valuation-index.json(TWSE BWIBBU + TPEx 官方)提供,用來推市值。
+ */
+const valSnapRow = valuationSnapshotRow(ticker!);
+const adapted = adaptFinancials(ticker!, { pb: valSnapRow?.pb ?? null });
+
+/**
+ * 「一般及管理費用」這一列的正名。
+ *
+ * store(yfinance + Coverage 自己的 MOPS sb04 解析)寫進 `General & Admin Exp` 的其實是
+ * 【營業費用合計】,不是管理費用。鐵證:2330 民國114年度 MOPS t164sb04
+ * 推銷 16,918,076 + 管理 82,304,290 + 研發 246,427,264 = 345,649,630 仟元,
+ * 與 store 該欄位的 345,649.63(百萬)逐位相同;而台積電真正的管理費用約 8.2 萬(百萬)量級。
+ *
+ * 因此該列來自 store 時顯示「營業費用」;等引擎交付官方 `admin` 欄後 flag 自動翻成 false,
+ * 標籤才會回到「一般及管理費用」。這是修正現行畫面的事實錯誤,與遷移本身無關。
+ */
+const gaLabel = adapted.flags.gaIsTotalOpex ? "營業費用" : "一般及管理費用";
+
+let html = renderReportMarkdown(rawBody, nameToTicker, labelToWikiSlug, { gaLabel });
 html = addHeadingAnchors(html, toc);
 
 const summaryMd = parseReportSummary(raw);
@@ -175,36 +200,12 @@ const annGmPpt =
     : null;
 const annGmPptMax = annGmPpt ? maxAbsPptScale(annGmPpt) : 1;
 
-const finStorePath = path.join(
-  repoRoot,
-  "data/financials_store",
-  `${ticker}.json`
-);
-const finPublicPath = path.join(
-  webRoot,
-  "public/data/financials",
-  `${ticker}.json`
-);
-let financialsJson: FinancialsJson | null = null;
-const finReadPath = fs.existsSync(finStorePath)
-  ? finStorePath
-  : fs.existsSync(finPublicPath)
-    ? finPublicPath
-    : null;
-if (finReadPath) {
-  try {
-    const raw = JSON.parse(fs.readFileSync(finReadPath, "utf8"));
-    /**
-     * ⚠️ public/data/financials 現在放的是【官方 MOPS 新格式】(fields/quarters/annual.v),
-     *    與本頁下游期待的 store 形狀(annual.periods/annual.series、quarterlyYtd、valuation)不同。
-     *    直接餵進去會讀到一堆 undefined —— 圖表與 KPI 靜默空白而不報錯。
-     *    因此只接受 store 形狀;官方格式的接入需要專用轉接層(獨立一輪處理)。
-     */
-    financialsJson = raw?.annual?.series ? raw : null;
-  } catch {
-    financialsJson = null;
-  }
-}
+/**
+ * 官方 MOPS(fields/quarters/annual.v)與 store(annual.periods/annual.series)形狀不同,
+ * 直接互餵會讀到一堆 undefined —— 圖表與 KPI 靜默空白而不報錯。
+ * 兩種形狀的合併與【欄位級】來源決議一律由 financialsAdapter 負責,本頁只收成品。
+ */
+const financialsJson: FinancialsJson | null = adapted.json;
 
 const revenueMix = readRevenueMixForTicker(repoRoot, webRoot, ticker!);
 
@@ -259,7 +260,9 @@ const listingBadge = deriveListingBadge(listingEx.exchange, listingEx.listingSta
 const fmtMCap = (v: unknown): string | null => {
   if (v == null) return null;
   const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? `${n.toLocaleString("zh-TW")} 百萬台幣` : null;
+  // 單位已是百萬台幣,小數無意義;官方推導值(PB × teParent)會有小數,舊 store 值剛好是整數
+  // 才一直沒露出來 —— 一律取整,否則會出現「57,201,224.047 百萬台幣」。
+  return Number.isFinite(n) ? `${Math.round(n).toLocaleString("zh-TW")} 百萬台幣` : null;
 };
 const summary = {
   board: (fj?.sector as string) ?? summaryMd.board ?? null,
@@ -268,6 +271,29 @@ const summary = {
   enterpriseValue: fmtMCap(fj?.enterpriseValue) ?? summaryMd.enterpriseValue ?? null,
   note: summaryMd.note ?? null,
 };
+
+/**
+ * 市值與企業價值的【資料時點不同】,必須各自標示,不可共用一句說明:
+ *   市值   = 官方股價淨值比 × 歸屬母公司權益,基準是估值快照那一天的收盤價(每個交易日更新)
+ *   企業價值 = 官方無來源(bs 沒有現金及約當現金欄)→ 沿用 store / 報告內的靜態值,不會更新
+ * 兩者時點不同會讓「EV 大於市值好幾倍」之類的關係看起來很怪,標清楚才不會誤導。
+ */
+const ymd = (iso: string | null | undefined): string | null => {
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(String(iso ?? ""));
+  return m ? m[1]! : null;
+};
+const valAsOf = ymd(valuationSnapshotGeneratedAt());
+const marketCapAsOf =
+  adapted.scalars.marketCap === "official"
+    ? valAsOf
+      ? `官方估值 ${valAsOf} 收盤`
+      : "官方估值最近收盤"
+    : summary.marketCap
+      ? `資料時點 ${ymd(financialsJson?.updatedAt) ?? "報告產生時"}`
+      : null;
+const enterpriseValueAsOf = summary.enterpriseValue
+  ? `靜態值・${ymd(financialsJson?.updatedAt) ?? "報告產生時"}`
+  : null;
 
 /** 板塊／產業：null、空字串、N/A 顯示為「—」，不顯示字面 N/A */
 function metaDisplayField(v: unknown): string {
@@ -284,7 +310,7 @@ const officialIndustry = officialIndustryFor(ticker!);
 
 // 估值卡片改讀全市場快照 valuation-index.json(TWSE/TPEx 官方 + Yahoo Beta);
 // 查無此檔/此股時退回報告內 MD 估值表(多已移除 → 顯示 4 張「—」卡)。
-const valSnapRow = valuationSnapshotRow(ticker!);
+// valSnapRow 已在上方(推市值用)取得,此處沿用同一份。
 const valuation: ValuationParsed = valSnapRow
   ? valuationFromSnapshot(valSnapRow)
   : parseValuation(raw);
@@ -589,6 +615,7 @@ const reportLd = [
           <Bi zh="市值" en="Market cap" />
         </span>
         <span class="meta-card-value">{summary.marketCap}</span>
+        {marketCapAsOf && <span class="meta-card-asof">{marketCapAsOf}</span>}
       </div>
     )}
     {summary.enterpriseValue && (
@@ -597,6 +624,9 @@ const reportLd = [
           <Bi zh="企業價值" en="Enterprise value" />
         </span>
         <span class="meta-card-value">{summary.enterpriseValue}</span>
+        {enterpriseValueAsOf && (
+          <span class="meta-card-asof">{enterpriseValueAsOf}</span>
+        )}
       </div>
     )}
     {summary.note && (
@@ -659,6 +689,7 @@ const reportLd = [
       companyName={meta.name}
       ticker={meta.ticker}
       industryType={finDashIndustryType}
+      gaIsTotalOpex={adapted.flags.gaIsTotalOpex}
       chips={chipsRow}
       chipsDate={chipsDate}
       chipsHistory={chipsHistory}

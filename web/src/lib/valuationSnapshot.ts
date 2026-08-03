@@ -16,6 +16,7 @@ export interface ValuationSnapshotRow {
 }
 
 let cache: Record<string, ValuationSnapshotRow> | null | undefined;
+let generatedAtCache: string | null = null;
 
 function load(): Record<string, ValuationSnapshotRow> | null {
   if (cache !== undefined) return cache;
@@ -26,11 +27,18 @@ function load(): Record<string, ValuationSnapshotRow> | null {
     if (existsSync(file)) {
       const j = JSON.parse(readFileSync(file, "utf8"));
       cache = (j && j.rows) || {};
+      generatedAtCache = typeof j?.generatedAt === "string" ? j.generatedAt : null;
     }
   } catch {
     cache = null;
   }
-  return cache;
+  return cache ?? null;
+}
+
+/** 快照產生時間(ISO);供「資料時點」標示用。缺檔 → null。 */
+export function valuationSnapshotGeneratedAt(): string | null {
+  load();
+  return generatedAtCache;
 }
 
 /** 取單檔估值快照;查無或檔案缺失回傳 null。 */
