@@ -1,6 +1,6 @@
 # 報告頁官方財務遷移 — 規劃(未實作)
 
-> 撰於 2026-08-03 · 範圍僅 `My-TW-Coverage`(不碰 `tw-stock-public`)
+> 撰於 2026-08-03 · 範圍僅本 repo(不碰私有引擎端)
 > 目標:讓報告頁與四個消費點改吃官方 MOPS 資料,最終解鎖刪除 `data/financials_store`(1,737 檔 / 68 MB / yfinance)
 
 ---
@@ -104,7 +104,7 @@ MOPS `ajax_t163sb04` 綜合損益表彙總表**沒有這兩欄**。實測 `data/
 `data/mops_cache/{sii,otc}_{年}_{季}_t163sb20.json` 已含
 `Op Cash Flow` / `Investing Cash Flow` / `Financing Cash Flow`(單位仟元)。
 引擎的 `financials/{ticker}.json` 的 `fields` 沒有輸出這三欄。
-→ 需引擎端加欄位。**另一個對話正在 `tw-stock-public` 做 SQLite 重構,本輪不碰** → 列入前置條件。
+→ 需引擎端加欄位。**引擎端另有進行中的重構,本輪不碰** → 列入前置條件。
 
 **註 D — CAPEX:sb20 只有三大活動淨額,沒有明細**
 
