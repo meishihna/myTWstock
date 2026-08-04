@@ -1,4 +1,4 @@
-# My TW Coverage — Project Rules
+# twstock-web(原 My TW Coverage)— Project Rules
 
 ## Purpose
 Equity research coverage of 1,735+ Taiwan-listed companies (TWSE + OTC). Each ticker report maps business overview, supply chain position, and customer/supplier relationships. **Wikilinks `[[...]]` are the core mechanism** — they create a searchable cross-reference graph across all tickers (e.g., find every company serving `[[Apple]]` or participating in `[[矽光子]]` supply chain).
