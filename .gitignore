@@ -59,6 +59,9 @@ backtest*.py
 run_combo*.py
 twse_chips.py
 *.ipynb
+# 引擎資料夾/repo 已於 2026-08-03 改名 tw-stock-public → twstock-engine。
+# 兩個名字都留:舊名擋歷史副本,新名才是現行防線(只是資料夾名,不是路徑敘述)。
 tw-stock-public/
+twstock-engine/
 # 引擎原始輸出(過大/非本站使用者需要):只保留 web/public/data/signals/ 下的成品
 data/signals_raw/

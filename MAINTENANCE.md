@@ -1,6 +1,6 @@
 # MAINTENANCE — My TW Coverage 維運手冊
 
-這個站（`meishihna/myTWstock`，Astro + Vercel，部署於 `main`）**大部分是自動維護的**。
+這個站（`meishihna/twstock-web`，Astro + Vercel，部署於 `main`）**大部分是自動維護的**。
 本文件說明：什麼會自己跑、什麼要手動、推程式碼的規則、以及不能踩的地雷。
 
 ---

@@ -74,7 +74,7 @@ export const SOURCE_LABELS: Record<NewsSourceId, string> = {
 const FETCH_TIMEOUT_MS = 15_000;
 
 const UA =
-  "Mozilla/5.0 (compatible; TWstock/1.0; +https://github.com/meishihna/myTWstock)";
+  "Mozilla/5.0 (compatible; TWstock/1.0; +https://github.com/meishihna/twstock-web)";
 
 function md5Id(url: string): string {
   return createHash("md5").update(url).digest("hex").slice(0, 12);

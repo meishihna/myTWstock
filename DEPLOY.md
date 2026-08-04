@@ -11,7 +11,7 @@
 
 ## 一次性設定(在 vercel.com)
 
-1. 用 GitHub 登入 → **Add New… → Project → Import** `meishihna/myTWstock`。
+1. 用 GitHub 登入 → **Add New… → Project → Import** `meishihna/twstock-web`。
 2. **Root Directory 設為 `web`** ⚠️ 重要 —— Astro 專案在 `web/`;整個 repo 會被 checkout,
    build 仍讀得到 `../data/financials_store`、`../Pilot_Reports`、`../themes`(`prebuild` 用相對路徑)。
 3. Framework Preset:**Astro**(通常自動偵測)。Build Command / Output 用預設即可

@@ -1,5 +1,5 @@
 const UA =
-  "Mozilla/5.0 (compatible; TWstock/1.0; +https://github.com/meishihna/myTWstock)";
+  "Mozilla/5.0 (compatible; TWstock/1.0; +https://github.com/meishihna/twstock-web)";
 const u =
   "https://news.google.com/rss/articles/CBMiX0FVX3lxTE03QzRQcTdqLU1KRWplRnNOVE9UZkw2SFZZMkNEaWlleHcxWWs3MGxqeHFiby05RkxySy1QdzNacVl2N0h6aUxWMUxCNm05cUlWVmJZQkc2Zmtka194bUpv?oc=5";
 const r = await fetch(u, {

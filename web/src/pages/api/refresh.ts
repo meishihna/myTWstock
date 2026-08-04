@@ -8,7 +8,7 @@
  */
 export const prerender = false;
 
-const REPO = "meishihna/myTWstock";
+const REPO = "meishihna/twstock-web";
 const WORKFLOW = "refresh-snapshots.yml";
 const MIN_GAP_MS = 30 * 60 * 1000;
 
