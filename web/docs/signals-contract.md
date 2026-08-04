@@ -7,7 +7,7 @@
 - 由單一 `signals.json` 改為**三層分檔**：`signals-index.json`（輕）+ `signals/{code}.json` + `prices/{code}.json`。
 - 新增**逐筆交易明細**（含 MAE/MFE、出場原因代碼、`skipped`）與**還原 OHLC 序列**。
 - **權益曲線不存**（前端由逐筆推導）、**MA 不存**（前端由收盤計算）。
-- `signals.json`（舊）標 **deprecated**，僅供本 repo 內部 `/signals` 頁過渡，Coverage 切換完成後移除，**不長期維護兩份**。
+- `signals.json`（舊）已於 2026-08-02 **移除**（Coverage 已切換 v2、內部 `/signals` 頁改吃分檔）；如需舊格式，產生端可用旗標臨時重產，不再隨 repo 提供。
 
 ---
 
@@ -19,7 +19,7 @@
 | `signals/{code}.json` | 該檔**全組合統計 + 逐筆明細** | 組合詳情、逐筆表、權益曲線 | 點入個股時 lazy | 平均 282 KB／最大 351 KB |
 | `prices/{code}.json` | **還原 OHLC + 量**、日期陣列 | 走勢圖（線/K 線）、標進出點 | 點入個股時 lazy | 平均 70 KB |
 | `valuation.json` | BWIBBU 本益比/淨值比/殖利率 + 5 年百分位 | 籌碼列估值（已併入 index 的 `chips`） | 由 index 帶出 | 2 KB |
-| ~~`signals.json`~~ | **DEPRECATED** | 內部頁過渡 | 勿用 | 3,147 KB |
+| ~~`signals.json`~~ | **已移除**（2026-08-02） | — | 勿用 | — |
 
 **實測載入量**（25 檔 / 10,530 組 / 113,756 筆逐筆）
 - **首屏僅 33 KB**（index 輕量化後）→ 點入一檔再 +352 KB（平均）／+424 KB（最壞）

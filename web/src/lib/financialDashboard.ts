@@ -242,10 +242,18 @@ function resolveMetricValues(
   if (key === "CAPEX") {
     const raw = annual.series.CAPEX;
     if (!raw || !Array.isArray(raw)) return null;
+    /**
+     * 🔴 【不取絕對值】—— 照實顯示來源的正負號。
+     * CAPEX 來自現金流量表的「取得不動產、廠房及設備」,絕大多數是現金流出(負值),
+     * 但官方資料裡確實有正值:實測 1,974 個官方檔的年度資料共 3 格為正
+     * (4729 民國110年 = 2.304、8059 民國112年 = 2.371、8067 民國111年 = 0.048)。
+     * 那是官方數字,顯示端不得「修正」、也不得 abs。
+     * (先前版本做 Math.abs:對那 3 格正值無影響,但把其餘上千格官方的負號吃掉了。)
+     */
     return raw.map((v) => {
       const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
       if (n == null || !Number.isFinite(n)) return null;
-      return Math.abs(n);
+      return n;
     });
   }
   return annual.series[key] ?? null;
@@ -286,6 +294,12 @@ function cardFromSpec(
       }
     }
     if (lastFin == null) return null;
+    /**
+     * 口徑說明:CAPEX 取自現金流量表的「取得不動產、廠房及設備」,現金【流出為負】。
+     * 不標這句,讀者容易把負號誤讀成「下跌」。
+     * (官方資料裡確實有 3 格為正,照原樣顯示 —— 見 resolveMetricValues 的說明。)
+     */
+    const CAPEX_NOTE = "現金流量表口徑,流出為負";
     const p = lastFinitePair(values);
     if (p) {
       const y = spec.yoyMode === "pct" ? yoyPct(p.cur, p.prev) : null;
@@ -295,12 +309,14 @@ function cardFromSpec(
         value: fmtM(p.cur),
         delta: d?.text,
         trend: d?.trend,
+        note: CAPEX_NOTE,
         emphasize: spec.emphasize,
       };
     }
     return {
       label: `${yl} ${specLabel}`,
       value: fmtM(lastFin),
+      note: CAPEX_NOTE,
       emphasize: spec.emphasize,
     };
   }

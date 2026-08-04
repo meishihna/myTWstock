@@ -93,6 +93,13 @@ export type AdaptFlags = {
   gaIsTotalOpex: boolean;
   /** store 期別對不上官方軸的格數(年 / 季),> 0 要能解釋 */
   axisMisses: { annual: number; quarterly: number };
+  /**
+   * store 檔自己的 `updatedAt`。
+   * 🔴 要標示【store 來源】欄位的資料時點時必須用這個,不可用 `json.updatedAt` ——
+   * 後者取的是官方檔時間,會把凍結在 2026-06 的 store 值標上今天的日期。
+   * (踩過:企業價值來自 store 卻顯示「靜態值・2026-08-04」。)
+   */
+  storeUpdatedAt: string | null;
 };
 
 export type AdaptResult = {
@@ -374,6 +381,7 @@ export function adaptFinancials(
     hasStore: s != null,
     gaIsTotalOpex: false,
     axisMisses: { annual: 0, quarterly: 0 },
+    storeUpdatedAt: typeof s?.updatedAt === "string" ? s.updatedAt : null,
   };
 
   if (!o && !s) {
@@ -452,9 +460,16 @@ export function adaptFinancials(
   const ytdSeries: Record<string, (number | null)[]> = {};
   const ytdGroupSrc: Record<string, FieldSource> = {};
   for (const [g, keys] of Object.entries(CHART_GROUPS)) {
-    const cum = keys.reduce((n, k) => n + nFinite(cumulated[k]), 0);
-    const sto = keys.reduce((n, k) => n + nFinite(storeYtd[k]), 0);
-    ytdGroupSrc[g] = qtr.srcByKey[keys[0]!] === "official" && cum >= sto ? "official" : "store";
+    /**
+     * 🔴 涵蓋度必須【每一個 key 都】不比 store 差,不可比群組總和。
+     * 踩過兩次的同一類錯誤:總和 >= 而個別欄位變少 → 逐檔退化被總和掩蓋。
+     * 實例(2026-08-04 官方擴 14 欄後):cashFlow 群組總和有進步,但
+     * `y:Financing Cash Flow` 有 46 檔、`y:Investing Cash Flow` 有 2 檔變少 ——
+     * 官方季 `fcf` 有零星缺格,累計時「一季 null → 整年 null」把缺口放大。
+     */
+    const everyKeyOk = keys.every((k) => nFinite(cumulated[k]) >= nFinite(storeYtd[k]));
+    ytdGroupSrc[g] =
+      qtr.srcByKey[keys[0]!] === "official" && everyKeyOk ? "official" : "store";
   }
   for (const key of Object.keys(cumulated)) {
     const g = KEY_TO_GROUP.get(key);

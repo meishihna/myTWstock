@@ -275,7 +275,12 @@ const summary = {
 /**
  * 市值與企業價值的【資料時點不同】,必須各自標示,不可共用一句說明:
  *   市值   = 官方股價淨值比 × 歸屬母公司權益,基準是估值快照那一天的收盤價(每個交易日更新)
- *   企業價值 = 官方無來源(bs 沒有現金及約當現金欄)→ 沿用 store / 報告內的靜態值,不會更新
+ *   企業價值 = 官方無來源(bs 沒有現金及約當現金欄)→ 退回 store 或報告 MD
+ *
+ * 🔴 企業價值的兩種退路【時效完全不同】,不可共用「靜態值」一句話(先前版本的錯):
+ *   ① `store.enterpriseValue`(940 檔)→ 真的凍結:financials_store 的 CI 已移除,永停在 2026-06
+ *   ② 報告 MD 的 `**企業價值:**`(797 檔)→ 每天被 `Refresh valuation` 排程重寫(第三方來源);
+ *      實測該排程每日改動 1,689–1,711 份 Pilot_Reports/*.md 的市值與企業價值兩行
  * 兩者時點不同會讓「EV 大於市值好幾倍」之類的關係看起來很怪,標清楚才不會誤導。
  */
 const ymd = (iso: string | null | undefined): string | null => {
@@ -291,9 +296,12 @@ const marketCapAsOf =
     : summary.marketCap
       ? `資料時點 ${ymd(financialsJson?.updatedAt) ?? "報告產生時"}`
       : null;
-const enterpriseValueAsOf = summary.enterpriseValue
-  ? `靜態值・${ymd(financialsJson?.updatedAt) ?? "報告產生時"}`
-  : null;
+/** store 供應 → ①凍結;否則值來自 MD fallback → ②每日更新 */
+const enterpriseValueAsOf = !summary.enterpriseValue
+  ? null
+  : adapted.scalars.enterpriseValue === "store"
+    ? `靜態值・${ymd(adapted.flags.storeUpdatedAt) ?? "2026-06"}`
+    : "每日更新・第三方來源";
 
 /** 板塊／產業：null、空字串、N/A 顯示為「—」，不顯示字面 N/A */
 function metaDisplayField(v: unknown): string {

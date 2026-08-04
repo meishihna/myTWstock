@@ -71,8 +71,24 @@ export const OFFICIAL_FIELD_TO_SERIES: Record<string, string> = {
   fcf: "Financing Cash Flow",
 };
 
-/** 目前引擎【已經】交付的欄位;其餘要靠 store 補位,直到 backfill 完成 */
-export const DELIVERED_FIELDS = ["rev", "cogs", "gp", "opex", "op", "ni", "eps"] as const;
+/**
+ * 目前引擎【已經】交付的欄位(2026-08-04 由 7 欄擴為 14 欄)。
+ * 純文件用途 —— adapter 一律以名稱查 `o.fields` 的 index,不依賴這份清單,
+ * 所以引擎擴欄時 adapter 不必改動(本輪實測:確實一行都沒改)。
+ *
+ * ⚠️ 「欄位存在」≠「兩個軸都有值」(實測 1,974 檔):
+ *   rev/cogs/gp/op/ni/eps/ocf/icf/fcf → 年 + 季【都有】
+ *   sell/admin/rd/capex               → **只有年度**(季軸全 null,等季報回補)
+ *   opex                              → 年 878 格 / 季 1,069 格,**每檔各 1 格**(歷史未回補)
+ *                                       → 不足以當獨立列使用
+ */
+export const DELIVERED_FIELDS = [
+  "rev", "cogs", "gp", "opex", "op", "ni", "eps",
+  "sell", "admin", "rd", "capex", "ocf", "icf", "fcf",
+] as const;
+
+/** 只交付年度、季軸全 null 的欄位 —— 其圖表群組會因涵蓋度不足而留在 store */
+export const ANNUAL_ONLY_FIELDS = ["sell", "admin", "rd", "capex"] as const;
 
 let dirCache: string | null | undefined;
 const fileCache = new Map<string, OfficialFin | null>();
