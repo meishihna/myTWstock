@@ -277,6 +277,71 @@ dashboard 確認後填入(Phase 2 已裁決維持 Hobby、月費 $0)。上面的
 
 ---
 
+---
+
+## 批 B 實測結果(2026-08-04,preview `abcc83a5a`)
+
+Preview URL 由 GitHub deployments API 的 `target_url` 取得(不是猜的);
+量測期間監督者暫時關閉 Deployment Protection。
+
+### ③ 生死題:TPEx 對 Vercel 出口 IP —— **通過**
+
+`GET /api/tpex/bars/5347/202607` → `stat:"ok"`、22 根、`unit:"shares"`,
+數值與本機執行**完全相同**。TPEx **沒有**擋 Vercel 的共享出口 IP。
+→ 整案繼續有效,不需動用 ⑤ 的退場方案。
+
+### ① 邊快取 MISS → HIT —— **成立**
+
+用【全新月份】才看得到乾淨的首次 MISS(先前打過的路徑已經是 HIT):
+
+| 路徑 | 第1次 | 第2次 | 第3次 |
+|---|---|---|---|
+| `5347/202603` | `X-Vercel-Cache: MISS` | **HIT** | **HIT** |
+| `3324/202605` | `MISS` | **HIT** | — |
+
+→ `s-maxage` 在 Vercel Hobby 上**確實生效**,歷史月的上游請求全站只需一次。
+
+### ② 歷史月 vs 當月的標頭差異 —— **可區分,但 Vercel 會吃掉 TTL 數值**
+
+| 情況 | 送到瀏覽器的 Cache-Control |
+|---|---|
+| 歷史月且有資料 | `public, max-age=0, **immutable**` |
+| 當月 | `public, max-age=0` |
+| 空結果(歷史月) | `public, max-age=0` ← ④ 的短 TTL 分支生效 |
+| 白名單拒絕 | `no-store` |
+
+⚠️ **Vercel 把 `s-maxage` 與 `stale-while-revalidate` 消化掉、不轉發給下游** ——
+我送出的是 `s-maxage=31536000, immutable, stale-while-revalidate=86400`,
+瀏覽器只收到 `max-age=0, immutable`。這是 Vercel 的既有行為(它自己吃掉邊快取指令),
+可觀測的區分訊號只剩 `immutable` 的有無。
+
+🔴 **誠實標註量測極限**:我證明了①標頭分支確實不同 ②HIT 會發生,
+但**沒有**獨立驗證邊快取的 TTL 真的是 1 年 vs 600 秒 ——
+Vercel 不把 `s-maxage` 送到下游,而確認 600 秒過期需要等 11 分鐘以上輪詢。
+`Age` 標頭在 HIT 時也回 `0`,無法用來推算。若要確定,需另跑一次長時間輪詢。
+
+### ④ 空結果短 TTL —— **生效**
+
+`9999/202607`(未上櫃代號、歷史月)→ `200`、`bars:[]`、`public, max-age=0`
+(**無** `immutable`)= 走短 TTL 分支,與「歷史月有資料」的 `immutable` 明確不同。
+
+### 附帶的安全驗證(在 Vercel 上重跑)
+
+| 測試 | 結果 |
+|---|---|
+| `abc/202607`(代號非 4 碼) | `400` + `no-store` |
+| `5347/20260`(ym 非 6 碼) | `400` + `no-store` |
+| `5347/202613`(月份 13) | `400` + `no-store` |
+| `5347/201412`(早於 MIN_YM) | `400` + `no-store` |
+| `5347/209901`(未來月) | `400` + `no-store` |
+| `../../etc/202607`(路徑穿越) | `404`(Astro 路由在進到 handler 前就擋掉) |
+| 回應是否含上游 `JSESSIONID` | **0 筆**(未洩漏) |
+
+### 本批對上游的請求量
+
+代理端共約 15 次 `tradingStock` 請求(本機 ~6 + preview ~9),
+其中白名單拒絕的 6 次**完全沒有**打上游。符合「開發期禮貌」。
+
 ## ⑥ 分批建議
 
 | 批 | 內容 | 前置 |
