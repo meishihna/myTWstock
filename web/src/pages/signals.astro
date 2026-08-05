@@ -389,7 +389,14 @@ const RISK = [
       stock = {
         code: rec.code,
         name: nameOf(rec.code),
-        market: "twse",
+        /**
+         * 🔴 不可寫死 "twse" —— 標頭徽章吃這個欄位(`s.market === "tpex" ? "上櫃" : "上市"`),
+         * 寫死會讓上櫃個股的現場計算結果標成「上市」。
+         * (踩過:6488 現場計算完成後標頭顯示「1,236 根日K · 上市」,而預算的 5347 是對的
+         *  → 差別就在預算股的 market 來自 signals-index、現場計算的來自這裡。)
+         * 一律由 stockSuffix 判定,與決定「走 TWSE 直連還是 TPEx 代理」的是同一個來源。
+         */
+        market: marketOf(rec.code, SUFFIX as Record<string, string>),
         期間: (m["期間"] as [string, string]) ?? [rec.prices.dates[0]!, rec.prices.dates.at(-1)!],
         交易日數: (m["交易日數"] as number) ?? rec.barsCount,
         buyhold: rec.buyhold,
