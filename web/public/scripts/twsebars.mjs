@@ -4,13 +4,28 @@
  * ⚠️ 一律抓【原始未還原】日K 餵給 runBacktest,絕不可用 /data/prices/*.json —— 後者為顯示用、
  *    已捨入到小數 4 位,實測 6.7% 的組合統計會不同(分支翻轉,非誤差累積)。
  *
- * 官方端點回 Access-Control-Allow-Origin: * → 瀏覽器可直接 fetch,不需代理。
  * 逐月回傳,5 年視窗 = 61 次請求 → 必須節流序列化。
  *
- * 上櫃(TPEx)無 CORS,本模組不支援;呼叫端須先擋掉並明確標示。
+ * ── 兩個市場、兩條路徑(2026-08-05)──────────────────────────────────────
+ *   上市 twse → 直連 TWSE STOCK_DAY(實測回 `Access-Control-Allow-Origin: *`,可直抓)
+ *   上櫃 tpex → 走本站代理 `/api/tpex/bars/{code}/{ym}`
+ *               (實測 TPEx `tradingStock` **無** ACAO 標頭,瀏覽器直抓被 CORS 擋)
+ *
+ * 🔴 TPEx 的格式差異【全部留在代理端】,本模組不重複實作。
+ *    代理已處理:`stat:"ok"` 小寫、資料在 `tables[0].data`、日期輸入 `2026/07/01`、
+ *    以及**成交量 張數 ×1000 換成股數**(契約:「量仟股 ×1000 對齊 TWSE 股」;
+ *    實測 5347 民國115年7月 22 根,比值 22/22 恰為 1000.00)。
+ *    → 代理回的 bars 已是本模組的最終形狀,這裡只讀 `json.bars`。
+ *    若在兩邊各寫一份 parser,量綱遲早會漂掉,而量能條件錯 1000 倍時圖表看起來完全正常。
  */
 
 const STOCK_DAY = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY";
+/** 上櫃代理(同源相對路徑,故瀏覽器與 Node 測試都可用;Node 測試一律注入 fetchImpl) */
+const TPEX_PROXY = "/api/tpex/bars";
+
+/** 市場別。未指定時視為上市(維持既有呼叫端行為不變)。 */
+export const MARKET_TWSE = "twse";
+export const MARKET_TPEX = "tpex";
 
 /** 民國 `115/07/31` → `2026-07-31`;格式不符回 null */
 export function rocToIso(s) {
@@ -59,8 +74,35 @@ export function monthKeys(asof, months) {
   return keys;
 }
 
-export function monthUrl(code, ym) {
+export function monthUrl(code, ym, market = MARKET_TWSE, proxyBase = "") {
+  if (market === MARKET_TPEX) {
+    /**
+     * `proxyBase` 預設空字串 = 同源相對路徑(瀏覽器用)。
+     * Node 端(對帳腳本)沒有 origin、fetch 不吃相對路徑 → 須傳入如 http://localhost:4330。
+     */
+    return `${proxyBase}${TPEX_PROXY}/${encodeURIComponent(code)}/${encodeURIComponent(ym)}`;
+  }
   return `${STOCK_DAY}?date=${ym}01&stockNo=${encodeURIComponent(code)}&response=json`;
+}
+
+/**
+ * 解析本站上櫃代理的回應。代理已把 TPEx 的格式差異與量綱處理完,這裡只做形狀檢查。
+ * 回 null = 失敗(與「該月無交易」的空陣列必須區分,見 fetchMonth 的說明)。
+ */
+export function parseProxyBars(json) {
+  if (!json || json.stat !== "ok" || !Array.isArray(json.bars)) return null;
+  const out = [];
+  for (const b of json.bars) {
+    if (!b || typeof b.d !== "string") continue;
+    const o = num(b.o);
+    const h = num(b.h);
+    const l = num(b.l);
+    const c = num(b.c);
+    if (o == null || h == null || l == null || c == null) continue;
+    if (c === 0) continue; // 無成交日(代理已剔除,此處為雙重保險)
+    out.push({ d: b.d, o, h, l, c, v: num(b.v) ?? 0 });
+  }
+  return out;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -69,9 +111,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * 抓單月。失敗回 null(與「該月無交易資料」的空陣列區分開)——
  * 兩者混用會讓抓取失敗被誤當成「這個月沒開市」而靜默算出短視窗的錯結果。
  */
-export async function fetchMonth(code, ym, { signal, fetchImpl = fetch } = {}) {
+export async function fetchMonth(
+  code,
+  ym,
+  { signal, fetchImpl = fetch, market = MARKET_TWSE, proxyBase = "" } = {}
+) {
   try {
-    const r = await fetchImpl(monthUrl(code, ym), { signal });
+    const r = await fetchImpl(monthUrl(code, ym, market, proxyBase), { signal });
+    if (market === MARKET_TPEX) {
+      /**
+       * 代理的契約:200 + `stat:"ok"` = 成功(bars 可為空陣列 = 該月真的無交易);
+       * 502 = 上游失敗 → 回 null 讓上層重試。
+       * 🔴 【不可】把 502 當成「該月無交易」—— 少一個月 = 視窗不完整 = 數字錯但看起來正常。
+       */
+      if (!r.ok) return null;
+      return parseProxyBars(await r.json());
+    }
     if (!r.ok) return null;
     const j = await r.json();
     if (j?.stat && j.stat !== "OK") {
@@ -118,6 +173,10 @@ export async function fetchRawBars(code, opts = {}) {
     retries = 3,
     fetchImpl = fetch,
     alwaysUseCache = false,
+    /** "twse"(直連官方)或 "tpex"(走本站代理);未指定 = 上市,維持既有呼叫端行為 */
+    market = MARKET_TWSE,
+    /** 上櫃代理的基底 URL;瀏覽器留空(同源),Node 對帳腳本須傳入 */
+    proxyBase = "",
   } = opts;
   if (!asof) throw new Error("fetchRawBars: asof required");
 
@@ -143,7 +202,7 @@ export async function fetchRawBars(code, opts = {}) {
     if (!bars) {
       let attempt = 0;
       for (;;) {
-        bars = await fetchMonth(code, ym, { signal, fetchImpl });
+        bars = await fetchMonth(code, ym, { signal, fetchImpl, market, proxyBase });
         networkCalls++;
         if (bars !== null) break;
         if (attempt >= retries) throw new Error(`fetch_failed:${ym}`);

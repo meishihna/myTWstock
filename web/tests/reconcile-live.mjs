@@ -44,7 +44,16 @@ const argv = process.argv.slice(2);
 const LIVE = argv.includes("--live") || argv.includes("--record");
 const RECORD = argv.includes("--record");
 const only = argv.filter((a) => /^\d{4}$/.test(a));
-const CODES = only.length ? only : ["2330", "2327", "2317"];
+/** 2330/2327/2317 = 上市;5347/3324 = 上櫃(走本站代理,同時驗量綱與上櫃除權息因子) */
+const CODES = only.length ? only : ["2330", "2327", "2317", "5347", "3324"];
+
+/**
+ * 市場別一律由 signals-index 的 `market` 欄決定,【不從代號猜】。
+ * 上櫃走本站代理 → `--live` / `--record` 時需要可連的基底 URL(dev server 或正式站)。
+ */
+const marketOf = (code) =>
+  idx.stocks.find((x) => x.code === code)?.market === "tpex" ? "tpex" : "twse";
+const PROXY_BASE = process.env.TPEX_PROXY_BASE || "http://localhost:4330";
 
 const FIX = (code) => path.join(HERE, "fixtures", "bars", `${code}.json`);
 
@@ -72,6 +81,7 @@ async function loadBars(code) {
     // 走真正的 fetchRawBars,只是每個月都從夾具命中;fetchImpl 保證不會被呼叫
     return fetchRawBars(code, {
       asof: ASOF, months: MONTHS, gapMs: 0,
+      market: marketOf(code),
       getCached: async (ym) => fx.data[ym] ?? null,
       fetchImpl: noNetwork,
       // 當月不走快取是線上行為;離線測試需覆寫,否則會嘗試連網
@@ -81,6 +91,7 @@ async function loadBars(code) {
   const rec = {};
   const out = await fetchRawBars(code, {
     asof: ASOF, months: MONTHS, gapMs: 350,
+    market: marketOf(code), proxyBase: PROXY_BASE,
     putCached: async (ym, b) => { rec[ym] = b; },
     onProgress: ({ done, total }) => {
       if (done % 20 === 0 || done === total) process.stderr.write(`    抓取 ${done}/${total}\n`);
@@ -89,11 +100,14 @@ async function loadBars(code) {
   if (RECORD) {
     // 當月不進 putCached,補寫
     const yms = monthKeys(ASOF, MONTHS);
-    for (const ym of yms) if (!rec[ym]) rec[ym] = await fetchMonth(code, ym);
+    for (const ym of yms) {
+      if (!rec[ym]) rec[ym] = await fetchMonth(code, ym, { market: marketOf(code), proxyBase: PROXY_BASE });
+    }
     fs.mkdirSync(path.dirname(FIX(code)), { recursive: true });
     fs.writeFileSync(FIX(code), JSON.stringify({
       schema: "live-backtest-fixture/1", code, asof: ASOF, months: MONTHS,
-      note: "原始未還原 STOCK_DAY 日K(已解析);供 reconcile-live.mjs 離線重跑,不需打官方端點",
+      market: marketOf(code),
+      note: "原始未還原日K(已解析);上市來源 TWSE STOCK_DAY、上櫃來源 TPEx tradingStock(經本站代理,量已 ×1000 為股數)。供 reconcile-live.mjs 離線重跑,不需打官方端點",
       data: rec,
     }));
     process.stderr.write(`    已更新夾具 ${FIX(code)}\n`);

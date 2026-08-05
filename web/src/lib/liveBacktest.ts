@@ -12,7 +12,12 @@
  *    【必須】把這個值 +1,否則舊快取會被沿用 → 顯示過期數字而無人察覺。
  *    這是 key 的一部分,bump 後所有舊結果自動失效。
  */
-export const ENGINE_VERSION = "1";
+export const ENGINE_VERSION = "2";
+/*
+ * v1 → v2(2026-08-05):`twsebars.mjs` 加入市場分派(上櫃走 /api/tpex/bars 代理)。
+ * bump 的另一個必要理由:v1 期間上櫃個股在 UI 上是「不支援」狀態,
+ * 若沿用舊快取鍵,那個狀態可能殘留;bump 後所有舊結果失效、重算一次。
+ */
 
 const DB_NAME = "twstock-backtest";
 const DB_VER = 1;
@@ -207,6 +212,11 @@ export interface Progress {
 }
 
 export class LiveBacktestError extends Error {
+  /**
+   * ⚠️ `tpex` 的語意已改變(2026-08-05):
+   *   舊 = 「上櫃不支援現場計算」;新 = 「上櫃【代理】失敗」。
+   * 上櫃本身已支援,呼叫端不可再用它當「不支援」的理由。
+   */
   kind: "tpex" | "not_listed" | "fetch" | "insufficient" | "engine";
   /** 抓取中斷時已完成的月份數,供續傳提示 */
   progress?: { done: number; total: number };
@@ -218,14 +228,28 @@ export class LiveBacktestError extends Error {
 }
 
 /**
- * 現場計算單一上市個股。
- * 呼叫端須先用 marketOf() 擋掉上櫃(TPEx 無 CORS,瀏覽器抓不到)。
+ * 現場計算單一個股(上市 + 上櫃)。
+ *
+ * 上市 → `twsebars.mjs` 直連 TWSE STOCK_DAY(官方回 ACAO: *)。
+ * 上櫃 → 走本站 SSR 代理 `/api/tpex/bars/{code}/{ym}`(TPEx 無 ACAO,瀏覽器抓不到)。
+ * 代理已把 TPEx 的格式差異與【成交量張數 ×1000】處理完,本層不需分辨。
+ *
+ * ⚠️ 上櫃沒有官方籌碼(T86 / MI_MARGN 僅上市)→ `makeConfirm` 回 null →
+ *    只有「無」確認層 = **90 組**(對照上市 450 組)。這是資料本質,不是失敗。
  */
 export async function computeLive(
   code: string,
-  opts: { asof: string; months: number; signal?: AbortSignal; onProgress?: (p: Progress) => void },
+  opts: {
+    asof: string;
+    months: number;
+    /** 未指定 = 上市(維持既有呼叫端行為不變) */
+    market?: Market;
+    signal?: AbortSignal;
+    onProgress?: (p: Progress) => void;
+  },
 ): Promise<LiveResult> {
   const { asof, months, signal, onProgress } = opts;
+  const market: Market = opts.market === "tpex" ? "tpex" : "twse";
 
   /* 引擎模組放在 public/,Vite 不允許靜態 import。
      用【執行期組出的 URL】讓 import-analysis 無法靜態分析 → 原樣保留動態載入。
@@ -246,6 +270,7 @@ export async function computeLive(
       asof,
       months,
       gapMs: 350,
+      market,
       signal,
       getCached: (ym: string) => getMonth(code, ym),
       putCached: (ym: string, b: unknown[]) => putMonth(code, ym, b),
