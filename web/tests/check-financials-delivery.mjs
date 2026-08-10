@@ -97,11 +97,13 @@ const INJECTION_FIXTURE = {
  * 靶選【年度】而非季度,因為年度值在交付檔裡直接存在、可自動比對成斷言;
  * 季度單季要再減前一期累計,多一層自己的算術會削弱「獨立裁判」的性質。
  *
- * ✅ 已對 MOPS 實跑驗證(2026-08-08,不是等交付日才第一次跑):
+ * ✅ 已對 MOPS 實跑驗證(2026-08-08 首次;2026-08-10 改表頭解析後重驗):
  *      POST ajax_t164sb04  co_id=2330 year=114 season=4  → http=200 · 22,585 bytes · utf-8
- *      頁面片段:「研究發展費用| 246,427,264 | 6.47 | 204,181,823 | 7.05 |　營業費用合計」
- *      取第一個數字 246,427,264 仟元 = 246,427.264 百萬 == 交付檔年度 rd ✓
- *    版面特徵:同列先給【本期】再給【去年同期】,故一律取第一個數字。
+ *      「研究發展費用| 246,427,264 | 6.47 | 204,181,823 | 7.05 |　營業費用合計」
+ *      = 246,427.264 百萬 == 交付檔年度 rd ✓
+ *
+ * ⚠️ 欄位語義由 spotCheck() 自行解析表頭決定,**不硬編位置**(見該函式內的教訓)。
+ *    年報 2 個期間欄、季報 4 個 —— 早期版本假設「取第一個數字」只對年報成立。
  */
 const SPOT = {
   code: "2330", rocYear: 114, season: 4,
@@ -135,6 +137,51 @@ function capexWhitelistFromContract() {
   const hits = [...s.matchAll(/(\d{4})\s*民國\s*(\d{2,3})(?:Q(\d))?\s*=\s*\+?([\d.]+)/g)];
   if (!hits.length) return null;
   return hits.map((m) => ({ code: m[1], roc: m[2], q: m[3] ?? null, value: Number(m[4]) }));
+}
+
+/**
+ * 符號違反的證據檔(檢查 1 用)。
+ *
+ * 🔴 判準已由【硬規則】改成【可證偽】(契約 2026-08-09):
+ *    費用為負、capex 為正本身**合法** —— 官方年報經查核,會追溯重編年初至今數字,
+ *    讓某一期的累計比前一期小(或 capex 累計朝變大方向移動),單季相減自然出現反號。
+ *    所以判準不是「不准出現」,而是:**每一格都必須能回官方頁面舉證**。
+ *
+ * 放行條件(依欄位方向不同,實測 2026-08-10 確認):
+ *    費用(sell/admin/rd)值為負 ⟺ prevCum > curCum   實測 207/207 全符
+ *    capex 值為正              ⟺ curCum > prevCum   實測 948/948 全符
+ *    prevCum 為 null → 年報值直接取自官方「N年度」欄、未經相減(契約有寫),或首期無前期
+ *
+ * 🔴 找不到依據的才是硬失敗 —— 那正是口徑錯誤的特徵:
+ *    口徑對時負值稀少且格格有據;口徑錯時(單季被當累計再減一次)負值成千上萬,
+ *    而官方累計其實是遞增的 → 絕大多數舉不出依據。
+ *    (舊資料 30,721 格紅燈、新資料 0 格,就是這個差別。)
+ */
+function loadEvidence() {
+  const p = path.join(WEB, "public/data/sign-violations-evidenced.json");
+  if (!fs.existsSync(p)) return null;
+  const j = JSON.parse(fs.readFileSync(p, "utf8"));
+  const items = j.items ?? [];
+  const map = new Map();
+  for (const it of items) map.set(`${it.code}|${it.period}|${it.field}`, it);
+  return { schema: j.schema, count: items.length, map };
+}
+
+/** 一筆違反是否被證據支持(方向要對,不是「有這筆」就算) */
+function evidenceSupports(field, value, ev) {
+  if (!ev) return { ok: false, why: "證據檔中查無此格" };
+  if (Math.abs(ev.value - value) > 0.0011) {
+    return { ok: false, why: `證據的 value ${ev.value} 與交付值 ${value} 不符` };
+  }
+  if (ev.prevCum == null) return { ok: true, why: "年報直接取自官方年度欄／首期無前期" };
+  if (field === "capex") {
+    return ev.curCum > ev.prevCum
+      ? { ok: true, why: `累計朝變大移動 ${ev.prevCum} → ${ev.curCum}` }
+      : { ok: false, why: `capex 為正卻無累計上升(${ev.prevCum} → ${ev.curCum})` };
+  }
+  return ev.prevCum > ev.curCum
+    ? { ok: true, why: `累計下降 ${ev.prevCum} → ${ev.curCum}` }
+    : { ok: false, why: `費用為負卻無累計下降(${ev.prevCum} → ${ev.curCum})` };
 }
 
 /** 檢查 1:符號 —— 硬失敗 */
@@ -239,13 +286,44 @@ async function spotCheck() {
   const buf = Buffer.from(await r.arrayBuffer());
   let html = buf.toString("utf8");
   if (!/研究發展費用/.test(html)) html = new TextDecoder("big5").decode(buf);
+  /**
+   * 🔴 欄位語義【自己解析表頭】,不硬編位置、不照抄引擎的版面表。
+   *    照抄會讓兩端同錯 —— 驗證器的價值就在於用不同的程式重算一次。
+   *
+   * ⚠️ 2026-08-09 我因「按位置取數」連錯兩次:
+   *    年報(season=4)有 2 個期間欄:「114年度」「113年度」
+   *    季報(season 1–3)有 4 個:「114年第3季」「113年第3季」「114年01月01日至…」「113年…」
+   *    我先假設「先本期後去年同期」(只對年報成立),又用 2330 只取前 3 個數字校準,
+   *    看到第 3 個是累計本期就當成規律 —— 要找的「去年同期累計」其實是第 4 個。
+   *    **校準樣本沒涵蓋所有版面型態,就不能拿它推斷整張表。**
+   */
+  const ths = [...html.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)]
+    .map((m) => m[1].replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim())
+    .filter(Boolean);
+  const periods = ths.filter((t) => /^\d{2,3}年/.test(t));
+  if (!periods.length) return { ok: false, reason: "表頭讀不到期間標題(版面可能改了)" };
+  const roc = String(SPOT.rocYear);
+  const colIdx = periods.findIndex((t) => t.startsWith(roc + "年"));
+  if (colIdx < 0) {
+    return { ok: false, reason: `表頭找不到民國${roc}年的期間欄(期間標題:${periods.join(" / ")})` };
+  }
+
   const i = html.indexOf("研究發展費用");
   if (i < 0) return { ok: false, reason: "頁面中找不到「研究發展費用」(版面可能改了)" };
-  const seg = html.slice(i, i + 400).replace(/<[^>]+>/g, "|");
-  const nums = seg.match(/[\d,]{4,}/g);
+  const seg = html.slice(i, i + 700).replace(/<[^>]+>/g, "|");
+  const nums = seg.match(/-?[\d,]{4,}/g);
   if (!nums?.length) return { ok: false, reason: "找到科目名但取不到數字(版面可能改了)" };
-  // 同列先本期、後去年同期 → 取第一個
-  return { ok: true, value: Number(nums[0].replace(/,/g, "")) / 1000, raw: nums[0] };
+  // 每個期間欄對應一組「金額|%」→ 金額的序位 == 期間欄的序位
+  if (nums.length <= colIdx) {
+    return { ok: false, reason: `期間欄序位 ${colIdx},但該列只有 ${nums.length} 個數字` };
+  }
+  return {
+    ok: true,
+    value: Number(nums[colIdx].replace(/,/g, "")) / 1000,
+    raw: nums[colIdx],
+    header: periods[colIdx],
+    layout: `${periods.length} 個期間欄:${periods.join(" / ")}`,
+  };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -270,27 +348,43 @@ if (SELF_TEST_ONLY) process.exit(inj.ok ? 0 : 1);
 
 let hardFail = !inj.ok;
 
-console.log("── 檢查 1:符號(硬失敗)──");
+console.log("── 檢查 1:符號 · 逐格對證據檔核對(硬失敗)──");
 const wl = capexWhitelistFromContract();
 const sg = checkSigns(all, wl);
-console.log(`  sell/admin/rd 為負:${sg.negExpense.length} 格`);
-for (const x of sg.negExpense) console.log(`      ${x.code} ${x.period} ${x.field} = ${x.value}`);
-/**
- * 3518 協調(監督者 2026-08-08 指示):
- *   線上既有資料裡本來就有 1 格 —— 3518 年2019 sell = −20.219。
- *   已請引擎核原始 HTML:官方是負的 → 進【有證據的例外白名單】;是正的 → 引擎修。
- *   規則:只在 3518 響 → 查新契約白名單,有就放行、沒有就問監督者;
- *        其他格也響 → 新問題,硬失敗。
- */
-const KNOWN_PENDING = new Set(["3518"]);
-const unexpectedNeg = sg.negExpense.filter((x) => !KNOWN_PENDING.has(x.code));
-if (sg.negExpense.length && !unexpectedNeg.length) {
-  console.log("  ⚠️ 只在待確認清單(3518)上響 → 查新契約是否已帶白名單;沒有就問監督者,不要自行放行");
-} else if (unexpectedNeg.length) {
-  console.log(`  ❌ 硬失敗:${unexpectedNeg.length} 格在待確認清單【之外】為負`);
+const ev = loadEvidence();
+const violations = [
+  ...sg.negExpense.map((x) => ({ ...x, kind: "費用為負" })),
+  ...sg.posCapex.map((x) => ({ ...x, field: "capex", kind: "capex為正" })),
+];
+console.log(`  資料中的符號違反:${violations.length} 格(費用為負 ${sg.negExpense.length} · capex 為正 ${sg.posCapex.length})`);
+
+if (!ev) {
+  /* 🔴 證據檔缺席 ≠ 通過。沒有裁判就不能宣告無罪。 */
+  console.log("  ❌ 硬失敗:找不到 public/data/sign-violations-evidenced.json —— 無法逐格舉證");
   hardFail = true;
+} else {
+  console.log(`  證據檔:${ev.schema} · ${ev.count} 筆`);
+  const unproven = [];
+  for (const v of violations) {
+    const period = String(v.period).replace(/^[年季]/, "");
+    const r = evidenceSupports(v.field, v.value, ev.map.get(`${v.code}|${period}|${v.field}`));
+    if (!r.ok) unproven.push({ ...v, why: r.why });
+  }
+  console.log(`  有官方依據:${violations.length - unproven.length} / ${violations.length}`);
+  if (unproven.length) {
+    console.log(`  ❌ 硬失敗:${unproven.length} 格【舉不出依據】`);
+    for (const u of unproven.slice(0, 15)) {
+      console.log(`      ${u.code} ${u.period} ${u.field} = ${u.value}  ← ${u.why}`);
+    }
+    if (unproven.length > 15) console.log(`      …其餘 ${unproven.length - 15} 格`);
+    hardFail = true;
+  }
+  /* 反向:證據檔裡有、但資料中已無對應違反 → 陳舊證據,只提醒不擋 */
+  const actual = new Set(violations.map((v) => `${v.code}|${String(v.period).replace(/^[年季]/, "")}|${v.field}`));
+  const stale = [...ev.map.keys()].filter((k) => !actual.has(k));
+  if (stale.length) console.log(`  ⚠️ 證據檔有 ${stale.length} 筆在資料中找不到對應違反(陳舊證據,不擋)`);
 }
-console.log(`  capex 為正:${sg.posCapex.length} 格 · 契約白名單:${wl ? `${wl.length} 筆` : "【抓不到 —— 需人工確認,不可當成空白名單】"}`);
+console.log(`  契約 capex 白名單:${wl ? `${wl.length} 筆(僅供對照;放行依據以證據檔為準)` : "未解析到"}`);
 console.log();
 
 console.log(`── 檢查 2:量級 > ${MAGNITUDE_THRESHOLD_PCT}% 營收(列出,人工判讀,非硬失敗)──`);
@@ -312,6 +406,7 @@ if (DO_SPOT) {
     const delivered = pi >= 0 && t.ix[SPOT.field] != null ? blk.v[pi][t.ix[SPOT.field]] : null;
     const match = fin(delivered) && Math.abs(delivered - s.value) < 0.001;
     console.log(`  ${SPOT.code} 民國${SPOT.rocYear} ${SPOT.label}`);
+    console.log(`    表頭解析 = ${s.layout}  → 取「${s.header}」`);
     console.log(`    官方頁面 = ${s.raw} 仟元 = ${s.value} 百萬`);
     console.log(`    交付檔   = ${delivered}`);
     console.log(`    → ${match ? "逐位相符 ✓" : "❌ 不符 —— 交付資料與官方頁面對不上"}`);
