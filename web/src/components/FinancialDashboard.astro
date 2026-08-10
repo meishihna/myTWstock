@@ -461,7 +461,6 @@ function stackedExpensePctSvg(
   const segA: (number | null)[] = [];
   const segB: (number | null)[] = [];
   const segC: (number | null)[] = [];
-  let maxSum = 1;
   for (let i = 0; i < n; i++) {
     const r = revenue[i];
     if (r == null || !Number.isFinite(r) || r <= 0) {
@@ -486,14 +485,60 @@ function stackedExpensePctSvg(
     segA.push(pa);
     segB.push(pb);
     segC.push(pc);
-    maxSum = Math.max(maxSum, pa + pb + pc);
   }
-  maxSum *= 1.1;
   const innerW = CHART_W - PAD.l - PAD.r;
   const innerH = CHART_H - PAD.t - PAD.b;
   const slot = innerW / n;
   const bw = slot * 0.55;
+
+  /**
+   * ── 負值費用:正段往上堆、負段往下堆(基線下方)────────────────────────
+   *
+   * 🔴 這裡修掉的是【顯示錯誤數字】,不是美觀問題。舊碼:
+   *      for (…) { if (!(pct > 0)) continue; … yCur = yTop; }
+   *    負段直接跳過【且 yCur 不下移】→ 柱子總高 = 只加正項;
+   *    而刻度用的 maxSum 是【含負值的真實和】→ 兩把尺不一致。
+   *    實測 1301 台塑 2023Q4:推銷 3.4048 + 研發 −1.8842 + 管理 5.7830,
+   *    真實和 7.3036%,畫出來卻是 9.173%(且柱子超出座標軸頂端 8.8%)。
+   *    9.173% 不對應任何真實的量。
+   *
+   *    旁證(為什麼真實和才是對的):那三季都是研發 ≈ −1.7%、同期管理由平常
+   *    1.8% 跳到 5.1~5.8% —— 年末追溯重分類。三段真實和 7.30% 與鄰季 6.9~7.6%
+   *    吻合,只加正項的 9.19% 才是離群值。官方季度費用全市場有 1,168 格合法負值。
+   *
+   * 🔴 柱高與刻度一律由【同一個 yOf()】產生 —— 只改一把尺仍然不一致。
+   * 無負值時 yMin = 0,值域與刻度與改版前【逐位相同】(maxPos 即舊的 maxSum)。
+   */
+  let maxPos = 0;
+  let minNeg = 0;
+  for (let i = 0; i < n; i++) {
+    if (segA[i] == null || segB[i] == null || segC[i] == null) continue;
+    const vs = [segA[i]!, segB[i]!, segC[i]!];
+    maxPos = Math.max(maxPos, vs.reduce((s, v) => s + Math.max(0, v), 0));
+    minNeg = Math.min(minNeg, vs.reduce((s, v) => s + Math.min(0, v), 0));
+  }
+  /**
+   * 無負值:沿用「maxPos × 1.1」+ 5 等分刻度 —— 與改版前逐位相同。
+   * 有負值:值域上下界都吸附到 nice step 的整數倍。這樣做有兩個必要理由:
+   *   ① 0 必然落在格線上(它是負段的參考基線)
+   *   ② 下界必然 ≤ −step → 負區【至少有一個刻度】可以量。
+   *      第一版用 (yMax−yMin)/4 取 step,1301 算出 step=5 → 刻度只有 0/5/10,
+   *      負段畫得出來卻沒有任何刻度可對讀 = 畫得出來但量不到。
+   */
+  const niceStep = (raw: number) => {
+    const p = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-6))));
+    for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * p) return m * p;
+    return 10 * p;
+  };
+  const hasNeg = minNeg < 0;
+  const step = hasNeg ? niceStep((maxPos - minNeg) / 6) : 0;
+  const yMax = hasNeg ? Math.ceil(maxPos / step) * step : Math.max(maxPos, 1) * 1.1;
+  const yMin = hasNeg ? Math.floor(minNeg / step) * step : 0;
+  const yOf = (v: number) => PAD.t + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
   const baseY = PAD.t + innerH;
+  /** 0% 的位置。無負值時等於圖底(baseY),有負值時上移。 */
+  const zeroY = yOf(0);
+
   type Rect = { x: number; y: number; w: number; h: number; fill: string };
   const stackRects: Rect[] = [];
   const categoryCenterX: number[] = [];
@@ -504,21 +549,61 @@ function stackedExpensePctSvg(
     const b = segB[i];
     const c = segC[i];
     if (a == null || b == null || c == null) continue;
-    let yCur = baseY;
+    let up = zeroY;
+    let dn = zeroY;
     const layers = [
       { pct: a, fill: "var(--series-3)" },
       { pct: b, fill: "var(--series-8)" },
       { pct: c, fill: "var(--flat)" },
     ];
-    for (const { pct, fill } of layers) {
-      if (!(pct > 0)) continue;
-      const h = (pct / maxSum) * innerH;
-      const yTop = yCur - h;
-      stackRects.push({ x: x0, y: yTop, w: bw, h: Math.max(h, 1), fill });
-      yCur = yTop;
+    /** 各方向最後被畫的那一段的索引 = 該方向的最外層(端點由它決定) */
+    const outerIdx = { pos: -1, neg: -1 };
+    layers.forEach((l, k) => {
+      if (!Number.isFinite(l.pct) || l.pct === 0) return;
+      if (l.pct > 0) outerIdx.pos = k;
+      else outerIdx.neg = k;
+    });
+    for (const [li, { pct, fill }] of layers.entries()) {
+      // 0 不畫(零高度沒有可畫的東西);非有限值也不畫。負值【一定要畫】。
+      if (!Number.isFinite(pct) || pct === 0) continue;
+      const h = (Math.abs(pct) / (yMax - yMin)) * innerH;
+      /**
+       * 🔴 1px 可見性下限【只能套在內層段】,最外層(正堆頂端 / 負堆底端)一律用精確高度。
+       *
+       * 因為堆疊的端點就是「畫出來的總高」:
+       *   - 內層段被撐到 1px → 只會與相鄰段重疊不到 1px,端點不動 → 總高仍等於真實和
+       *   - 最外層段被撐到 1px → 端點被推出去 → 總高 ≠ 真實和
+       * 實測(1465 的 2020Q4):管理費用率 −0.0642%,該處 1px ≈ 0.32% →
+       * 若對最外層也套下限,淨高由 8.7306% 變成 8.4707%,誤差 0.26pp。
+       * 那正是這一輪要修掉的那類「畫出來的數字不對」,不能用「只有 1 像素」放過。
+       *
+       * 代價:最外層的髮絲段(< 1px,約 < 0.3% 營收)會小到看不見。
+       * 但它的數值仍在 tooltip 裡,且「看不見一個 0.06% 的段」與
+       * 「總高錯 0.26pp」相比,前者不會讓讀者讀到錯的量。
+       */
+      const drawH = outerIdx[pct > 0 ? "pos" : "neg"] === li ? h : Math.max(h, 1);
+      if (pct > 0) {
+        up -= h;
+        stackRects.push({ x: x0, y: up, w: bw, h: drawH, fill });
+      } else {
+        // 負段:上緣在游標處、往下延伸 drawH;游標仍按精確 h 前進
+        stackRects.push({ x: x0, y: dn, w: bw, h: drawH, fill });
+        dn += h;
+      }
     }
   }
-  const tickVals = Array.from({ length: 5 }, (_, i) => (maxSum * i) / 4);
+  /** 刻度:無負值 = 0 起算 5 等分(同改版前);有負值 = 由 yMin 起每 step 一格,0 必在其中 */
+  let tickVals: number[];
+  if (!hasNeg) {
+    tickVals = Array.from({ length: 5 }, (_, i) => (yMax * i) / 4);
+  } else {
+    tickVals = [];
+    for (let v = yMin; v <= yMax + 1e-9; v += step) {
+      tickVals.push(Math.abs(v) < 1e-9 ? 0 : Number(v.toFixed(6)));
+    }
+  }
+  /** 刻度連同 y 座標一起回傳 —— 讓模板不再自己算一次 scale(那正是兩把尺分叉的來源) */
+  const ticks = tickVals.map((v) => ({ v, y: yOf(v) }));
   const tooltipSpec = {
     kind: "stackedBar" as const,
     xLabels,
@@ -543,9 +628,12 @@ function stackedExpensePctSvg(
   return {
     xLabels,
     stackRects,
-    maxSum,
+    /** 刻度已含 y 座標;模板不得再自行換算(兩把尺 = 兩種可能的錯) */
+    ticks,
     baseY,
-    tickVals,
+    /** 0% 基線。有負值時 zeroY < baseY,模板要多畫一條基線 */
+    zeroY,
+    hasNegative: minNeg < 0,
     title: singleTotal ? "營業費用率（占營收％）" : "費用結構（占營收％）",
     legend: tooltipSpec.segments.map((g) => ({ name: g.name, color: g.color })),
     tooltipSpec,
@@ -1679,17 +1767,24 @@ const mRevYTickMarks =
               <svg class="fin-dash__svg" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                 <line class="fin-dash__axis-spine" x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PLOT_BOTTOM} />
                 <line class="fin-dash__axis-spine" x1={PAD.l} y1={PLOT_BOTTOM} x2={PLOT_R} y2={PLOT_BOTTOM} />
-                {qExpenseStack.tickVals.map((tv) => {
-                  const yy = qExpenseStack.baseY - (tv / qExpenseStack.maxSum) * INNER_H;
-                  return (
-                    <g>
-                      <line class="fin-dash__grid" x1={PAD.l} x2={PLOT_R} y1={yy} y2={yy} />
-                      <text class="fin-dash__ytick" x={PAD.l - 10} y={yy + 4} text-anchor="end">
-                        {tv.toFixed(1)}%
-                      </text>
-                    </g>
-                  );
-                })}
+                {qExpenseStack.ticks.map((t) => (
+                  <g>
+                    <line class="fin-dash__grid" x1={PAD.l} x2={PLOT_R} y1={t.y} y2={t.y} />
+                    <text class="fin-dash__ytick" x={PAD.l - 10} y={t.y + 4} text-anchor="end">
+                      {t.v.toFixed(1)}%
+                    </text>
+                  </g>
+                ))}
+                {/* 有負值時 0% 不在圖底 → 基線要看得見,否則讀者無從判斷哪一段在下方 */}
+                {qExpenseStack.hasNegative && (
+                  <line
+                    class="fin-dash__axis-spine"
+                    x1={PAD.l}
+                    x2={PLOT_R}
+                    y1={qExpenseStack.zeroY}
+                    y2={qExpenseStack.zeroY}
+                  />
+                )}
                 {qExpenseStack.stackRects.map((r) => (
                   <rect
                     x={r.x}
