@@ -507,7 +507,13 @@ function stackedExpensePctSvg(
    *    吻合,只加正項的 9.19% 才是離群值。官方季度費用全市場有 1,168 格合法負值。
    *
    * 🔴 柱高與刻度一律由【同一個 yOf()】產生 —— 只改一把尺仍然不一致。
-   * 無負值時 yMin = 0,值域與刻度與改版前【逐位相同】(maxPos 即舊的 maxSum)。
+   *
+   * 無負值時 yMin = 0,值域與刻度與改版前【逐位相同】。對應關係要講精確:
+   *   舊碼 `maxSum = max(pa+pb+pc)` 之後才 `maxSum *= 1.1`;
+   *   `maxPos` 等於的是【乘 1.1 之前】的那個 maxSum,所以這裡才要自己乘 1.1。
+   *   (若把 maxPos 直接當成舊的 maxSum 用,柱子會矮 9%。)
+   *   無負值時 maxPos ≡ max(pa+pb+pc),因為此時「正項和」就是「三項和」。
+   *   實測佐證:2330 改版前後 96 個 rect 逐位元相同。
    */
   let maxPos = 0;
   let minNeg = 0;
