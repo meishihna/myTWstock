@@ -58,11 +58,28 @@ function rowsByPeriod(json, block) {
 const same = (a, b) => (a === null || b === null ? a === b : Object.is(a, b));
 
 /**
- * 比對單一個股的舊/新交付。回傳所有違反「只增不改」的事實。
- * 純函式 —— 自我驗證直接餵物件進來,不需要檔案。
+ * 比對單一個股的舊/新交付,把變動分成【三類】而不是二分。
+ *
+ * 🔴 2026-08-11 判準修正(在看到交付之後改的,理由必須成立才算數):
+ *    原本把「null → 有值」也算硬違規(注入案例④「補值也是改」)。**那條是錯的。**
+ *    「只增不改」的「改」指的是【改寫既有事實】;null 不是事實,是「還沒有資料」,
+ *    把它補上是新增資料,不是改資料。
+ *    決定性證據不是交付通不通過,而是【我自己在交付到貨前就預先登記過】:
+ *    凍結 commit 的訊息寫著「115Q1 的殼已在、空的就是那四欄,ingest 後這四欄應大幅上升」。
+ *    若 null 補值算違規,那句預期本身就自我矛盾 —— 我等於預先登記了一個必然失敗的形狀。
+ *
+ *    但補值【不能因此變成無條件放行】,否則規則就有了後門。所以改成三分:
+ *      ① overwrite:既有【非空】格被改成別的值 → 永遠硬失敗(這才是改寫事實)
+ *      ② vanish / shift:期別消失、欄位位移 → 永遠硬失敗
+ *      ③ fill:null → 有值 → 分開計數並列出【期別 × 欄位】分布;
+ *         且必須落在呼叫端【明文宣告】的範圍內(--allow-fill),
+ *         範圍外的補值仍然硬失敗。
+ *    宣告是明文的,所以下一次交付若在別的期別偷偷補值,不會靜靜通過。
  */
 export function diffTicker(ticker, oldJson, newJson) {
-  const bad = [];
+  const overwrite = [];
+  const structural = [];
+  const fill = [];
   const added = { annual: [], quarters: [] };
 
   const of = oldJson.fields ?? [];
@@ -70,8 +87,8 @@ export function diffTicker(ticker, oldJson, newJson) {
   // 欄位只能【原序保留後追加】。少一欄或換位置都會讓既有列的意義改變。
   for (let i = 0; i < of.length; i++) {
     if (nf[i] !== of[i]) {
-      bad.push(`${ticker} 欄位順序改變:第 ${i} 欄 ${of[i]} → ${nf[i] ?? "(消失)"}`);
-      return { bad, added }; // 索引已不可信,後續比較沒有意義
+      structural.push(`${ticker} 欄位順序改變:第 ${i} 欄 ${of[i]} → ${nf[i] ?? "(消失)"}`);
+      return { overwrite, structural, fill, added }; // 索引已不可信,後續比較沒有意義
     }
   }
 
@@ -81,19 +98,35 @@ export function diffTicker(ticker, oldJson, newJson) {
     for (const [period, orow] of o) {
       const nrow = n.get(period);
       if (!nrow) {
-        bad.push(`${ticker} ${block} 期別消失:${period}`);
+        structural.push(`${ticker} ${block} 期別消失:${period}`);
         continue;
       }
       for (const f of of) {
-        if (!same(orow[f], nrow[f])) {
-          bad.push(`${ticker} ${block} ${period} ${f}: ${orow[f]} → ${nrow[f]}`);
-        }
+        if (same(orow[f], nrow[f])) continue;
+        if (orow[f] === null) fill.push({ ticker, block, period, field: f, to: nrow[f] });
+        else overwrite.push(`${ticker} ${block} ${period} ${f}: ${orow[f]} → ${nrow[f]}`);
       }
     }
     for (const period of n.keys()) if (!o.has(period)) added[block].push(period);
   }
-  return { bad, added };
+  return { overwrite, structural, fill, added };
 }
+
+/** `2026Q1:sell,admin` → Map(period → Set(fields));`*` 代表任何欄位 */
+export function parseAllowFill(specs) {
+  const m = new Map();
+  for (const s of specs) {
+    const [period, fields = "*"] = String(s).split(":");
+    if (!m.has(period)) m.set(period, new Set());
+    for (const f of fields.split(",")) m.get(period).add(f.trim());
+  }
+  return m;
+}
+
+export const fillAllowed = (allow, { period, field }) => {
+  const set = allow.get(period);
+  return !!set && (set.has("*") || set.has(field));
+};
 
 /* ── 自我驗證:三種違規必須被抓,兩種合法變動必須放行 ───────────────────── */
 function selfTest() {
@@ -104,11 +137,14 @@ function selfTest() {
   };
   const clone = () => JSON.parse(JSON.stringify(base));
 
+  /** 宣告可補值的範圍:只有 2025Q4 的 rd 可以補 —— 用來檢驗範圍外補值會被抓 */
+  const allow = parseAllowFill(["2025Q4:rd"]);
+
   const cases = [];
-  // 違規①:既有格被改
+  // 違規①:既有非空格被改寫
   let c = clone();
   c.annual.v[0][0] = 101;
-  cases.push({ name: "違規①:既有年度格 rev 100→101 → 必須抓到", j: c, expectBad: 1, must: "2024 rev" });
+  cases.push({ name: "違規①:既有年度格 rev 100→101(改寫事實)→ 必須抓到", j: c, expectBad: 1, must: "2024 rev" });
   // 違規②:既有期別消失
   c = clone();
   c.quarters.p = ["2025Q4"];
@@ -118,15 +154,21 @@ function selfTest() {
   c = clone();
   c.fields = ["rev", "rd", "cogs"];
   cases.push({ name: "違規③:欄位順序 cogs↔rd 對調 → 必須抓到(索引位移不會自己報錯)", j: c, expectBad: 1, must: "欄位順序改變" });
-  // 違規④:null → 有值 也算改動(補值也是改既有格,必須看得見)
+  // 違規④:補值落在【宣告範圍之外】—— 三分法的後門就在這裡,必須封死
   c = clone();
-  c.annual.v[1][2] = 7;
-  cases.push({ name: "違規④:既有格由 null 補成 7 → 必須抓到(補值也是改)", j: c, expectBad: 1, must: "2025 rd" });
-  // 合法①:新增期別
+  c.annual.v[1][2] = 7; // 年2025 rd 由 null 補成 7,而宣告只允許 2025Q4:rd
+  cases.push({
+    name: "違規④:補值在宣告範圍外(年2025 rd,只宣告 2025Q4:rd)→ 必須抓到",
+    j: c,
+    expectBad: 1,
+    must: "範圍外補值",
+  });
+  // 合法①:新增期別 + 宣告範圍內的補值
   c = clone();
   c.quarters.p.push("2026Q1");
   c.quarters.v.push([31, 19, 3]);
-  cases.push({ name: "合法①:新增 2026Q1 → 必須放行,並列為新增", j: c, expectBad: 0, addQ: 1 });
+  c.quarters.v[1][2] = 4; // 2025Q4 rd null→4(允許)
+  cases.push({ name: "合法①:新增 2026Q1 + 宣告內補值(2025Q4 rd)→ 必須放行", j: c, expectBad: 0, addQ: 1, fillN: 1 });
   // 合法②:尾端追加新欄位
   c = clone();
   c.fields.push("capex");
@@ -136,16 +178,19 @@ function selfTest() {
 
   let fail = 0;
   for (const t of cases) {
-    const { bad, added } = diffTicker("TEST", base, t.j);
+    const { overwrite, structural, fill, added } = diffTicker("TEST", base, t.j);
+    const outOfScope = fill.filter((x) => !fillAllowed(allow, x)).map((x) => `${x.ticker} 範圍外補值 ${x.block} ${x.period} ${x.field}`);
+    const bad = [...overwrite, ...structural, ...outOfScope];
     const okCount = bad.length === t.expectBad;
     const okMsg = !t.must || bad.some((b) => b.includes(t.must));
     const okAdd = t.addQ == null || added.quarters.length === t.addQ;
-    const ok = okCount && okMsg && okAdd;
+    const okFill = t.fillN == null || fill.length === t.fillN;
+    const ok = okCount && okMsg && okAdd && okFill;
     if (!ok) fail++;
     console.log(`  ${ok ? "✓" : "✗"} ${t.name}`);
     if (!ok) {
       console.log(`      實際 ${bad.length} 項:${bad.join(" | ") || "(無)"}`);
-      console.log(`      新增季別 ${added.quarters.length}`);
+      console.log(`      新增季別 ${added.quarters.length} · 補值 ${fill.length} 格`);
     }
   }
   const ctrl = cases.filter((x) => x.expectBad === 0).length;
@@ -208,7 +253,19 @@ const newTk = new Set(
   fs.readdirSync(LIVE_DIR).filter((f) => /^\d{4}\.json$/.test(f)).map((f) => f.slice(0, 4))
 );
 
+/**
+ * 可補值範圍必須【明文宣告】。沒宣告 = 任何補值都算違規(預設最嚴)。
+ * 用法:--allow-fill 2026Q1:sell,admin,rd,capex
+ */
+const allow = parseAllowFill(argv.filter((_, i) => argv[i - 1] === "--allow-fill"));
+console.log(
+  allow.size
+    ? `宣告可補值範圍:${[...allow].map(([p, s]) => `${p}:${[...s].join(",")}`).join(" · ")}`
+    : `宣告可補值範圍:(無)—— 任何 null→有值 都會被判違規`
+);
+
 const bad = [];
+const fills = [];
 const addedQ = new Map();
 const addedA = new Map();
 let touched = 0;
@@ -218,9 +275,16 @@ for (const t of oldTk) {
     continue;
   }
   const r = diffTicker(t, BASE.get(t), readJson(path.join(LIVE_DIR, `${t}.json`)));
-  if (r.bad.length) {
+  const outOfScope = r.fill.filter((x) => !fillAllowed(allow, x));
+  fills.push(...r.fill.filter((x) => fillAllowed(allow, x)));
+  const hard = [
+    ...r.overwrite,
+    ...r.structural,
+    ...outOfScope.map((x) => `${x.ticker} 範圍外補值 ${x.block} ${x.period} ${x.field}: null → ${x.to}`),
+  ];
+  if (hard.length) {
     touched++;
-    bad.push(...r.bad);
+    bad.push(...hard);
   }
   if (r.added.quarters.length) addedQ.set(t, r.added.quarters);
   if (r.added.annual.length) addedA.set(t, r.added.annual);
@@ -259,13 +323,27 @@ for (const f of Object.keys(cov)) {
   console.log(`    ${f.padEnd(6)} ${String(cov[f]).padStart(5)} 檔  ${((100 * cov[f]) / (q115 || 1)).toFixed(1)}%`);
 }
 
+// 補值可見化:分布必須看得見,否則「合法補值」會變成一片無人清點的變動
+if (fills.length) {
+  const byPF = new Map();
+  const tk = new Set();
+  for (const f of fills) {
+    const k = `${f.block === "annual" ? "年" : "季"}${f.period} · ${f.field}`;
+    byPF.set(k, (byPF.get(k) ?? 0) + 1);
+    tk.add(f.ticker);
+  }
+  console.log(`\n── 宣告範圍內的補值(null → 有值):${fills.length} 格 / ${tk.size} 檔 ──`);
+  for (const [k, n] of [...byPF].sort((a, b) => b[1] - a[1])) console.log(`  ${k.padEnd(24)} ${n} 檔`);
+}
+
 console.log(`\n── 只增不改判定 ──`);
 if (bad.length === 0) {
-  console.log(`  ✅ 既有期別逐格 0 差(${oldTk.size} 檔全數比對,含 null 對 null)`);
+  console.log(`  ✅ 既有【非空】格 0 處被改寫(${oldTk.size} 檔全數比對)`);
   console.log(`  ✅ 無期別消失、無欄位位移`);
+  console.log(`  ✅ 所有 null→有值 都落在明文宣告的範圍內(${fills.length} 格)`);
   process.exit(0);
 }
-console.error(`  ❌ ${touched} 檔的既有資料被改動,共 ${bad.length} 項`);
+console.error(`  ❌ ${touched} 檔違規,共 ${bad.length} 項`);
 for (const b of bad.slice(0, 30)) console.error(`      ${b}`);
 if (bad.length > 30) console.error(`      …其餘 ${bad.length - 30} 項`);
 process.exit(1);
