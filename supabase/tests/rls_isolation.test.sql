@@ -160,12 +160,20 @@ select is(
 
 -- 函式也一樣:預設 EXECUTE 是給 PUBLIC 的,security definer 函式若沒 revoke
 -- 等於開了一扇繞過 RLS 的門。handle_new_user 是 security definer,必須擋住。
+--
+-- ⚠️ 排除【回傳 event_trigger】的函式:那種函式 PostgreSQL 不允許直接呼叫,
+--    EXECUTE 權限不可利用。線上的專案層機制 `rls_auto_enable`(新表自動 RLS)
+--    正是這一類,而它不是我們的東西、也不該被我們 revoke。
+--    🔴 這個放寬是用【性質】(回傳型別)而不是【名字】—— 名字白名單會祝福掉錯的東西。
+--    guards_bite.test.sql 有三條測試證明:(a) event_trigger 函式真的叫不動、
+--    (b) 舊判準會誤報、(c) 新判準對【可直接呼叫】的 security definer 函式仍然會抓。
 select is(
   (select count(*)::int
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
+      and p.prorettype <> 'pg_catalog.event_trigger'::regtype
       and has_function_privilege('anon', p.oid, 'EXECUTE')),
-  0, '🔴 anon 不能執行任何 security definer 函式(那是繞過 RLS 的門)');
+  0, '🔴 anon 不能執行任何【可直接呼叫的】security definer 函式(繞過 RLS 的門)');
 
 select * from finish();
 rollback;

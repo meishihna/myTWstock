@@ -10,7 +10,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(16);
 
 -- ── 三條結構性查詢(與 migration / rls_isolation 內的完全一致)────────
 create or replace function pg_temp.n_no_rls() returns int language sql as $$
@@ -75,6 +75,60 @@ select throws_ok(:'guard_view', 'P0001', null,
           '🔴 注入「沒設 security_invoker 的 view」→ migration 的守門必須 raise');
 
 drop view public._inject_bad_view;
+
+-- ── 🔴 判準的放寬必須被證明「沒有把真的洞一起放過」────────────────────
+-- 背景:線上比本機多一個函式 `rls_auto_enable` —— 那是【專案層的「新表自動 RLS」機制】,
+--   security definer、ACL 是預設(PUBLIC 可執行),所以「anon 可執行 security definer 函式」
+--   這條斷言在線上會紅。
+--   它的回傳型別是 `event_trigger`,而 PostgreSQL【不允許直接呼叫】這種函式 ——
+--   所以那個 EXECUTE 權限實際上不可利用。
+--
+-- 🔴 但「我知道 Postgres 這樣設計」不是證據。放寬判準要做三件事,缺一不可:
+--    (a) 證明那個性質為真(anon 真的呼叫不動 event_trigger 函式)
+--    (b) 用【性質】放寬,不是用【名字】放寬(名字白名單會祝福掉錯的東西)
+--    (c) 證明放寬後,真的洞(可直接呼叫的 security definer 函式)【仍然】會被抓
+
+create function public._inject_evtrig() returns event_trigger
+  language plpgsql security definer as $$ begin end; $$;
+create function public._inject_callable() returns int
+  language sql security definer as $$ select 1 $$;
+-- 兩者的 EXECUTE 都是預設(PUBLIC 可執行),不額外 grant —— 與線上那個函式同條件。
+
+-- (a) 性質:event_trigger 函式無法被直接呼叫,連 postgres 也不行
+select throws_ok($$select public._inject_evtrig()$$, null, null,
+  '🔴 event_trigger 函式無法被直接呼叫 —— 這是放寬判準的【唯一】理由');
+-- 對照:可直接呼叫的那個確實叫得動(證明上一條不是因為函式壞掉)
+select lives_ok($$select public._inject_callable()$$,
+  '對照:普通 security definer 函式叫得動(上一條的失敗來自型別,不是函式本身)');
+
+-- (b)(c) 舊判準:兩個都會被抓 —— 所以它會在線上誤報
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+      and p.proname like '\_inject\_%'),
+  2, '舊判準會同時抓到兩個(所以它在線上對 rls_auto_enable 誤報)');
+
+-- 新判準:排除【回傳 event_trigger】的,但可直接呼叫的那個必須【仍然被抓】
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+      and p.prorettype <> 'pg_catalog.event_trigger'::regtype
+      and p.proname like '\_inject\_%'),
+  1, '🔴 新判準只放過 event_trigger 那個;可直接呼叫的【仍然被抓】(放寬沒有變成失明)');
+
+select is(
+  (select string_agg(p.proname, ',') from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+      and p.prorettype <> 'pg_catalog.event_trigger'::regtype
+      and p.proname like '\_inject\_%'),
+  '_inject_callable', '被抓到的正是那個可直接呼叫的(指名,不只是數量對)');
+
+drop function public._inject_evtrig();
+drop function public._inject_callable();
 
 select * from finish();
 rollback;
