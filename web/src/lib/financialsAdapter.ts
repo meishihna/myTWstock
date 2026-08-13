@@ -262,17 +262,43 @@ const nFinite = (a: (number | null)[] | null | undefined) =>
   Array.isArray(a) ? a.filter((v) => fin(v)).length : 0;
 
 /**
+ * 群組的【期別覆蓋】:該期只要群組內任一 key 有值,就算涵蓋。
+ * 官方與 store 各有自己的期別軸,故比的是【期數】而非期別身分。
+ */
+function coverage(
+  s: Record<string, (number | null)[]> | null,
+  keys: string[]
+): number {
+  if (!s) return 0;
+  const n = Math.max(0, ...keys.map((k) => (Array.isArray(s[k]) ? s[k]!.length : 0)));
+  let c = 0;
+  for (let i = 0; i < n; i++) if (keys.some((k) => fin(s[k]?.[i]))) c++;
+  return c;
+}
+
+/**
  * 決定每個圖表群組的來源。
  *
- * 改用官方的條件是【逐檔逐欄】的:群組內每一個 key 的官方有值格數都 ≥ store,
- * 而且至少有一格。只要有一欄比 store 少就整組退回 store。
+ * 🔴 2026-08-13 規則變更:【逐 key 非空格數】→【期別覆蓋】
  *
- * 為什麼不是「官方有值就用官方」:官方 t163 的期別涵蓋【逐檔不同】,新上市或曾更名的
- * 個股可能只有 3 年而 store 有 8 年。逐檔比對實測,寬鬆條件會在 1,854 處讓某檔某欄
- * 由有值變空白 —— 總數看起來還是漲的(+6,205),所以【只看總數會完全看不到這件事】。
+ * 舊條件是「群組內每一個 key 的官方非空格數都 ≥ store」。問題在於官方的 `null`
+ * 有大量是【語義 null】—— 那家公司的損益表本來就沒有「研發費用」那一列,null 才是
+ * 正確答案。用非空格數比大小,等於讓 store 幾個【編出來的 0】在格數上勝出:
+ * 決定性樣本 1103/1108/1303/1313/1315/1326/1336/1416 —— 官方與 store 的期別涵蓋
+ * 都是 32 期,差別只在官方 rd 非空 0 格 vs store 5 格,而那 5 格【全是 0】。
+ * **舊規則在懲罰正確性。**
  *
- * 為什麼不「用 store 補官方的洞」:那會讓同一條線 2018–2020 是 Yahoo、2021–2025 是官方,
- * 接縫處出現不存在的跳動。寧可整組沿用 store。
+ * 新條件:官方的期別覆蓋 ≥ store 的期別覆蓋(某期別只要群組內任一欄有值即算涵蓋)。
+ * 官方勝出時,該期別的呈現【含 null】以官方為準 —— 語義 null 就是答案。
+ * 官方涵蓋較少時仍讓 store 勝出,那是安全閥(新上市個股官方可能只有 3 年而 store 有 8 年)。
+ *
+ * 代價已量測並被接受:expenseStack 翻轉 253 檔,甩掉 1,304 格【編出來的零】,
+ * 代價是 440 格 store 非零值變空白。那 440 格經逐格對官方頁面分類:
+ * 21 格是解析缺口(已由引擎修復)、14 格是去累計傳染、其餘為語義 null ——
+ * 見 docs/financials-known-limitations.md。
+ *
+ * 為什麼仍不「用 store 補官方的洞」:那會讓同一條線 2018–2020 是 Yahoo、
+ * 2021–2025 是官方,接縫處出現不存在的跳動。寧可整組沿用單一來源。
  *
  * marginLines 綁定 revenueLines(三個率由那四欄推導,不可各自為政)。
  */
@@ -282,12 +308,9 @@ function resolveGroups(
 ): Record<string, FieldSource> {
   const res: Record<string, FieldSource> = {};
   for (const [g, keys] of Object.entries(CHART_GROUPS)) {
-    const officialWins =
-      off != null &&
-      keys.every((k) => {
-        const oc = nFinite(off[k]);
-        return oc > 0 && oc >= nFinite(sto?.[k]);
-      });
+    const oc = coverage(off, keys);
+    // oc > 0 是必要的:兩邊都空時 0 >= 0 會讓「什麼都沒有」的官方勝出
+    const officialWins = off != null && oc > 0 && oc >= coverage(sto, keys);
     if (officialWins) {
       res[g] = "official";
       continue;
@@ -340,11 +363,29 @@ function buildBlock(
       misses += r.misses;
       values = r.values;
     }
-    if (!hasAny(values)) {
+    /**
+     * 🔴 群組已判給官方時,**不得**因為某個 key 官方全空就退回 store。
+     *
+     * 期別覆蓋規則的前提是「官方勝出時,該期別的呈現【含 null】以官方為準 ——
+     * 語義 null 就是答案」。而 fallback 會把那個答案換成 store 的值,後果是:
+     *   ① 同一張圖混來源(違反設計原則 3)
+     *   ② store 的 `General & Admin Exp` 實為【營業費用合計】,一旦補進來,
+     *      圖上就變成 推銷(官方) + 研發(官方) + 營業費用合計(store) = 重複計算
+     * 實測翻轉後有 8 檔(2329 2367 2453 3026 5211 5489 8112 9926)落入此情形:
+     * 官方損益表根本沒有「管理費用」那一列,store 卻補上了合計值。
+     * 寧可那一段留白 —— 留白是誠實的,重複計算不是。
+     *
+     * 不屬於任何群組的表格列(TABLE_ONLY_KEYS)不受此限:它們逐欄決定來源,
+     * 沒有「同一張圖不得混來源」的問題。
+     */
+    const groupIsOfficial = group != null && groups[group] === "official";
+    if (!hasAny(values) && !groupIsOfficial) {
       const r = realign(periods, storeBlock?.periods, storeBlock?.series?.[key]);
       misses += r.misses;
       values = r.values;
       src = hasAny(r.values) ? "store" : "none";
+    } else if (!hasAny(values)) {
+      src = "none";
     }
     // 兩邊都沒有時仍放進 series 保持期數對齊(下游 seriesHasFinite 會自然跳過)
     series[key] = values!;

@@ -562,13 +562,27 @@ function stackedExpensePctSvg(
       { pct: b, fill: "var(--series-8)" },
       { pct: c, fill: "var(--flat)" },
     ];
-    /** 各方向最後被畫的那一段的索引 = 該方向的最外層(端點由它決定) */
-    const outerIdx = { pos: -1, neg: -1 };
-    layers.forEach((l, k) => {
-      if (!Number.isFinite(l.pct) || l.pct === 0) return;
-      if (l.pct > 0) outerIdx.pos = k;
-      else outerIdx.neg = k;
-    });
+    /**
+     * 🔴 1px 可見性下限,受「該段到堆疊邊界的可用空間」上限約束。
+     *
+     * 畫法是【上緣定位、往下延伸 drawH】,所以擴張方向一律向下,可能撞到兩個邊界:
+     *   正段往下 → 0% 基線;負段往下 → 負堆的底端。
+     * 越過任一邊界都會出事:
+     *   ① 正段越過基線 = 正值畫進負值區(實測 3115 2020Q4:y 軸跨 −100~500,
+     *      1% ≈ 0.36px,推銷 0.231% 撐成 1px → 溢出基線 0.917px)
+     *   ② 負段越過底端 = 堆疊底被推出去,總高不再等於真實和(實測 1465 誤差 0.26pp)
+     *
+     * ⚠️ 我先用「排除最貼邊的那一段」修過一次,不夠 general:
+     *    第二段正值撐成 1px 時,若第一段本身不足 1px,溢出照樣穿過基線
+     *    (掃描抓到 17 個期別 / 5 檔)。改成用【剩餘空間】封頂,對任何段數都成立:
+     *      drawH = min(max(h, 1), 該段上緣到邊界的距離)
+     *    邊界處的段落若 < 1px 就自然退回精確高度,不需要特例。
+     */
+    const negTotalPx = layers.reduce(
+      (n, l) => n + (Number.isFinite(l.pct) && l.pct < 0 ? (Math.abs(l.pct) / (yMax - yMin)) * innerH : 0),
+      0
+    );
+    const negBottom = zeroY + negTotalPx;
     for (const [li, { pct, fill }] of layers.entries()) {
       // 0 不畫(零高度沒有可畫的東西);非有限值也不畫。負值【一定要畫】。
       if (!Number.isFinite(pct) || pct === 0) continue;
@@ -587,13 +601,13 @@ function stackedExpensePctSvg(
        * 但它的數值仍在 tooltip 裡,且「看不見一個 0.06% 的段」與
        * 「總高錯 0.26pp」相比,前者不會讓讀者讀到錯的量。
        */
-      const drawH = outerIdx[pct > 0 ? "pos" : "neg"] === li ? h : Math.max(h, 1);
       if (pct > 0) {
         up -= h;
-        stackRects.push({ x: x0, y: up, w: bw, h: drawH, fill });
+        // 上緣 up 到 0% 基線的距離就是可用空間;撐大不得越過基線
+        stackRects.push({ x: x0, y: up, w: bw, h: Math.min(Math.max(h, 1), zeroY - up), fill });
       } else {
-        // 負段:上緣在游標處、往下延伸 drawH;游標仍按精確 h 前進
-        stackRects.push({ x: x0, y: dn, w: bw, h: drawH, fill });
+        // 上緣 dn 到負堆底端的距離就是可用空間;游標仍按精確 h 前進
+        stackRects.push({ x: x0, y: dn, w: bw, h: Math.min(Math.max(h, 1), negBottom - dn), fill });
         dn += h;
       }
     }
