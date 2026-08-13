@@ -306,18 +306,51 @@ const MONTHLY_STATS = [
           <span class="sub">由你自行輸入;不連接券商、不自動匯入</span>
         </div>
         <div class="tr-actions">
-          <button class="tr-btn tr-btn--primary" type="button" disabled>＋ 新增交易</button>
-          <button class="tr-btn" type="button" disabled>貼上 CSV</button>
+          <button class="tr-btn tr-btn--primary" type="button" id="tx-new" disabled>＋ 新增交易</button>
           <span class="tr-hint">Phase 2 · 登入後開放</span>
+          <span class="tx-status" id="tx-status" role="status"></span>
         </div>
+
+        {/* 新增/編輯表單。未登入時不顯示 —— 不給一個按了只會失敗的入口 */}
+        <form class="tx-form" id="tx-form" hidden>
+          <div class="tx-grid">
+            <label>日期<input type="date" name="trade_date" required /></label>
+            <label>代號<input type="text" name="ticker" required maxlength="5" placeholder="2330" /></label>
+            <label>買/賣
+              <select name="side">
+                <option value="buy">買進</option>
+                <option value="sell">賣出</option>
+              </select>
+            </label>
+            <label>股數<input type="number" name="shares" required min="0" step="any" placeholder="1000" /></label>
+            <label>價格<input type="number" name="price" required min="0" step="any" placeholder="100" /></label>
+            <label>手續費<input type="number" name="fee" min="0" step="any" /></label>
+            <label>證交稅<input type="number" name="tax" min="0" step="any" /></label>
+            <label>同日序<input type="number" name="seq" min="0" step="1" value="0" /></label>
+          </div>
+          <p class="tx-note">
+            手續費與證交稅會依 <b>0.1425%</b> 與 <b>0.3%</b> 自動帶入(與回測引擎同口徑),
+            <b>可自行修改</b> —— 券商折扣、當沖減半都會讓實際值不同。同日多筆請用「同日序」決定先後,
+            那是 FIFO 的排序依據。
+          </p>
+          <div class="tx-form-actions">
+            <button class="tr-btn tr-btn--primary" type="submit" id="tx-save">儲存</button>
+            <button class="tr-btn" type="button" id="tx-cancel">取消</button>
+            <span class="tx-err" id="tx-err" role="alert"></span>
+          </div>
+        </form>
+
         <div class="tbl-wrap">
           <table>
             <thead>
-              <tr>{TX_COLS.map((c, i) => <th scope="col" class:list={[{ l: i < 3 }]}>{c}</th>)}</tr>
+              <tr>
+                {TX_COLS.map((c, i) => <th scope="col" class:list={[{ l: i < 3 }]}>{c}</th>)}
+                <th scope="col">操作</th>
+              </tr>
             </thead>
-            <tbody>
+            <tbody id="tx-body">
               <tr class="tr-empty">
-                <td colspan={TX_COLS.length}>{TRADES_PAGE.emptyCta}</td>
+                <td colspan={TX_COLS.length + 1}>{TRADES_PAGE.emptyCta}</td>
               </tr>
             </tbody>
           </table>
@@ -466,6 +499,182 @@ const MONTHLY_STATS = [
       document.getElementById("tr-signout")?.addEventListener("click", async () => {
         await sb.auth.signOut();
       });
+
+      /* ══ 輪 2:交易 CRUD + 雙實作比對 ══════════════════════════════════ */
+      const {
+        fetchTrades, insertTrade, updateTrade, deleteTrade,
+        crossCheck, newCompareState, defaultFee, defaultTax,
+      } = await import("../lib/tradesApp");
+
+      const form = document.getElementById("tx-form") as HTMLFormElement | null;
+      const body = document.getElementById("tx-body");
+      const status = document.getElementById("tx-status");
+      const errEl = document.getElementById("tx-err");
+      const newBtn = document.getElementById("tx-new") as HTMLButtonElement | null;
+      const cmp = newCompareState();
+      let editingId: number | string | null = null;
+      let uid: string | null = null;
+
+      const fmt = (n: number, d = 2) =>
+        n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+      function renderStatus() {
+        if (!status) return;
+        if (cmp.status === "diff") {
+          // 平白說法:使用者不需要知道「FIFO 雙實作」是什麼
+          status.textContent = `部分代號的數值待核(${[...cmp.pending].join("、")})`;
+          status.dataset.tone = "warn";
+        } else if (cmp.status === "error") {
+          status.textContent = "數值核對未完成";
+          status.dataset.tone = "warn";
+        } else {
+          status.textContent = "";
+          status.dataset.tone = "";
+        }
+      }
+
+      function renderTrades(rows: any[]) {
+        if (!body) return;
+        if (!rows.length) {
+          body.innerHTML = `<tr class="tr-empty"><td colspan="9">還沒有交易紀錄。按「＋ 新增交易」開始記錄。</td></tr>`;
+          return;
+        }
+        body.textContent = "";
+        for (const r of rows) {
+          const net = r.side === "buy"
+            ? -(r.shares * r.price + r.fee)
+            : r.shares * r.price - r.fee - r.tax;
+          const tr = document.createElement("tr");
+          const cells = [
+            r.trade_date, r.ticker, r.side === "buy" ? "買進" : "賣出",
+            fmt(r.shares, 0), fmt(r.price), fmt(r.fee), fmt(r.tax), fmt(net),
+          ];
+          for (const c of cells) {
+            const td = document.createElement("td");
+            td.textContent = c; // 🔴 textContent 不是 innerHTML:note/ticker 都是使用者輸入
+            tr.appendChild(td);
+          }
+          const ops = document.createElement("td");
+          const mk = (label: string, act: string) => {
+            const b = document.createElement("button");
+            b.type = "button"; b.className = "tx-op"; b.textContent = label;
+            b.dataset.act = act; b.dataset.id = String(r.id);
+            return b;
+          };
+          ops.append(mk("編輯", "edit"), mk("刪除", "del"));
+          tr.appendChild(ops);
+          body.appendChild(tr);
+        }
+      }
+
+      let cache: any[] = [];
+      async function reload() {
+        cache = await fetchTrades(sb);
+        renderTrades(cache);
+        /**
+         * 🔴 比對排在首次繪製【之後】,且不 await —— 資料先上畫面。
+         *    幾千筆交易時,這個比對不可以是白畫面的原因。
+         */
+        queueMicrotask(() => {
+          crossCheck(sb, cache, cmp).then(renderStatus);
+        });
+      }
+
+      function fillDefaults() {
+        if (!form) return;
+        const f = new FormData(form);
+        const shares = Number(f.get("shares")) || 0;
+        const price = Number(f.get("price")) || 0;
+        const side = String(f.get("side") || "buy") as "buy" | "sell";
+        const feeEl = form.elements.namedItem("fee") as HTMLInputElement;
+        const taxEl = form.elements.namedItem("tax") as HTMLInputElement;
+        if (!feeEl.dataset.touched) feeEl.value = shares && price ? String(defaultFee(shares, price)) : "";
+        if (!taxEl.dataset.touched) taxEl.value = shares && price ? String(defaultTax(side, shares, price)) : "";
+      }
+      form?.addEventListener("input", (ev) => {
+        const t = ev.target as HTMLInputElement;
+        if (t.name === "fee" || t.name === "tax") t.dataset.touched = "1";
+        if (["shares", "price", "side"].includes(t.name)) fillDefaults();
+      });
+
+      function openForm(row?: any) {
+        if (!form) return;
+        form.hidden = false;
+        editingId = row?.id ?? null;
+        const set = (n: string, v: any) => ((form.elements.namedItem(n) as HTMLInputElement).value = v ?? "");
+        set("trade_date", row?.trade_date ?? new Date().toISOString().slice(0, 10));
+        set("ticker", row?.ticker ?? "");
+        (form.elements.namedItem("side") as HTMLSelectElement).value = row?.side ?? "buy";
+        set("shares", row?.shares ?? "");
+        set("price", row?.price ?? "");
+        set("fee", row?.fee ?? "");
+        set("tax", row?.tax ?? "");
+        set("seq", row?.seq ?? 0);
+        (form.elements.namedItem("fee") as HTMLInputElement).dataset.touched = row ? "1" : "";
+        (form.elements.namedItem("tax") as HTMLInputElement).dataset.touched = row ? "1" : "";
+        if (errEl) errEl.textContent = "";
+        (form.elements.namedItem("ticker") as HTMLInputElement).focus();
+      }
+
+      newBtn?.addEventListener("click", () => openForm());
+      document.getElementById("tx-cancel")?.addEventListener("click", () => {
+        if (form) form.hidden = true;
+        editingId = null;
+      });
+
+      body?.addEventListener("click", async (ev) => {
+        const b = (ev.target as HTMLElement).closest("button.tx-op") as HTMLButtonElement | null;
+        if (!b) return;
+        const row = cache.find((r) => String(r.id) === b.dataset.id);
+        if (!row) return;
+        if (b.dataset.act === "edit") return openForm(row);
+        if (b.dataset.act === "del") {
+          if (!confirm(`刪除 ${row.trade_date} ${row.ticker} 這筆紀錄?此動作無法復原。`)) return;
+          try { await deleteTrade(sb, row.id); await reload(); }
+          catch (e) { if (errEl) errEl.textContent = `刪除失敗:${(e as Error).message}`; }
+        }
+      });
+
+      form?.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        if (!uid) return;
+        const f = new FormData(form);
+        const payload = {
+          ticker: String(f.get("ticker") || "").trim().toUpperCase(),
+          trade_date: String(f.get("trade_date")),
+          seq: Number(f.get("seq")) || 0,
+          side: String(f.get("side")) as "buy" | "sell",
+          shares: Number(f.get("shares")),
+          price: Number(f.get("price")),
+          fee: Number(f.get("fee")) || 0,
+          tax: Number(f.get("tax")) || 0,
+        };
+        try {
+          if (editingId != null) await updateTrade(sb, editingId, payload);
+          else await insertTrade(sb, uid, payload);
+          form.hidden = true;
+          editingId = null;
+          await reload();
+        } catch (e) {
+          // 資料庫的 check 約束(代號格式、股數 > 0…)會走到這裡 —— 照實顯示,不吞
+          if (errEl) errEl.textContent = `儲存失敗:${(e as Error).message}`;
+        }
+      });
+
+      // 登入狀態決定要不要載入資料
+      const wire = async (session: any) => {
+        uid = session?.user?.id ?? null;
+        if (newBtn) newBtn.disabled = !uid;
+        if (!uid) {
+          if (form) form.hidden = true;
+          if (body) body.innerHTML = `<tr class="tr-empty"><td colspan="9">登入後即可開始記錄你自己的交易。</td></tr>`;
+          if (status) status.textContent = "";
+          return;
+        }
+        await reload();
+      };
+      sb.auth.getSession().then(({ data }) => wire(data.session));
+      sb.auth.onAuthStateChange((_e, session) => wire(session));
     }
   </script>
 </Layout>
@@ -509,6 +718,32 @@ const MONTHLY_STATS = [
   .tr-auth__line { margin: 0; font-size: 0.82rem; color: var(--text-secondary); }
   .tr-auth__signedin { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .tr-auth__signedin .tr-auth__head { margin-bottom: 0; }
+
+  /* ══ 交易輸入表單 ══ */
+  .tx-status { font-size: 0.76rem; color: var(--text-secondary); }
+  .tx-status[data-tone="warn"] { color: var(--accent-hover); font-weight: 600; }
+  .tx-form {
+    margin: 0.7rem 0 0.9rem; padding: 0.8rem; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .tx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 12px; }
+  .tx-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 0.74rem; color: var(--text-secondary); }
+  .tx-grid input, .tx-grid select {
+    padding: 0.3rem 0.45rem; font: inherit; font-size: 0.82rem; color: var(--text);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .tx-grid input:focus-visible, .tx-grid select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tx-note { margin: 0.6rem 0 0; font-size: 0.74rem; line-height: 1.65; color: var(--text-secondary); }
+  .tx-note b { color: var(--text); }
+  .tx-form-actions { display: flex; align-items: center; gap: 8px; margin-top: 0.7rem; flex-wrap: wrap; }
+  .tx-err { font-size: 0.76rem; color: var(--down, #2e9e5b); }
+  .tx-op {
+    font: inherit; font-size: 0.72rem; padding: 1px 7px; margin-right: 5px; cursor: pointer;
+    color: var(--text-secondary); background: transparent;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .tx-op:hover { color: var(--text); border-color: var(--accent); }
+  .tx-op:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
   /* ① 報頭 + 巨大淨值 */
   .tr-hero { padding: 26px 0 4px; }

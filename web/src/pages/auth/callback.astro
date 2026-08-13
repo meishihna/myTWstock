@@ -63,6 +63,13 @@ export const prerender = true;
               else done();
             });
         } else {
+          /**
+           * 刻意不支援「隱含流程」(token 直接放在網址 hash)。
+           * 本站一律用 PKCE(supabaseClient 設 flowType: "pkce"),自己發出的登入連結
+           * 與 OAuth 回跳都帶 `?code=`。會走到這裡的只有【別處產生】的連結
+           * (例如以 admin API 產生的),那不是本站的流程。
+           * 少一條沒人走的分支,就少一種難查的行為 —— 這裡明確拒絕而不是默默嘗試。
+           */
           fail("這個網址沒有登入資訊。");
         }
       }
