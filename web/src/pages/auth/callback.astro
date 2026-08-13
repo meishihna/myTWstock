@@ -1,0 +1,77 @@
+---
+/**
+ * /auth/callback — OAuth 與 magic link 的唯一回跳點
+ *
+ * 為什麼要一個明確的回跳頁,而不是讓每一頁都去解析網址:
+ * supabaseClient 設了 `detectSessionInUrl: false`,所以**只有這一頁**會做 code 交換。
+ * 每頁都解析等於多出一條隱性路徑 —— 出問題時你不知道是哪一頁做了什麼。
+ *
+ * 本頁不讀取任何使用者資料,只做「把回跳參數換成 session」然後導回 /trades。
+ */
+import Layout from "../../layouts/Layout.astro";
+import { SITE } from "../../lib/ui";
+
+export const prerender = true;
+---
+
+<Layout title={`登入中 — ${SITE.name}`} description="完成登入後自動返回投資組合頁。">
+  <div class="cb-wrap">
+    <p class="cb-line" id="cb-msg">正在完成登入…</p>
+    <p class="cb-sub" id="cb-sub">若停留超過幾秒,請回到 <a href="/trades">投資組合</a> 重試。</p>
+  </div>
+
+  <script>
+    import { getSupabase, supabaseConfigured, supabaseConfigError } from "../../lib/supabaseClient";
+
+    const msg = document.getElementById("cb-msg");
+    const sub = document.getElementById("cb-sub");
+    const fail = (text: string) => {
+      if (msg) msg.textContent = text;
+      if (sub) sub.innerHTML = '請回到 <a href="/trades">投資組合</a> 重新登入。';
+    };
+
+    if (!supabaseConfigured) {
+      fail(supabaseConfigError ?? "登入尚未開通");
+    } else {
+      const sb = getSupabase()!;
+      const url = new URL(location.href);
+      const code = url.searchParams.get("code");
+      const errDesc = url.searchParams.get("error_description");
+
+      const done = () => {
+        // 清掉網址上的憑證參數再離開,不讓它留在歷史紀錄裡
+        history.replaceState(null, "", "/auth/callback");
+        location.replace("/trades");
+      };
+
+      if (errDesc) {
+        fail(`登入未完成:${errDesc}`);
+      } else if (code) {
+        sb.auth.exchangeCodeForSession(code).then(({ error }) => {
+          if (error) fail(`登入未完成:${error.message}`);
+          else done();
+        });
+      } else {
+        // magic link 也可能以 token_hash 形式回跳
+        const tokenHash = url.searchParams.get("token_hash");
+        const type = url.searchParams.get("type");
+        if (tokenHash) {
+          sb.auth
+            .verifyOtp({ token_hash: tokenHash, type: (type as "email") || "email" })
+            .then(({ error }) => {
+              if (error) fail(`登入未完成:${error.message}`);
+              else done();
+            });
+        } else {
+          fail("這個網址沒有登入資訊。");
+        }
+      }
+    }
+  </script>
+</Layout>
+
+<style>
+  .cb-wrap { padding: 64px 0; text-align: center; }
+  .cb-line { margin: 0 0 8px; font-size: 1rem; color: var(--text); }
+  .cb-sub { margin: 0; font-size: 0.82rem; color: var(--text-secondary); }
+</style>

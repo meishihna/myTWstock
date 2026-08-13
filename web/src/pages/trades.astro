@@ -59,6 +59,58 @@ const MONTHLY_STATS = [
       損益由你自行輸入的交易搭配<b>公開股價</b>計算。
     </p>
 
+    {/*
+      登入區。三種狀態由 client 切換,伺服器端不參與(頁面是靜態殼、無任何使用者資料)。
+      🔴 預設顯示【未登入引導】而不是空白 —— 未登入不可白畫面,也不可洩漏他人資料的形狀。
+    */}
+    <section class="tr-auth" id="tr-auth" aria-live="polite">
+      <div class="tr-auth__box" data-state="loading">
+        <p class="tr-auth__line" id="tr-auth-loading">正在確認登入狀態…</p>
+
+        <div class="tr-auth__signedout" hidden>
+          <div class="tr-auth__head">
+            <b>登入後開始記錄你自己的交易</b>
+            <span>不需要密碼 · 你的資料只存在你的帳號</span>
+          </div>
+          <div class="tr-auth__actions">
+            <button class="tr-btn tr-btn--primary" type="button" id="tr-google">用 Google 登入</button>
+            <form class="tr-auth__mail" id="tr-magic">
+              <label class="sr-only" for="tr-email">電子郵件</label>
+              <input
+                id="tr-email"
+                name="email"
+                type="email"
+                required
+                autocomplete="email"
+                placeholder="you@example.com"
+                inputmode="email"
+              />
+              <button class="tr-btn" type="submit">寄登入連結</button>
+            </form>
+          </div>
+          <p class="tr-auth__note" id="tr-auth-msg" role="status"></p>
+        </div>
+
+        <div class="tr-auth__signedin" hidden>
+          <div class="tr-auth__head">
+            <b>已登入</b>
+            <span id="tr-who" class="tr-auth__who">—</span>
+          </div>
+          <button class="tr-btn" type="button" id="tr-signout">登出</button>
+        </div>
+
+        <div class="tr-auth__unconfigured" hidden>
+          <div class="tr-auth__head">
+            <b>登入尚未開通</b>
+            <span id="tr-auth-cfg">—</span>
+          </div>
+          <p class="tr-auth__note">
+            這是部署設定問題,不是你的操作問題。設定完成前,本頁維持唯讀預覽。
+          </p>
+        </div>
+      </div>
+    </section>
+
     {/* ① 報頭 + 巨大淨值 */}
     <section class="tr-hero" aria-labelledby="tr-hero-h">
       <div class="tr-kicker">
@@ -335,6 +387,87 @@ const MONTHLY_STATS = [
       el.textContent = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
     }
   </script>
+
+  <script>
+    /**
+     * 登入狀態切換。輪 1 只做 auth —— 資料讀寫在輪 2。
+     *
+     * 🔴 這裡沒有任何「權限判斷」:能不能讀資料由資料庫的 RLS 決定,不由這段程式決定。
+     *    這段只決定【畫面顯示哪一塊】。前端若寫錯,最壞是使用者看到錯的提示,
+     *    不可能讓任何人讀到別人的資料。
+     */
+    import { getSupabase, supabaseConfigured, supabaseConfigError } from "../lib/supabaseClient";
+
+    const box = document.querySelector<HTMLElement>("#tr-auth .tr-auth__box");
+    const loading = document.getElementById("tr-auth-loading");
+    const outEl = document.querySelector<HTMLElement>("#tr-auth .tr-auth__signedout");
+    const inEl = document.querySelector<HTMLElement>("#tr-auth .tr-auth__signedin");
+    const cfgEl = document.querySelector<HTMLElement>("#tr-auth .tr-auth__unconfigured");
+    const msg = document.getElementById("tr-auth-msg");
+    const who = document.getElementById("tr-who");
+
+    /** 交易/觀察區塊的提示文字:登入前後說法不同,但兩者都不假裝功能已開放 */
+    function setHints(signedIn: boolean) {
+      document.querySelectorAll<HTMLElement>(".tr-hint").forEach((h) => {
+        h.textContent = signedIn ? "輸入功能開發中" : "Phase 2 · 登入後開放";
+      });
+    }
+
+    function show(which: "signedout" | "signedin" | "unconfigured") {
+      if (loading) loading.hidden = true;
+      if (box) box.dataset.state = which;
+      if (outEl) outEl.hidden = which !== "signedout";
+      if (inEl) inEl.hidden = which !== "signedin";
+      if (cfgEl) cfgEl.hidden = which !== "unconfigured";
+      setHints(which === "signedin");
+    }
+
+    if (!supabaseConfigured) {
+      // fail closed:設定缺失就明說,不要退化成「看起來像未登入」
+      const c = document.getElementById("tr-auth-cfg");
+      if (c) c.textContent = supabaseConfigError ?? "設定缺失";
+      show("unconfigured");
+    } else {
+      const sb = getSupabase()!;
+
+      const render = (email: string | null | undefined) => {
+        if (email) {
+          if (who) who.textContent = email;
+          show("signedin");
+        } else {
+          show("signedout");
+        }
+      };
+
+      sb.auth.getSession().then(({ data }) => render(data.session?.user?.email));
+      sb.auth.onAuthStateChange((_e, session) => render(session?.user?.email));
+
+      const redirectTo = `${location.origin}/auth/callback`;
+
+      document.getElementById("tr-google")?.addEventListener("click", async () => {
+        const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+        if (error && msg) msg.textContent = `無法開始 Google 登入:${error.message}`;
+      });
+
+      document.getElementById("tr-magic")?.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const input = document.getElementById("tr-email") as HTMLInputElement | null;
+        const email = input?.value.trim();
+        if (!email) return;
+        if (msg) msg.textContent = "寄送中…";
+        const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+        if (msg) {
+          msg.textContent = error
+            ? `寄送失敗:${error.message}`
+            : `已寄出登入連結到 ${email}。點擊信中的連結即可登入(連結有時效)。`;
+        }
+      });
+
+      document.getElementById("tr-signout")?.addEventListener("click", async () => {
+        await sb.auth.signOut();
+      });
+    }
+  </script>
 </Layout>
 
 <style is:global>
@@ -348,6 +481,34 @@ const MONTHLY_STATS = [
     border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
   }
   .tr-privacy b { color: var(--text); font-weight: 700; }
+
+  /* ══ 登入區 ══ */
+  /* 本站尚無 .sr-only 工具類,這裡自備(僅本頁作用域內的 global) */
+  #tr-app .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .tr-auth { margin: 0 0 1rem; }
+  .tr-auth__box {
+    padding: 0.85rem 1rem; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .tr-auth__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 0.6rem; }
+  .tr-auth__head b { font-size: 0.92rem; color: var(--text); }
+  .tr-auth__head span { font-size: 0.76rem; color: var(--text-secondary); }
+  .tr-auth__who { font-family: var(--font-mono); }
+  .tr-auth__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tr-auth__mail { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tr-auth__mail input {
+    min-width: 220px; padding: 0.34rem 0.55rem; font: inherit; font-size: 0.82rem;
+    color: var(--text); background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .tr-auth__mail input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tr-auth__note { margin: 0.55rem 0 0; font-size: 0.78rem; color: var(--text-secondary); line-height: 1.6; }
+  .tr-auth__line { margin: 0; font-size: 0.82rem; color: var(--text-secondary); }
+  .tr-auth__signedin { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .tr-auth__signedin .tr-auth__head { margin-bottom: 0; }
 
   /* ① 報頭 + 巨大淨值 */
   .tr-hero { padding: 26px 0 4px; }

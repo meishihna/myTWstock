@@ -190,6 +190,30 @@ PostgreSQL 的 view **預設以建立者(view owner)的權限求值**。migratio
 - **只寫 `using` 沒寫 `with check`** → 使用者能插入 `user_id = 別人` 的列:自己看不見,
   卻污染了對方的資料。→ 兩個方向分開測。
 
+### 🔴 `service_role` 對這些表【沒有】表級權限 —— 刻意保留的性質
+
+`revoke all … from public, anon` 把 PUBLIC 的授權收掉,`service_role` 沒有被單獨 grant,
+因此它對五張表與七個檢視**都沒有 SELECT 權限**(實測 `permission denied for table profiles`)。
+
+這原本是副作用,現在把它變成**明文性質**,因為它很有價值:
+**service_role key 外洩,也讀不到這些表。** 而本專案的架構本來就不用它 ——
+前端直連 + RLS,沒有任何伺服器路由需要繞過 RLS。
+
+**副作用不會自己活下來**:哪天有人寫一句 `grant` 就悄悄沒了。所以
+`web/tests/rls-client-isolation.mjs` 有兩條斷言守著:
+
+```
+service_role 對五張表 + 七個檢視皆無 SELECT 權限
+對照:authenticated 對同一組物件【有】SELECT 權限   ← 沒有這條,「全都沒權限」也會通過
+```
+
+> **重訪條件:僅在日後確實需要後端管理操作時。** 屆時必須
+> **逐項顯式 `grant` 並在本節記錄理由**,不可整批放開 ——
+> 「為了方便先全開」會讓上面那個性質一次消失,而且不會有人通知你。
+
+**連帶影響(已記錄在測試註解裡)**:CASCADE 的清點無法用 service_role 走 PostgREST,
+必須用本機 docker 內的 psql 以超級使用者直連。**那不是繞路,是這個 schema 上唯一可行的路。**
+
 ### 結構性斷言 > 逐表列舉
 
 三條斷言守的是 **schema 的性質**,不是這五張表:
