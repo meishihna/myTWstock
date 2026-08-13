@@ -113,21 +113,42 @@ export function diffTicker(ticker, oldJson, newJson) {
   return { overwrite, structural, fill, added };
 }
 
-/** `2026Q1:sell,admin` → Map(period → Set(fields));`*` 代表任何欄位 */
+/**
+ * 補值範圍宣告。兩種寫法:
+ *   `2026Q1:sell,admin`        期別 + 欄位(代號不限)= 舊寫法,等同 `*:2026Q1:sell,admin`
+ *   `6005:*:capex`             **代號** + 期別 + 欄位(期別可 `*`)
+ *
+ * 🔴 2026-08-13 擴充,方向是【更嚴】:
+ *    舊寫法無法表達「這 8 檔的 capex」。若用 `2018:capex` 去放行證券業那批,
+ *    會連帶放行【全市場】該年的 capex 補值 —— 一個為了 8 檔開的口子會蓋住 1,975 檔。
+ *    帶代號後只放行指定的代號,其餘一律硬失敗。
+ *    (依規則:改動使檢查更嚴 → 附新的注入測試證明沒開後門即可。)
+ */
 export function parseAllowFill(specs) {
-  const m = new Map();
+  const out = [];
   for (const s of specs) {
-    const [period, fields = "*"] = String(s).split(":");
-    if (!m.has(period)) m.set(period, new Set());
-    for (const f of fields.split(",")) m.get(period).add(f.trim());
+    const parts = String(s).split(":").map((x) => x.trim());
+    const [ticker, period, fields] =
+      parts.length >= 3 ? parts : ["*", parts[0], parts[1] ?? "*"];
+    out.push({
+      ticker,
+      period,
+      fields: new Set(String(fields || "*").split(",").map((f) => f.trim())),
+    });
   }
-  return m;
+  return out;
 }
 
-export const fillAllowed = (allow, { period, field }) => {
-  const set = allow.get(period);
-  return !!set && (set.has("*") || set.has(field));
-};
+export const fillAllowed = (allow, { ticker, period, field }) =>
+  (allow ?? []).some(
+    (r) =>
+      (r.ticker === "*" || r.ticker === ticker) &&
+      (r.period === "*" || r.period === period) &&
+      (r.fields.has("*") || r.fields.has(field))
+  );
+
+export const describeAllowFill = (allow) =>
+  (allow ?? []).map((r) => `${r.ticker}:${r.period}:${[...r.fields].join(",")}`).join(" · ");
 
 /* ══════════════════════════════════════════════════════════════════════════
  * 改動範圍宣告(--allow-restate)—— 比 --allow-fill 更嚴的第二個宣告
@@ -178,9 +199,13 @@ export const restateAllowed = (allow, { ticker, period }) =>
   !!allow.get(ticker)?.has(yearOfPeriod(period));
 
 /**
- * 「全換 / 全不換」檢查。
- * 對宣告的每個 (檔, 年),取該年【新舊都存在】的期別,看有幾個真的變了。
- * 0 個或全部 = 合法;介於中間 = 部分採用重編 → 硬失敗。
+ * 「全換 / 全不換」—— 🔴【已降級為診斷資訊,不再作為判定】(2026-08-13)
+ *
+ * 它只數「有沒有動」,而「沒動」有兩種:漏了,和【本來就對】。
+ * 重編比較欄只汙染「取自後續年度頁面」的期別;Q1–Q3 若原本就取自自己那年的季報,
+ * 從一開始就是原始申報,不需要改。實測 1434/1472/1612/2348/3090 五個 (檔,年)
+ * 被它判成「部分採用重編」,但用恆等式驗全部一致 —— 五個都是誤報。
+ * 它印出的「換了哪些 / 未換哪些」仍有診斷價值,故保留輸出。
  */
 export function restateCompleteness(ticker, oldJson, newJson, year, changedPeriods) {
   const inYear = [];
@@ -192,6 +217,48 @@ export function restateCompleteness(ticker, oldJson, newJson, year, changedPerio
   const changed = inYear.filter((k) => changedPeriods.has(k));
   return { ticker, year, total: inYear.length, changed: changed.length, changedList: changed, all: inYear };
 }
+
+/** 期別是否來自 t163 損益表(bs 是時點數,不可累加;capex 屬現金流量表,亦不適用) */
+const SUM_FIELDS = ["rev", "cogs", "gp", "opex", "op", "ni", "sell", "admin", "rd"];
+/** 期別值以 3 位小數存放,四季相加的捨入誤差上限約 0.002;取 0.005 留餘裕 */
+const SUM_TOL = 0.005;
+
+/**
+ * 🔴 判定「該年有沒有混基礎」的正式判準:**Σ四季 == 年度**
+ *
+ * 為什麼比「全換/全不換」強:
+ *   - 期別計數只看「有沒有動」,抓不到「全部都換但換錯基礎」
+ *   - 恆等式直接檢驗年度與四季是否來自同一組申報;混了必破
+ *
+ * 資料不全的處置:**「量不到 = 失敗」,不是「量不到 = 沒問題」**
+ *   - 某欄位缺年度或缺任一季 → 該欄位記為「無法驗」,不算通過
+ *   - 該 (檔,年)【沒有任何一個欄位可驗】→ 判「無法判定」→ 硬失敗
+ *   - 至少一個欄位可驗且全部一致 → 通過,並列出無法驗的欄位
+ */
+export function yearIdentity(ticker, json, year) {
+  const fields = json.fields ?? [];
+  const ai = (json.annual?.p ?? []).indexOf(String(year));
+  const qi = [1, 2, 3, 4].map((q) => (json.quarters?.p ?? []).indexOf(`${year}Q${q}`));
+  const checked = [];
+  const unverifiable = [];
+  const broken = [];
+  for (const f of SUM_FIELDS) {
+    const k = fields.indexOf(f);
+    if (k < 0) continue;
+    const av = ai >= 0 ? json.annual?.v?.[ai]?.[k] : null;
+    const qs = qi.map((i) => (i >= 0 ? json.quarters?.v?.[i]?.[k] : null));
+    if (!isNum(av) || !qs.every(isNum)) {
+      unverifiable.push(f);
+      continue;
+    }
+    const sum = qs.reduce((n, v) => n + v, 0);
+    const diff = Math.abs(sum - av);
+    checked.push(f);
+    if (diff > SUM_TOL) broken.push(`${f}: Σ四季 ${sum.toFixed(3)} vs 年度 ${av.toFixed(3)}(差 ${diff.toFixed(3)})`);
+  }
+  return { ticker, year, checked, unverifiable, broken, verdict: broken.length ? "混基礎" : checked.length ? "一致" : "無法判定" };
+}
+const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 
 /* ── 自我驗證:三種違規必須被抓,兩種合法變動必須放行 ───────────────────── */
 function selfTest() {
@@ -242,13 +309,18 @@ function selfTest() {
   cases.push({ name: "合法②:尾端追加 capex 欄 → 必須放行", j: c, expectBad: 0 });
 
   /* ── 改動範圍宣告的注入案例 ───────────────────────────────────────────── */
-  /** 夾具:2023 與 2024 各有「年度列 + 四季」,才測得出「某一年只換一部分」 */
+  /**
+   * 夾具:2023 與 2024 各有「年度列 + 四季」,而且【四季相加 == 年度】逐欄成立。
+   * 🔴 夾具本身必須算術自洽,否則恆等式的注入測不到東西 ——
+   *    合法案例若一開始就破,測到的是夾具的錯,不是被測物的錯。
+   *    (同一個坑上一輪踩過:夾具只有 2024 的季別 → 注入⑥ 是空砲。)
+   */
   const R = {
     fields: ["rev", "cogs", "rd"],
     annual: { p: ["2023", "2024"], v: [[90, 50, 4], [100, 60, 5]] },
     quarters: {
       p: ["2023Q1","2023Q2","2023Q3","2023Q4","2024Q1","2024Q2","2024Q3","2024Q4"],
-      v: [[18,11,1],[22,13,1],[24,14,1],[26,15,1],[20,12,1],[25,15,1],[27,16,1],[28,17,2]],
+      v: [[18,11,1],[22,13,1],[24,14,1],[26,12,1],[20,12,1],[25,15,1],[27,16,1],[28,17,2]],
     },
   };
   const rclone = () => JSON.parse(JSON.stringify(R));
@@ -263,28 +335,32 @@ function selfTest() {
     return j;
   };
 
+  /** 「整年換基礎」的合法形狀:四季各 +1、年度 +4 → 恆等式仍成立 */
+  const restateWhole = () => {
+    const c = rclone();
+    c.annual.v[1] = [104, 60, 5];
+    [4, 5, 6, 7].forEach((i) => (c.quarters.v[i] = [c.quarters.v[i][0] + 1, c.quarters.v[i][1], c.quarters.v[i][2]]));
+    return c;
+  };
+
   const rcases = [];
   rcases.push({
-    name: "合法①:宣告 (TEST,2024),該年【年度列 + 四季全部】都換 → 必須放行",
-    j: setYear(rclone(), 2024, (r) => [r[0] + 1, r[1], r[2]]), allow: allowR, expectBad: 0,
+    name: "合法①:宣告 (TEST,2024) 整年換基礎且 Σ四季 == 年度 → 必須放行",
+    j: restateWhole(), allow: allowR, expectBad: 0,
   });
+  const onlyQ1 = rclone(); onlyQ1.quarters.v[4] = [21, 12, 1]; // 只動 2024Q1
   rcases.push({
-    name: "合法②:宣告的 2023 一格都沒換(全不換)→ 必須放行",
-    j: setYear(rclone(), 2024, (r) => [r[0] + 1, r[1], r[2]]), allow: allowR, expectBad: 0,
+    name: "注入⑤:只換 2024Q1 → Σ四季 101 ≠ 年度 100,恆等式必破",
+    j: onlyQ1, allow: allowR, expectBad: 1, must: "混基礎",
   });
-  const onlyQ1 = rclone(); onlyQ1.quarters.v[4] = [21, 12, 1]; // 2024Q1
+  const onlyAnnual23 = rclone(); onlyAnnual23.annual.v[0] = [91, 50, 4]; // 只動 2023 年度列
   rcases.push({
-    name: "注入⑤:宣告了 (檔,年) 但【只換 2024Q1】→ 必須抓到(部分採用重編)",
-    j: onlyQ1, allow: allowR, expectBad: 1, must: "部分採用重編",
-  });
-  const onlyAnnual23 = rclone(); onlyAnnual23.annual.v[0] = [91, 50, 4]; // 2023 年度列
-  rcases.push({
-    name: "注入⑥:自動涵蓋的 2023 只換年度列、四季未換 → 必須抓到(部分採用重編)",
-    j: onlyAnnual23, allow: allowR, expectBad: 1, must: "部分採用重編",
+    name: "注入⑥:自動涵蓋的 2023 只換年度列 → Σ四季 90 ≠ 年度 91,恆等式必破",
+    j: onlyAnnual23, allow: allowR, expectBad: 1, must: "混基礎",
   });
   rcases.push({
     name: "注入⑦:未宣告任何範圍時,任何改動都硬失敗(fail closed)",
-    j: setYear(rclone(), 2024, (r) => [r[0] + 1, r[1], r[2]]), allow: new Map(), expectBad: 5, must: "範圍外改動",
+    j: restateWhole(), allow: new Map(), expectBad: 5, must: "範圍外改動",
   });
   const outOfYear = rclone(); outOfYear.annual.v[0] = [91, 50, 4];
   rcases.push({
@@ -302,14 +378,16 @@ function selfTest() {
     const owOut = overwrite
       .filter((x) => !restateAllowed(aR, x))
       .map((x) => `${x.ticker} 範圍外改動 ${x.block} ${x.period} ${x.field}: ${x.from} → ${x.to}`);
+    // 判定改用恆等式(只對【該年真的有覆寫】的年份驗;沒動的年份不必驗)
     const changedPeriods = new Set(overwrite.map((x) => `${x.block}:${x.period}`));
+    const touchedYears = new Set(overwrite.map((x) => yearOfPeriod(x.period)));
     const partial = [];
     for (const [tk, years] of aR) {
       for (const y of years) {
-        const c = restateCompleteness(tk, oldJ, t.j, y, changedPeriods);
-        if (c.changed > 0 && c.changed < c.total) {
-          partial.push(`${tk} ${y} 部分採用重編:${c.total} 個期別只換了 ${c.changed} 個(${c.changedList.join(", ")})`);
-        }
+        if (!touchedYears.has(y)) continue;
+        const id = yearIdentity(tk, t.j, y);
+        if (id.verdict === "混基礎") partial.push(`${tk} ${y} 混基礎:${id.broken.join(" | ")}`);
+        else if (id.verdict === "無法判定") partial.push(`${tk} ${y} 無法判定:沒有任何欄位可驗(缺年度或缺季別)`);
       }
     }
     const bad = [...(isR ? owOut : overwrite.map((x) => `${x.ticker} ${x.block} ${x.period} ${x.field}: ${x.from} → ${x.to}`)), ...structural, ...outOfScope, ...partial];
@@ -325,6 +403,64 @@ function selfTest() {
       console.log(`      新增季別 ${added.quarters.length} · 補值 ${fill.length} 格`);
     }
   }
+  /* ── 補值宣告「帶代號」的注入(證明加代號沒開後門)────────────────────── */
+  {
+    const a8 = parseAllowFill(["6005:*:capex"]);
+    const probes = [
+      { name: "指定 6005 的 capex 補值 → 放行", x: { ticker: "6005", period: "2018", field: "capex" }, want: true },
+      { name: "注入:未指定的代號 6016 也補了 capex → 必須抓到", x: { ticker: "6016", period: "2018", field: "capex" }, want: false },
+      { name: "注入:代號對但欄位不對(6005 的 rd)→ 必須抓到", x: { ticker: "6005", period: "2018", field: "rd" }, want: false },
+      { name: "舊寫法 2026Q1:sell 仍等同 *:2026Q1:sell(代號不限)", x: { ticker: "9999", period: "2026Q1", field: "sell" }, want: true, allow: parseAllowFill(["2026Q1:sell"]) },
+      { name: "注入:舊寫法下期別不符 → 必須抓到", x: { ticker: "9999", period: "2025Q4", field: "sell" }, want: false, allow: parseAllowFill(["2026Q1:sell"]) },
+    ];
+    for (const p of probes) {
+      const got = fillAllowed(p.allow ?? a8, p.x);
+      const ok = got === p.want;
+      if (!ok) fail++;
+      console.log(`  ${ok ? "✓" : "✗"} ${p.name}`);
+    }
+  }
+
+  /* ── 恆等式 Σ四季 == 年度 的注入 ──────────────────────────────────────── */
+  {
+    const J = {
+      fields: ["rev", "sell", "rd"],
+      annual: { p: ["2020"], v: [[100, 10, 4]] },
+      quarters: { p: ["2020Q1", "2020Q2", "2020Q3", "2020Q4"], v: [[20, 2, 1], [25, 3, 1], [27, 2, 1], [28, 3, 1]] },
+    };
+    const cl = () => JSON.parse(JSON.stringify(J));
+    const idCases = [
+      { name: "合法:四季相加 == 年度(rev/sell/rd 三欄)→ 一致", j: cl(), want: "一致" },
+      {
+        name: "注入⑨:某一季換成另一基礎的值(Q1 rev 20→31)→ 恆等式必破,必須抓到",
+        j: (() => { const c = cl(); c.quarters.v[0][0] = 31; return c; })(),
+        want: "混基礎",
+      },
+      {
+        name: "注入⑩:缺年度列 → 判「無法判定」而非通過(量不到 = 失敗)",
+        j: (() => { const c = cl(); c.annual = { p: [], v: [] }; return c; })(),
+        want: "無法判定",
+      },
+      {
+        name: "注入⑪:缺一季 → 判「無法判定」",
+        j: (() => { const c = cl(); c.quarters.p = c.quarters.p.slice(0, 3); c.quarters.v = c.quarters.v.slice(0, 3); return c; })(),
+        want: "無法判定",
+      },
+      {
+        name: "合法:部分欄位資料不全(rd 缺一季)但仍有欄位可驗且一致 → 一致,並列出無法驗的欄位",
+        j: (() => { const c = cl(); c.quarters.v[2][2] = null; return c; })(),
+        want: "一致",
+      },
+    ];
+    for (const c of idCases) {
+      const r = yearIdentity("TEST", c.j, 2020);
+      const ok = r.verdict === c.want;
+      if (!ok) fail++;
+      console.log(`  ${ok ? "✓" : "✗"} ${c.name}`);
+      if (!ok) console.log(`      實際判定 ${r.verdict}(可驗 ${r.checked.join(",") || "-"};無法驗 ${r.unverifiable.join(",") || "-"};破 ${r.broken.join(" | ") || "-"})`);
+    }
+  }
+
   if (!expandOk) {
     fail++;
     console.log(`  ✗ parseAllowRestate("9999:113") 未展開成 {2023, 2024}(實際 ${[...(expand.get("9999") ?? [])].join(",")})`);
@@ -406,8 +542,8 @@ const newTk = new Set(
  */
 const allow = parseAllowFill(argv.filter((_, i) => argv[i - 1] === "--allow-fill"));
 console.log(
-  allow.size
-    ? `宣告可補值範圍:${[...allow].map(([p, s]) => `${p}:${[...s].join(",")}`).join(" · ")}`
+  allow.length
+    ? `宣告可補值範圍:${describeAllowFill(allow)}`
     : `宣告可補值範圍:(無)—— 任何 null→有值 都會被判違規`
 );
 
@@ -425,6 +561,7 @@ console.log(
 const bad = [];
 const fills = [];
 const restated = [];
+const diag = [];
 const addedQ = new Map();
 const addedA = new Map();
 let touched = 0;
@@ -441,16 +578,25 @@ for (const t of oldTk) {
   // ── 改動:① 必須落在宣告範圍內 ② 宣告的 (檔,年) 內必須全換或全不換 ──
   const owOut = r.overwrite.filter((x) => !restateAllowed(restate, x));
   restated.push(...r.overwrite.filter((x) => restateAllowed(restate, x)));
+  /**
+   * 判定:對【該年真的有覆寫】的宣告年驗 Σ四季 == 年度。
+   * 「全換/全不換」的明細降級為診斷輸出(它印的「換了哪些/未換哪些」仍有價值,
+   *  但它把「沒換是因為本來就對」誤判成漏了 —— 見 restateCompleteness 的說明)。
+   */
   const changedPeriods = new Set(r.overwrite.map((x) => `${x.block}:${x.period}`));
+  const touchedYears = new Set(r.overwrite.map((x) => yearOfPeriod(x.period)));
   const partial = [];
   for (const y of restate.get(t) ?? []) {
+    if (!touchedYears.has(y)) continue;
+    const id = yearIdentity(t, newJson, y);
     const c = restateCompleteness(t, BASE.get(t), newJson, y, changedPeriods);
-    if (c.changed > 0 && c.changed < c.total) {
-      partial.push(
-        `${t} ${y} 部分採用重編:該年 ${c.total} 個期別只換了 ${c.changed} 個` +
-          `(換了:${c.changedList.join(", ")};未換:${c.all.filter((k) => !changedPeriods.has(k)).join(", ")})`
-      );
-    }
+    diag.push(
+      `  ${t} ${y}  恆等式:${id.verdict}` +
+        `(可驗 ${id.checked.join(",") || "-"};無法驗 ${id.unverifiable.join(",") || "-"})` +
+        `　期別:${c.changed}/${c.total} 有覆寫(${c.changedList.join(", ") || "-"})`
+    );
+    if (id.verdict === "混基礎") partial.push(`${t} ${y} 混基礎:${id.broken.join(" | ")}`);
+    else if (id.verdict === "無法判定") partial.push(`${t} ${y} 無法判定:沒有任何欄位可驗(缺年度或缺季別)`);
   }
 
   const hard = [
@@ -528,11 +674,18 @@ if (restated.length) {
   if (restated.length > 8) console.log(`    …其餘 ${restated.length - 8} 格`);
 }
 
+// 診斷:恆等式判定 + 舊啟發式的期別分布(後者不再作為判定,但明細有價值)
+if (diag.length) {
+  console.log(`\n── 診斷:宣告年的 Σ四季 == 年度,以及期別覆寫分布 ──`);
+  for (const d of diag) console.log(d);
+}
+
 console.log(`\n── 只增不改判定 ──`);
 if (bad.length === 0) {
   console.log(
     restate.size
-      ? `  ✅ 既有非空格的改寫 ${restated.length} 格,全部落在宣告的 (檔,年) 內,且每個宣告年【全換或全不換】`
+      ? `  ✅ 既有非空格的改寫 ${restated.length} 格,全部落在宣告的 (檔,年) 內,` +
+        `且每個被動到的宣告年【Σ四季 == 年度】(無混基礎、無「無法判定」)`
       : `  ✅ 既有【非空】格 0 處被改寫(${oldTk.size} 檔全數比對)`
   );
   console.log(`  ✅ 無期別消失、無欄位位移`);
