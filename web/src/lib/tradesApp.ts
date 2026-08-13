@@ -89,6 +89,127 @@ export async function deleteTrade(sb: SupabaseClient, id: number | string) {
   if (error) throw new Error(error.message);
 }
 
+export type HoldingRow = {
+  ticker: string;
+  shares: number;
+  avgCost: number;
+  costBasis: number;
+  /** 🔴 現價取不到時是 null,**不是 0**。未知與零是兩件事 */
+  price: number | null;
+  marketValue: number | null;
+  unrealized: number | null;
+  returnPct: number | null;
+  name?: string | null;
+};
+
+export type Anomaly = { ticker: string; boughtShares: number; soldShares: number; oversoldShares: number };
+
+export async function fetchHoldings(sb: SupabaseClient) {
+  const { data, error } = await sb.from("v_holdings").select("ticker,shares,avg_cost,cost_basis").order("ticker");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((h) => ({
+    ticker: h.ticker as string,
+    shares: Number(h.shares),
+    avgCost: Number(h.avg_cost),
+    costBasis: Number(h.cost_basis),
+  }));
+}
+
+export async function fetchAnomalies(sb: SupabaseClient): Promise<Anomaly[]> {
+  const { data, error } = await sb
+    .from("v_position_anomalies")
+    .select("ticker,bought_shares,sold_shares,oversold_shares")
+    .order("ticker");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((a) => ({
+    ticker: a.ticker as string,
+    boughtShares: Number(a.bought_shares),
+    soldShares: Number(a.sold_shares),
+    oversoldShares: Number(a.oversold_shares),
+  }));
+}
+
+export async function fetchRealizedByTicker(sb: SupabaseClient): Promise<Map<string, number>> {
+  const { data, error } = await sb.from("v_realized_lots").select("ticker,realized_pnl");
+  if (error) throw new Error(error.message);
+  const m = new Map<string, number>();
+  for (const r of data ?? []) m.set(r.ticker as string, (m.get(r.ticker as string) ?? 0) + Number(r.realized_pnl));
+  return m;
+}
+
+/**
+ * 取現價。
+ *
+ * 🔴 隱私上這是整個架構唯一會讓伺服器看到使用者資料的一步:
+ *    **持股代號清單**會出現在 /api/quote-batch 的網址,因而進入存取記錄。
+ *    股數、成本、交易明細都不會離開瀏覽器。頁面上已明文揭露 —— 不可以是隱形的。
+ *
+ * 🔴 取不到就回 null,**絕不回 0**。下游必須把 null 呈現為「未取得」而不是「0 元」。
+ */
+export type Quote = { price: number | null; name: string | null };
+
+export async function fetchQuotes(tickers: string[]): Promise<Map<string, Quote>> {
+  const out = new Map<string, Quote>();
+  if (!tickers.length) return out;
+  try {
+    const r = await fetch(`/api/quote-batch?symbols=${encodeURIComponent(tickers.join(","))}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+    for (const tk of tickers) {
+      const q = j?.quotes?.[tk];
+      const p = q?.price;
+      out.set(tk, {
+        price: typeof p === "number" && Number.isFinite(p) ? p : null,
+        name: typeof q?.shortName === "string" ? q.shortName : null,
+      });
+    }
+  } catch (e) {
+    console.warn(`[trades] 取得現價失敗:${e instanceof Error ? e.message : e}。未實現損益將留白,不以 0 代替。`);
+    for (const tk of tickers) out.set(tk, { price: null, name: null });
+  }
+  return out;
+}
+
+/** 把持倉與現價組起來。缺價的欄位一律 null,呼叫端負責呈現為「未取得」 */
+export function buildHoldingRows(
+  holds: { ticker: string; shares: number; avgCost: number; costBasis: number }[],
+  quotes: Map<string, Quote>
+): HoldingRow[] {
+  return holds.map((h) => {
+    const q = quotes.get(h.ticker);
+    const price = q?.price ?? null;
+    const marketValue = price == null ? null : price * h.shares;
+    const unrealized = marketValue == null ? null : marketValue - h.costBasis;
+    return {
+      ...h,
+      name: q?.name ?? null,
+      price,
+      marketValue,
+      unrealized,
+      returnPct: unrealized == null || h.costBasis === 0 ? null : (unrealized / h.costBasis) * 100,
+    };
+  });
+}
+
+/**
+ * 總市值與配置分母。
+ * 🔴 缺價個股【不可當 0 算進分母】—— 那會把配置比例灌水。
+ *    回傳時一併給出「未取價的檔數」,呼叫端必須標明。
+ */
+export function portfolioTotals(rows: HoldingRow[]) {
+  const priced = rows.filter((r) => r.marketValue != null);
+  const missing = rows.length - priced.length;
+  const marketValue = priced.reduce((n, r) => n + (r.marketValue ?? 0), 0);
+  const costBasis = priced.reduce((n, r) => n + r.costBasis, 0);
+  return {
+    marketValue: priced.length ? marketValue : null,
+    costBasis: priced.length ? costBasis : null,
+    unrealized: priced.length ? marketValue - costBasis : null,
+    pricedCount: priced.length,
+    missingCount: missing,
+  };
+}
+
 /**
  * 雙實作比對:TS(逐筆佇列)vs SQL view(區間重疊)。
  *

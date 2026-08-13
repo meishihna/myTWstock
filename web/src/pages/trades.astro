@@ -57,6 +57,14 @@ const MONTHLY_STATS = [
       <b>你的資料只存在你的帳號、不公開。</b>
       本平台<b>不代下單、不連接券商</b>,也不會讀取任何本機檔案或券商匯出檔;
       損益由你自行輸入的交易搭配<b>公開股價</b>計算。
+      <br />
+      {/*
+        🔴 架構承諾是「伺服器從不看到使用者資料」,但取現價時代號清單會經過本站的報價代理,
+           因而會出現在存取記錄裡。**承諾與實際資料流不一致時,要改的是承諾的措辭,
+           不是把差異藏起來。** 詳見 docs/financials-known-limitations 的同名條目。
+      */}
+      <b>一個例外要讓你知道:</b>取得現價時,<b>你持有的股票代號會傳送到本站的報價代理</b>
+      (交易明細、股數、成本都不會)。這是取得即時報價無法避免的一步。
     </p>
 
     {/*
@@ -253,18 +261,23 @@ const MONTHLY_STATS = [
           <h2>現有持倉</h2>
           <span class="sub">成本、市值、未實現損益(金額單位:新台幣元)</span>
         </div>
+
+        {/* 賣超警告:必須指名。持倉自然變 0 看起來完全正常,而使用者以為自己賣光了 */}
+        <div class="hd-anomaly" id="hd-anomaly" role="alert" hidden></div>
+
         <div class="tbl-wrap">
           <table>
             <thead>
               <tr>{HOLDING_COLS.map((c, i) => <th scope="col" class:list={[{ l: i < 2 }]}>{c}</th>)}</tr>
             </thead>
-            <tbody>
+            <tbody id="hd-body">
               <tr class="tr-empty">
                 <td colspan={HOLDING_COLS.length}>{TRADES_PAGE.emptyCta}</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <p class="hd-foot" id="hd-foot"></p>
       </div>
     </section>
 
@@ -504,6 +517,7 @@ const MONTHLY_STATS = [
       const {
         fetchTrades, insertTrade, updateTrade, deleteTrade,
         crossCheck, newCompareState, defaultFee, defaultTax,
+        fetchHoldings, fetchAnomalies, fetchQuotes, buildHoldingRows, portfolioTotals,
       } = await import("../lib/tradesApp");
 
       const form = document.getElementById("tx-form") as HTMLFormElement | null;
@@ -567,16 +581,118 @@ const MONTHLY_STATS = [
         }
       }
 
+      /* ══ 輪 3:持倉 / 未實現 / 賣超 ══════════════════════════════════ */
+      const hdBody = document.getElementById("hd-body");
+      const hdFoot = document.getElementById("hd-foot");
+      const hdAnom = document.getElementById("hd-anomaly");
+      /** 紅漲綠跌(台股慣例):正 = 紅、負 = 綠 */
+      const toneOf = (n: number | null) => (n == null ? "" : n > 0 ? "up" : n < 0 ? "down" : "");
+
+      function renderAnomalies(list: any[]) {
+        if (!hdAnom) return;
+        if (!list.length) { hdAnom.hidden = true; hdAnom.textContent = ""; return; }
+        hdAnom.hidden = false;
+        hdAnom.textContent = "";
+        const h = document.createElement("b");
+        h.textContent = "賣出股數超過買入股數,請檢查是否漏登買入或代號打錯:";
+        hdAnom.appendChild(h);
+        const ul = document.createElement("ul");
+        for (const a of list) {
+          const li = document.createElement("li");
+          li.textContent = `${a.ticker}:買入 ${a.boughtShares}、賣出 ${a.soldShares}(多賣 ${a.oversoldShares} 股)`;
+          ul.appendChild(li);
+        }
+        hdAnom.appendChild(ul);
+      }
+
       let cache: any[] = [];
+      let hdRows: any[] = [];
+      let hdTotals: any = { marketValue: null, unrealized: null, pricedCount: 0, missingCount: 0 };
+
+      function renderHoldings() {
+        if (!hdBody) return;
+        if (!hdRows.length) {
+          hdBody.innerHTML = `<tr class="tr-empty"><td colspan="8">目前沒有持倉。新增買進紀錄後,這裡會自動計算。</td></tr>`;
+          if (hdFoot) hdFoot.textContent = "";
+          return;
+        }
+        hdBody.textContent = "";
+        for (const r of hdRows) {
+          const tr = document.createElement("tr");
+          const cell = (text: string, cls = "") => {
+            const td = document.createElement("td");
+            td.textContent = text;
+            if (cls) td.className = cls;
+            return td;
+          };
+          // 代號欄:待核標記【下沉到逐檔】,附在該列的代號旁
+          const tkTd = document.createElement("td");
+          tkTd.textContent = r.ticker;
+          if (cmp.pending.has(r.ticker)) {
+            tr.classList.add("hd-pending");
+            const badge = document.createElement("span");
+            badge.className = "hd-badge";
+            badge.textContent = "數值待核";
+            tkTd.appendChild(badge);
+          }
+          // 🔴 現價缺失 → 留白 + 平白說明,不以 0 代替(null ≠ 0)
+          const na = (v: number | null, d = 2) => (v == null ? "—" : fmt(v, d));
+          tr.append(
+            tkTd,
+            cell(r.name ?? "—"),
+            cell(fmt(r.shares, 0)),
+            cell(fmt(r.avgCost)),
+            cell(r.price == null ? "現價未取得" : fmt(r.price), r.price == null ? "hd-na" : ""),
+            cell(na(r.marketValue)),
+            cell(na(r.unrealized), toneOf(r.unrealized)),
+            cell(r.returnPct == null ? "—" : `${fmt(r.returnPct)}%`, toneOf(r.returnPct)),
+          );
+          hdBody.appendChild(tr);
+        }
+        if (hdFoot) {
+          const parts: string[] = [];
+          if (hdTotals.marketValue != null) {
+            parts.push(`已取價 ${hdTotals.pricedCount} 檔合計市值 ${fmt(hdTotals.marketValue)} 元`);
+            parts.push(`未實現 ${fmt(hdTotals.unrealized ?? 0)} 元`);
+          }
+          // 🔴 缺價個股不併入分母,而且要說出來
+          if (hdTotals.missingCount > 0) parts.push(`不含 ${hdTotals.missingCount} 檔未取價個股`);
+          hdFoot.textContent = parts.join(" · ");
+        }
+      }
+
       async function reload() {
         cache = await fetchTrades(sb);
         renderTrades(cache);
+
+        // 持倉先以「尚未取價」畫出來 —— 股數與成本是本地已知的事實,不必等網路
+        let holds: any[] = [];
+        try {
+          const [h, anom] = await Promise.all([fetchHoldings(sb), fetchAnomalies(sb)]);
+          holds = h;
+          renderAnomalies(anom);
+          hdRows = buildHoldingRows(holds, new Map());
+          hdTotals = portfolioTotals(hdRows);
+          renderHoldings();
+        } catch (e) {
+          console.warn(`[trades] 讀取持倉失敗:${(e as Error).message}`);
+        }
+
         /**
-         * 🔴 比對排在首次繪製【之後】,且不 await —— 資料先上畫面。
-         *    幾千筆交易時,這個比對不可以是白畫面的原因。
+         * 🔴 比對與現價都排在首次繪製【之後】,且不 await —— 資料先上畫面。
+         *    幾千筆交易時,這兩件事不可以是白畫面的原因。
          */
-        queueMicrotask(() => {
-          crossCheck(sb, cache, cmp).then(renderStatus);
+        queueMicrotask(async () => {
+          crossCheck(sb, cache, cmp).then(() => {
+            renderStatus();
+            renderHoldings(); // 待核標記下沉到逐檔
+          });
+          if (holds.length) {
+            const quotes = await fetchQuotes(holds.map((h: any) => h.ticker));
+            hdRows = buildHoldingRows(holds, quotes);
+            hdTotals = portfolioTotals(hdRows);
+            renderHoldings();
+          }
         });
       }
 
@@ -668,6 +784,12 @@ const MONTHLY_STATS = [
         if (!uid) {
           if (form) form.hidden = true;
           if (body) body.innerHTML = `<tr class="tr-empty"><td colspan="9">登入後即可開始記錄你自己的交易。</td></tr>`;
+          // 登出時把持倉、賣超警告、待核標記一併清掉 —— 不可讓上一個帳號的內容殘留在畫面上
+          if (hdBody) hdBody.innerHTML = `<tr class="tr-empty"><td colspan="8">登入後,這裡會依你的交易自動計算持倉。</td></tr>`;
+          if (hdFoot) hdFoot.textContent = "";
+          if (hdAnom) { hdAnom.hidden = true; hdAnom.textContent = ""; }
+          hdRows = [];
+          cmp.pending.clear();
           if (status) status.textContent = "";
           return;
         }
@@ -744,6 +866,23 @@ const MONTHLY_STATS = [
   }
   .tx-op:hover { color: var(--text); border-color: var(--accent); }
   .tx-op:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* ══ 持倉表 ══ */
+  /* 賣超必須看得見:靜默的零最難查 */
+  .hd-anomaly {
+    margin: 0.6rem 0 0.2rem; padding: 0.55rem 0.8rem; font-size: 0.78rem; line-height: 1.65;
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--accent-glow); border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
+  }
+  .hd-anomaly ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
+  .hd-anomaly li { font-family: var(--font-mono); font-size: 0.76rem; }
+  .hd-badge {
+    margin-left: 6px; padding: 0 5px; font-size: 0.65rem; font-weight: 700;
+    color: var(--accent-hover); border: 1px solid var(--accent-glow); border-radius: var(--radius-sm);
+  }
+  #hd-body tr.hd-pending td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  #hd-body .hd-na { color: var(--muted); font-style: normal; }
+  .hd-foot { margin: 0.5rem 0 0; font-size: 0.76rem; color: var(--text-secondary); }
 
   /* ① 報頭 + 巨大淨值 */
   .tr-hero { padding: 26px 0 4px; }
