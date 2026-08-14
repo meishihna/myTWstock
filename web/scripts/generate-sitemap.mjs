@@ -79,6 +79,9 @@ const lastmod = new Map();
 for (const f of files) {
   const u = fileToUrl(f.path);
   if (/\/404\/?$/.test(u) || u.includes("/404.html")) continue;
+  // 自測工具不進 sitemap:它是給人手動帶參數執行的,沒有參數時什麼都不做,
+  // 進索引只會製造一個看起來像功能頁的空殼(頁面本身另有 noIndex)。
+  if (/\/trades\/rls-selftest\/?$/.test(u)) continue;
   lastmod.set(u, f.mtime.toISOString().slice(0, 10));
 }
 

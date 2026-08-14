@@ -1,0 +1,219 @@
+---
+/**
+ * /trades/rls-selftest — 線上跨帳號隔離自測(4c)
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * 為什麼是獨立一頁,而不是塞進 /trades:
+ *   不是安全考量 —— 任何登入者本來就能在 devtools 打同樣的查詢,這一頁**不增加任何能力**。
+ *   是為了**不讓主頁面的程式路徑多一個只為測試存在的分支**。
+ *   獨立頁 = 主頁乾淨、自測可版控可重跑。
+ *
+ * 三個約束:
+ *   ① **需要明確參數才啟動**(`?peer=<uuid>`);沒有參數就什麼都不做
+ *   ② **只吃一個已知的 user_id**,不接受清單、不接受萬用字元
+ *   ③ 無任何連結入口、noindex、不進 sitemap
+ *
+ * 🔴 輸出必須不可含糊:每條查詢逐條列「預期 / 實際 / 判定」,
+ *    而且**要有 4b 對照組**(用自己的 token 必須讀得到)——
+ *    沒有對照組,「全部 0 列」只證明查詢沒回東西,不證明隔離有效。
+ * ══════════════════════════════════════════════════════════════════════════
+ */
+import Layout from "../../layouts/Layout.astro";
+import { SITE } from "../../lib/ui";
+
+export const prerender = true;
+---
+
+<Layout
+  title={`隔離自測 — ${SITE.name}`}
+  description="跨帳號隔離自測工具。"
+  noIndex={true}
+>
+  <div class="st-wrap">
+    <h1 class="st-h">跨帳號隔離自測</h1>
+
+    <div class="st-intro" id="st-intro">
+      <p>
+        這一頁用<b>你目前登入的帳號</b>,嘗試以各種方式讀取<b>另一個帳號</b>的資料。
+        全部都應該讀不到 —— 而且會用你自己的資料做對照組,證明這些查詢本身是有效的。
+      </p>
+      <ol>
+        <li>用帳號 <b>A</b> 登入(在 <a href="/trades">投資組合</a> 頁)。</li>
+        <li>用另一個瀏覽器/無痕視窗以帳號 <b>B</b> 登入,取得 B 的使用者 ID。</li>
+        <li>回到這裡,把 B 的 ID 貼進網址:<code>/trades/rls-selftest?peer=&lt;B 的 ID&gt;</code></li>
+      </ol>
+      <p class="st-note">
+        沒有 <code>peer</code> 參數時本頁不執行任何查詢。此頁不增加任何權限 ——
+        同樣的查詢在瀏覽器開發者工具裡本來就打得出來。
+      </p>
+      <p class="st-me">你目前的使用者 ID:<code id="st-me">—</code></p>
+    </div>
+
+    <div id="st-run" hidden>
+      <p class="st-target">對象帳號(peer):<code id="st-peer">—</code></p>
+      <table class="st-table">
+        <thead>
+          <tr><th scope="col">項目</th><th scope="col">預期</th><th scope="col">實際</th><th scope="col">判定</th></tr>
+        </thead>
+        <tbody id="st-body"></tbody>
+      </table>
+      <p class="st-verdict" id="st-verdict">執行中…</p>
+    </div>
+  </div>
+
+  <script>
+    import { getSupabase, supabaseConfigured, supabaseConfigError } from "../../lib/supabaseClient";
+
+    const intro = document.getElementById("st-intro");
+    const runEl = document.getElementById("st-run");
+    const body = document.getElementById("st-body");
+    const verdict = document.getElementById("st-verdict");
+
+    const row = (name: string, expect: string, actual: string, ok: boolean | null) => {
+      const tr = document.createElement("tr");
+      for (const [txt, cls] of [[name, "st-name"], [expect, ""], [actual, "st-actual"]] as const) {
+        const td = document.createElement("td");
+        td.textContent = txt;
+        if (cls) td.className = cls;
+        tr.appendChild(td);
+      }
+      const td = document.createElement("td");
+      td.textContent = ok == null ? "無法判定" : ok ? "通過" : "失敗";
+      td.className = ok == null ? "st-unknown" : ok ? "st-pass" : "st-fail";
+      tr.appendChild(td);
+      body?.appendChild(tr);
+      return ok === true ? 1 : 0;
+    };
+
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (!supabaseConfigured) {
+      if (verdict) verdict.textContent = supabaseConfigError ?? "尚未設定 Supabase 連線";
+      runEl!.hidden = false;
+    } else {
+      const sb = getSupabase()!;
+      const peer = new URL(location.href).searchParams.get("peer");
+
+      sb.auth.getUser().then(async ({ data }) => {
+        const me = data.user?.id ?? null;
+        const meEl = document.getElementById("st-me");
+        if (meEl) meEl.textContent = me ?? "(尚未登入)";
+
+        // ① 需要明確參數才啟動
+        if (!peer) return;
+        if (!me) { if (verdict) verdict.textContent = "請先登入,再帶 peer 參數回到這一頁。"; runEl!.hidden = false; return; }
+        // ② 只吃一個已知的 user_id:格式不符、或就是自己,一律拒絕
+        if (!UUID.test(peer)) {
+          runEl!.hidden = false;
+          if (verdict) verdict.textContent = "peer 必須是單一個 UUID(不接受清單或萬用字元)。";
+          return;
+        }
+        if (peer === me) {
+          runEl!.hidden = false;
+          if (verdict) verdict.textContent = "peer 不能是你自己 —— 那樣測不出隔離。請填另一個帳號的 ID。";
+          return;
+        }
+
+        intro!.hidden = true;
+        runEl!.hidden = false;
+        const peerEl = document.getElementById("st-peer");
+        if (peerEl) peerEl.textContent = peer;
+
+        const TABLES: [string, string][] = [
+          ["trades", "user_id"], ["cash_flows", "user_id"],
+          ["watchlist", "user_id"], ["preferences", "user_id"], ["profiles", "id"],
+        ];
+        const VIEWS = ["v_trade_lots", "v_ticker_sold", "v_open_lots", "v_holdings",
+                       "v_position_anomalies", "v_realized_lots", "v_cash_balance"];
+
+        let total = 0, passed = 0, unknown = 0;
+        const tick = (ok: boolean | null) => { total++; if (ok) passed++; else if (ok == null) unknown++; };
+
+        // ── 攻擊面:全部必須 0 列 ──
+        for (const [t, owner] of TABLES) {
+          const { data, error } = await sb.from(t).select("*").eq(owner, peer);
+          const ok = error ? null : (data?.length ?? 0) === 0;
+          tick(ok);
+          row(`${t}:指定 ${owner} = peer`, "0 列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列`, ok);
+        }
+        for (const v of VIEWS) {
+          const { data, error } = await sb.from(v).select("*").eq("user_id", peer);
+          const ok = error ? null : (data?.length ?? 0) === 0;
+          tick(ok);
+          row(`view ${v}:指定 user_id = peer`, "0 列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列`, ok);
+        }
+        {
+          const { data, error } = await sb.from("trades").select("*");
+          const ok = error ? null : (data ?? []).every((r: any) => r.user_id === me);
+          tick(ok);
+          row("無條件 select trades", "只有自己的列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列,他人列 ${(data ?? []).filter((r: any) => r.user_id !== me).length}`, ok);
+        }
+        {
+          const { error } = await sb.from("trades").insert({ user_id: peer, ticker: "2330", trade_date: "2024-01-01", side: "buy", shares: 1, price: 1 });
+          const ok = Boolean(error);
+          tick(ok);
+          row("寫入一列 user_id = peer", "被拒絕", error ? `已拒絕(${error.code ?? "error"})` : "竟然成功", ok);
+        }
+        {
+          const { data, error } = await sb.from("trades").delete().eq("user_id", peer).select();
+          const ok = error ? null : (data?.length ?? 0) === 0;
+          tick(ok);
+          row("刪除 peer 的列", "影響 0 列", error ? `查詢錯誤:${error.message}` : `影響 ${data?.length} 列`, ok);
+        }
+
+        // ── 🔴 4b 對照組:沒有這段,上面的 0 列不證明隔離有效 ──
+        const ctrlHead = document.createElement("tr");
+        const th = document.createElement("td");
+        th.colSpan = 4;
+        th.className = "st-section";
+        th.textContent = "對照組 —— 同樣的查詢改讀「自己」,必須讀得到(否則上面的 0 列只是查詢沒回東西)";
+        ctrlHead.appendChild(th);
+        body?.appendChild(ctrlHead);
+
+        let ctrlOk = 0, ctrlTotal = 0;
+        for (const [t, owner] of TABLES) {
+          const { data, error } = await sb.from(t).select("*").eq(owner, me);
+          const has = !error && (data?.length ?? 0) > 0;
+          ctrlTotal++;
+          if (has) ctrlOk++;
+          row(`對照:${t} 讀自己`, "≥ 1 列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列`, has ? true : null);
+        }
+
+        if (verdict) {
+          const attacksOk = passed === total && unknown === 0;
+          const ctrlMeaningful = ctrlOk > 0;
+          if (attacksOk && ctrlMeaningful) {
+            verdict.textContent = `✅ 隔離成立:${total} 條攻擊查詢全部讀不到 peer 的資料,且對照組有 ${ctrlOk}/${ctrlTotal} 項讀得到自己的資料(代表這些查詢是有效的)。`;
+            verdict.className = "st-verdict st-pass";
+          } else if (!ctrlMeaningful) {
+            // 🔴 對照組全空 = 這次自測沒有鑑別力,不可宣告通過
+            verdict.textContent = `⚠️ 無法判定:對照組一項都沒讀到自己的資料。可能是這個帳號還沒有任何資料 —— 請先在 /trades 新增一筆交易再重跑,否則「讀不到 peer」不能證明任何事。`;
+            verdict.className = "st-verdict st-unknown";
+          } else {
+            verdict.textContent = `❌ 有問題:${total} 條中通過 ${passed} 條、無法判定 ${unknown} 條。請把整張表回報。`;
+            verdict.className = "st-verdict st-fail";
+          }
+        }
+      });
+    }
+  </script>
+</Layout>
+
+<style>
+  .st-wrap { padding: 24px 0 60px; }
+  .st-h { font-size: 1.3rem; margin: 0 0 14px; }
+  .st-intro p, .st-intro li { font-size: 0.86rem; line-height: 1.75; color: var(--text-secondary); }
+  .st-intro b { color: var(--text); }
+  .st-note { font-size: 0.78rem !important; }
+  .st-me, .st-target { font-size: 0.8rem; color: var(--text-secondary); }
+  code { font-family: var(--font-mono); font-size: 0.82em; }
+  .st-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.8rem; }
+  .st-table th, .st-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  .st-table th { color: var(--muted); font-weight: 600; font-size: 0.74rem; }
+  .st-name, .st-actual { font-family: var(--font-mono); font-size: 0.76rem; }
+  .st-section { background: var(--surface); color: var(--text); font-weight: 700; font-size: 0.78rem; }
+  .st-pass { color: var(--up, #d4483b); }
+  .st-fail { color: #d4483b; font-weight: 700; }
+  .st-unknown { color: var(--accent-hover); }
+  .st-verdict { margin-top: 14px; font-size: 0.88rem; line-height: 1.7; }
+</style>
