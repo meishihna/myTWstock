@@ -11,11 +11,7 @@
  * 三個約束:
  *   ① **需要明確參數才啟動**(`?peer=<uuid>`);沒有參數就什麼都不做
  *   ② **只吃一個已知的 user_id**,不接受清單、不接受萬用字元
- *   ③ 無任何連結入口、noindex、不進 sitemap
- *
- * 🔴 輸出必須不可含糊:每條查詢逐條列「預期 / 實際 / 判定」,
- *    而且**要有 4b 對照組**(用自己的 token 必須讀得到)——
- *    沒有對照組,「全部 0 列」只證明查詢沒回東西,不證明隔離有效。
+ *   ③ 無任何連結入口、noIndex、不進 sitemap
  * ══════════════════════════════════════════════════════════════════════════
  */
 import Layout from "../../layouts/Layout.astro";
@@ -24,11 +20,7 @@ import { SITE } from "../../lib/ui";
 export const prerender = true;
 ---
 
-<Layout
-  title={`隔離自測 — ${SITE.name}`}
-  description="跨帳號隔離自測工具。"
-  noIndex={true}
->
+<Layout title={`隔離自測 — ${SITE.name}`} description="跨帳號隔離自測工具。" noIndex={true}>
   <div class="st-wrap">
     <h1 class="st-h">跨帳號隔離自測</h1>
 
@@ -46,7 +38,13 @@ export const prerender = true;
     <div class="st-intro" id="st-intro">
       <p>
         這一頁用<b>你目前登入的帳號</b>,嘗試以各種方式讀取<b>另一個帳號</b>的資料。
-        全部都應該讀不到 —— 而且會用你自己的資料做對照組,證明這些查詢本身是有效的。
+        每一條攻擊查詢都配一條<b>同一張表/檢視</b>的對照(改讀自己)——
+        <b>攻擊 0 列、對照 ≥1 列</b>才算通過。
+      </p>
+      <p class="st-why">
+        為什麼要逐項配對:若某張表<b>攻擊 0 列、對照也 0 列</b>,那麼
+        「隔離有效」與「隔離根本沒開」的輸出<b>一模一樣</b> ——
+        那種情況一律判<b>無法判定</b>,不是通過。
       </p>
       <ol>
         <li>用帳號 <b>A</b> 登入(在 <a href="/trades">投資組合</a> 頁)。</li>
@@ -64,7 +62,12 @@ export const prerender = true;
       <p class="st-target">對象帳號(peer):<code id="st-peer">—</code></p>
       <table class="st-table">
         <thead>
-          <tr><th scope="col">項目</th><th scope="col">預期</th><th scope="col">實際</th><th scope="col">判定</th></tr>
+          <tr>
+            <th scope="col">項目</th>
+            <th scope="col">攻擊(讀 peer,應 0 列)</th>
+            <th scope="col">對照(讀自己,應 ≥1 列)</th>
+            <th scope="col">判定</th>
+          </tr>
         </thead>
         <tbody id="st-body"></tbody>
       </table>
@@ -74,27 +77,58 @@ export const prerender = true;
 
   <script>
     import { getSupabase, supabaseConfigured, supabaseConfigError } from "../../lib/supabaseClient";
+    // 🔴 判準走【同一支純函式】,不在頁面裡另寫一份 ——
+    //    另寫一份的話,tests/selftest-verdict.mjs 測到的就不是頁面實際用的判準。
+    import { judgeProbe, summarize, type ProbeInput } from "../../lib/selftestVerdict";
 
+    /**
+     * 🔴 2026-08-14 判準修正:對照組改為【逐項配對】,不再用總數。
+     *
+     * 舊判準:攻擊全部 0 列,且「對照組至少有一項讀得到」→ 宣告通過。
+     * 那條規則有致命的洞:某張表若【攻擊 0 列、對照也 0 列】,
+     * 「隔離有效」與「隔離完全沒開」的輸出**一模一樣** ——
+     * 那是在正確與錯誤假設下都會通過的檢查,也就是不是檢查。
+     *
+     * 線上首跑就撞到:cash_flows / watchlist / preferences 三項對照皆 0 列,
+     * 頁面卻仍印 ✅;而 7 個檢視當時**連對照組都沒有**,它們的 0 列毫無證據力。
+     *
+     * 新判準(逐項):
+     *   攻擊 0 列 + 對照 ≥1 列 → 通過
+     *   攻擊 0 列 + 對照 0 列  → 無法判定(不是通過),並說明要補什麼資料
+     *   攻擊 > 0 列            → 失敗
+     * 全部逐項通過才印 ✅。
+     */
     const intro = document.getElementById("st-intro");
     const runEl = document.getElementById("st-run");
     const body = document.getElementById("st-body");
     const verdict = document.getElementById("st-verdict");
 
-    const row = (name: string, expect: string, actual: string, ok: boolean | null) => {
+    type Verdict = "pass" | "fail" | "unknown";
+
+    function addRow(name: string, attack: string, control: string, v: Verdict, need?: string) {
       const tr = document.createElement("tr");
-      for (const [txt, cls] of [[name, "st-name"], [expect, ""], [actual, "st-actual"]] as const) {
+      const push = (txt: string, cls = "") => {
         const td = document.createElement("td");
         td.textContent = txt;
         if (cls) td.className = cls;
         tr.appendChild(td);
+        return td;
+      };
+      push(name, "st-name");
+      push(attack, "st-actual");
+      push(control, "st-actual");
+      const last = push(
+        v === "pass" ? "通過" : v === "fail" ? "失敗" : "無法判定",
+        v === "pass" ? "st-pass" : v === "fail" ? "st-fail" : "st-unknown"
+      );
+      if (v === "unknown" && need) {
+        const hint = document.createElement("div");
+        hint.className = "st-need";
+        hint.textContent = need;
+        last.appendChild(hint);
       }
-      const td = document.createElement("td");
-      td.textContent = ok == null ? "無法判定" : ok ? "通過" : "失敗";
-      td.className = ok == null ? "st-unknown" : ok ? "st-pass" : "st-fail";
-      tr.appendChild(td);
       body?.appendChild(tr);
-      return ok === true ? 1 : 0;
-    };
+    }
 
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -110,99 +144,165 @@ export const prerender = true;
         const meEl = document.getElementById("st-me");
         if (meEl) meEl.textContent = me ?? "(尚未登入)";
 
-        // ① 需要明確參數才啟動
-        if (!peer) return;
-        if (!me) { if (verdict) verdict.textContent = "請先登入,再帶 peer 參數回到這一頁。"; runEl!.hidden = false; return; }
-        // ② 只吃一個已知的 user_id:格式不符、或就是自己,一律拒絕
+        if (!peer) return; // ① 需明確參數才啟動
+        runEl!.hidden = false;
+        if (!me) {
+          if (verdict) verdict.textContent = "請先登入,再帶 peer 參數回到這一頁。";
+          return;
+        }
+        // ② 只吃一個已知的 user_id
         if (!UUID.test(peer)) {
-          runEl!.hidden = false;
           if (verdict) verdict.textContent = "peer 必須是單一個 UUID(不接受清單或萬用字元)。";
           return;
         }
         if (peer === me) {
-          runEl!.hidden = false;
           if (verdict) verdict.textContent = "peer 不能是你自己 —— 那樣測不出隔離。請填另一個帳號的 ID。";
           return;
         }
-
         intro!.hidden = true;
-        runEl!.hidden = false;
         const peerEl = document.getElementById("st-peer");
         if (peerEl) peerEl.textContent = peer;
 
-        const TABLES: [string, string][] = [
-          ["trades", "user_id"], ["cash_flows", "user_id"],
-          ["watchlist", "user_id"], ["preferences", "user_id"], ["profiles", "id"],
+        /** 交給 selftestVerdict 判定的原始觀測值 */
+        const probes: ProbeInput[] = [];
+
+        /** 一條攻擊 + 一條【同物件】的對照,兩者一起判 */
+        async function pair(label: string, obj: string, owner: string, need: string) {
+          const atk = await sb.from(obj).select("*").eq(owner, peer!);
+          const ctl = await sb.from(obj).select("*").eq(owner, me!);
+          const atkTxt = atk.error ? `查詢錯誤:${atk.error.message}` : `${atk.data?.length} 列`;
+          const ctlTxt = ctl.error ? `查詢錯誤:${ctl.error.message}` : `${ctl.data?.length} 列`;
+          const probe: ProbeInput = {
+            name: label,
+            attackRows: atk.error ? null : (atk.data?.length ?? 0),
+            controlRows: ctl.error ? null : (ctl.data?.length ?? 0),
+            need,
+          };
+          const v = judgeProbe(probe);
+          addRow(label, atkTxt, ctlTxt, v, need);
+          probes.push(probe);
+        }
+
+        const TABLES: [string, string, string][] = [
+          ["trades", "user_id", "A 需要至少一筆交易"],
+          ["cash_flows", "user_id", "A 需要至少一筆現金流(入金/股息…)"],
+          ["watchlist", "user_id", "A 需要至少一檔觀察清單"],
+          ["preferences", "user_id", "A 需要一組偏好設定"],
+          ["profiles", "id", "A 的 profile 由觸發器自動建立,理應存在"],
         ];
-        const VIEWS = ["v_trade_lots", "v_ticker_sold", "v_open_lots", "v_holdings",
-                       "v_position_anomalies", "v_realized_lots", "v_cash_balance"];
+        for (const [t, owner, need] of TABLES) await pair(`表 ${t}`, t, owner, need);
 
-        let total = 0, passed = 0, unknown = 0;
-        const tick = (ok: boolean | null) => { total++; if (ok) passed++; else if (ok == null) unknown++; };
+        const VIEWS: [string, string][] = [
+          ["v_trade_lots", "A 需要至少一筆交易"],
+          ["v_ticker_sold", "A 需要至少一筆【賣出】"],
+          ["v_open_lots", "A 需要至少一筆【買進】"],
+          ["v_holdings", "A 需要尚有剩餘的持倉"],
+          ["v_position_anomalies", "A 需要一檔【賣超】—— 正常帳號不該有,這一項通常無法判定,那是正常的"],
+          ["v_realized_lots", "A 需要至少一組買賣配對(有買也有賣)"],
+          ["v_cash_balance", "A 需要至少一筆現金流"],
+        ];
+        for (const [v, need] of VIEWS) await pair(`檢視 ${v}`, v, "user_id", need);
 
-        // ── 攻擊面:全部必須 0 列 ──
-        for (const [t, owner] of TABLES) {
-          const { data, error } = await sb.from(t).select("*").eq(owner, peer);
-          const ok = error ? null : (data?.length ?? 0) === 0;
-          tick(ok);
-          row(`${t}:指定 ${owner} = peer`, "0 列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列`, ok);
-        }
-        for (const v of VIEWS) {
-          const { data, error } = await sb.from(v).select("*").eq("user_id", peer);
-          const ok = error ? null : (data?.length ?? 0) === 0;
-          tick(ok);
-          row(`view ${v}:指定 user_id = peer`, "0 列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列`, ok);
-        }
+        // 無條件 select:對照 = 自己讀得到幾列
         {
-          const { data, error } = await sb.from("trades").select("*");
-          const ok = error ? null : (data ?? []).every((r: any) => r.user_id === me);
-          tick(ok);
-          row("無條件 select trades", "只有自己的列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列,他人列 ${(data ?? []).filter((r: any) => r.user_id !== me).length}`, ok);
+          const r = await sb.from("trades").select("*");
+          const own = (r.data ?? []).filter((x: any) => x.user_id === me).length;
+          const others = (r.data ?? []).filter((x: any) => x.user_id !== me).length;
+          const probe: ProbeInput = {
+            name: "無條件 select trades",
+            attackRows: r.error ? null : others,
+            controlRows: r.error ? null : own,
+            need: "A 需要至少一筆交易",
+          };
+          const v = judgeProbe(probe);
+          addRow(
+            "無條件 select trades",
+            r.error ? `查詢錯誤:${r.error.message}` : `他人 ${others} 列`,
+            r.error ? "—" : `自己 ${own} 列`,
+            v,
+            "A 需要至少一筆交易"
+          );
+          probes.push(probe);
         }
+
+        /**
+         * 寫入 / 刪除的對照:在【自己的帳號】放一筆可辨識的哨兵列,再自行刪除。
+         * 沒有這個對照,「對 peer 被拒」可能只是因為寫入根本不通 —— 那樣一樣沒有鑑別力。
+         * 哨兵只動自己的資料,而且用完即刪。
+         */
+        const SENTINEL = {
+          ticker: "0000", trade_date: "1990-01-01", seq: 0, side: "buy",
+          shares: 1, price: 0, fee: 0, tax: 0, note: "rls-selftest sentinel",
+        };
         {
-          const { error } = await sb.from("trades").insert({ user_id: peer, ticker: "2330", trade_date: "2024-01-01", side: "buy", shares: 1, price: 1 });
-          const ok = Boolean(error);
-          tick(ok);
-          row("寫入一列 user_id = peer", "被拒絕", error ? `已拒絕(${error.code ?? "error"})` : "竟然成功", ok);
-        }
-        {
-          const { data, error } = await sb.from("trades").delete().eq("user_id", peer).select();
-          const ok = error ? null : (data?.length ?? 0) === 0;
-          tick(ok);
-          row("刪除 peer 的列", "影響 0 列", error ? `查詢錯誤:${error.message}` : `影響 ${data?.length} 列`, ok);
+          const atk = await sb.from("trades").insert({ ...SENTINEL, user_id: peer });
+          const ctl = await sb.from("trades").insert({ ...SENTINEL, user_id: me }).select();
+          const sentinelId = ctl.data?.[0]?.id ?? null;
+          // 轉成同一種觀測形狀:攻擊「成功寫入的列數」(被拒 = 0)、對照「哨兵寫入的列數」
+          const probe: ProbeInput = {
+            name: "寫入 peer 的列",
+            attackRows: atk.error ? 0 : 1,
+            controlRows: ctl.error ? null : (ctl.data?.length ?? 0),
+          };
+          const v = judgeProbe(probe);
+          addRow(
+            "寫入一列 user_id = peer",
+            atk.error ? `已拒絕(${atk.error.code ?? "error"})` : "竟然成功",
+            ctl.error ? `對照失敗:${ctl.error.message}` : "寫入自己的哨兵列成功",
+            v,
+            "對照寫入失敗時無法判定 —— 被拒可能只是因為寫入根本不通"
+          );
+          probes.push(probe);
+
+          const del = await sb.from("trades").delete().eq("user_id", peer).select();
+          const delCtl = sentinelId != null ? await sb.from("trades").delete().eq("id", sentinelId).select() : null;
+          const delProbe: ProbeInput = {
+            name: "刪除 peer 的列",
+            attackRows: del.error ? null : (del.data?.length ?? 0),
+            controlRows: !delCtl || delCtl.error ? null : (delCtl.data?.length ?? 0),
+          };
+          const delV = judgeProbe(delProbe);
+          addRow(
+            "刪除 peer 的列",
+            del.error ? `查詢錯誤:${del.error.message}` : `影響 ${del.data?.length} 列`,
+            delCtl
+              ? delCtl.error
+                ? `對照失敗:${delCtl.error.message}`
+                : `刪掉自己的哨兵列 ${delCtl.data?.length} 列`
+              : "未建立哨兵",
+            delV,
+            "對照刪除失敗時無法判定 —— 影響 0 列可能只是因為刪除根本不通"
+          );
+          probes.push(delProbe);
+
+          if (delCtl && !delCtl.error && (delCtl.data?.length ?? 0) === 0) {
+            addRow("⚠️ 哨兵列未被刪除", "—", "請到交易紀錄手動刪除 1990-01-01 的 0000 那一筆", "unknown");
+          }
         }
 
-        // ── 🔴 4b 對照組:沒有這段,上面的 0 列不證明隔離有效 ──
-        const ctrlHead = document.createElement("tr");
-        const th = document.createElement("td");
-        th.colSpan = 4;
-        th.className = "st-section";
-        th.textContent = "對照組 —— 同樣的查詢改讀「自己」,必須讀得到(否則上面的 0 列只是查詢沒回東西)";
-        ctrlHead.appendChild(th);
-        body?.appendChild(ctrlHead);
-
-        let ctrlOk = 0, ctrlTotal = 0;
-        for (const [t, owner] of TABLES) {
-          const { data, error } = await sb.from(t).select("*").eq(owner, me);
-          const has = !error && (data?.length ?? 0) > 0;
-          ctrlTotal++;
-          if (has) ctrlOk++;
-          row(`對照:${t} 讀自己`, "≥ 1 列", error ? `查詢錯誤:${error.message}` : `${data?.length} 列`, has ? true : null);
-        }
-
+        // ── 結論:全部逐項通過才 ✅ ──
+        const sum = summarize(probes);
+        const passed = { length: sum.passed };
+        const failed = sum.failed;
+        const unknown = sum.unknown;
+        const results = { length: sum.total };
         if (verdict) {
-          const attacksOk = passed === total && unknown === 0;
-          const ctrlMeaningful = ctrlOk > 0;
-          if (attacksOk && ctrlMeaningful) {
-            verdict.textContent = `✅ 隔離成立:${total} 條攻擊查詢全部讀不到 peer 的資料,且對照組有 ${ctrlOk}/${ctrlTotal} 項讀得到自己的資料(代表這些查詢是有效的)。`;
-            verdict.className = "st-verdict st-pass";
-          } else if (!ctrlMeaningful) {
-            // 🔴 對照組全空 = 這次自測沒有鑑別力,不可宣告通過
-            verdict.textContent = `⚠️ 無法判定:對照組一項都沒讀到自己的資料。可能是這個帳號還沒有任何資料 —— 請先在 /trades 新增一筆交易再重跑,否則「讀不到 peer」不能證明任何事。`;
+          if (failed.length) {
+            verdict.textContent =
+              `❌ 有項目失敗(${failed.length} 項):${failed.join("、")}。` +
+              `請把整張表回報,並且先不要輸入真實持股。`;
+            verdict.className = "st-verdict st-fail";
+          } else if (unknown.length) {
+            verdict.textContent =
+              `⚠️ 部分成立:${passed.length}/${results.length} 項有鑑別力並通過;` +
+              `${unknown.length} 項【無法判定】—— 那些項目的攻擊與對照都是 0 列,` +
+              `此時「隔離有效」與「隔離沒開」的輸出一模一樣,不能算通過。` +
+              `無法判定:${unknown.join("、")}。` +
+              `依表格右欄的提示補上對應資料後重跑,即可取得鑑別力。`;
             verdict.className = "st-verdict st-unknown";
           } else {
-            verdict.textContent = `❌ 有問題:${total} 條中通過 ${passed} 條、無法判定 ${unknown} 條。請把整張表回報。`;
-            verdict.className = "st-verdict st-fail";
+            verdict.textContent = `✅ 隔離成立:全部 ${results.length} 項【逐項配對】皆有鑑別力且通過(攻擊 0 列、對照 ≥1 列)。`;
+            verdict.className = "st-verdict st-pass";
           }
         }
       });
@@ -222,14 +322,15 @@ export const prerender = true;
   }
   .st-intro p, .st-intro li { font-size: 0.86rem; line-height: 1.75; color: var(--text-secondary); }
   .st-intro b { color: var(--text); }
+  .st-why { border-left: 2px solid var(--border); padding-left: 10px; }
   .st-note { font-size: 0.78rem !important; }
   .st-me, .st-target { font-size: 0.8rem; color: var(--text-secondary); }
   code { font-family: var(--font-mono); font-size: 0.82em; }
   .st-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.8rem; }
-  .st-table th, .st-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  .st-table th, .st-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
   .st-table th { color: var(--muted); font-weight: 600; font-size: 0.74rem; }
   .st-name, .st-actual { font-family: var(--font-mono); font-size: 0.76rem; }
-  .st-section { background: var(--surface); color: var(--text); font-weight: 700; font-size: 0.78rem; }
+  .st-need { margin-top: 3px; font-family: var(--font-sans); font-size: 0.7rem; color: var(--text-secondary); font-weight: 400; }
   .st-pass { color: var(--up, #d4483b); }
   .st-fail { color: #d4483b; font-weight: 700; }
   .st-unknown { color: var(--accent-hover); }
