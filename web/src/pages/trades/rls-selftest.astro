@@ -32,6 +32,17 @@ export const prerender = true;
   <div class="st-wrap">
     <h1 class="st-h">跨帳號隔離自測</h1>
 
+    <div class="st-warn" role="alert">
+      <b>執行前請先讀這段。</b>
+      這頁不只做讀取測試,還會對 peer 帳號送出<b>真實的寫入與刪除嘗試</b>
+      (新增一筆 <code>user_id = peer</code> 的交易、刪除 peer 的交易)。
+      隔離正常時這兩者都會被資料庫擋下、什麼也不會發生;
+      <b>但萬一隔離失效,peer 的資料會被真的改動或刪除,而且無法復原。</b>
+      <br />
+      所以:<b>請只在「資料可以承受損失」的帳號上執行</b>,並且
+      <b>先跑這個自測、確認通過之後,再輸入你真正的持股</b>。
+    </div>
+
     <div class="st-intro" id="st-intro">
       <p>
         這一頁用<b>你目前登入的帳號</b>,嘗試以各種方式讀取<b>另一個帳號</b>的資料。
@@ -202,6 +213,13 @@ export const prerender = true;
 <style>
   .st-wrap { padding: 24px 0 60px; }
   .st-h { font-size: 1.3rem; margin: 0 0 14px; }
+  /* 警語:這頁會造成真實的資料變更,不可低調 */
+  .st-warn {
+    margin: 0 0 16px; padding: 0.7rem 0.9rem; font-size: 0.84rem; line-height: 1.8;
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--accent-glow); border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+  }
   .st-intro p, .st-intro li { font-size: 0.86rem; line-height: 1.75; color: var(--text-secondary); }
   .st-intro b { color: var(--text); }
   .st-note { font-size: 0.78rem !important; }
