@@ -320,6 +320,9 @@ const MONTHLY_STATS = [
         </div>
         <div class="tr-actions">
           <button class="tr-btn tr-btn--primary" type="button" id="tx-new" disabled>＋ 新增交易</button>
+          {/* 貼上匯入獨立一頁:那是「貼上 → 預覽 → 確認 → 對帳 → 撤銷」的多步流程,
+              放進本頁會讓本頁多出一整條只在匯入時才走的分支。 */}
+          <a class="tr-btn" href="/trades/import">⇱ 從試算表匯入</a>
           <span class="tr-hint">Phase 2 · 登入後開放</span>
           <span class="tx-status" id="tx-status" role="status"></span>
         </div>

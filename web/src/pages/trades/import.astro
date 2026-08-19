@@ -1,0 +1,553 @@
+---
+/**
+ * /trades/import — 可信任的匯入(輪 5)
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * 🔴 貼上的內容【不離開瀏覽器】。解析是純函式(`src/lib/importParse.ts`),
+ *    寫入只走 supabase-js + 使用者自己的 JWT,直接連 Supabase。
+ *    **匯入的程式路徑(本檔的 script + `importParse.ts` + `importApp.ts`)沒有任何 `fetch()`。**
+ *
+ *    ⚠️ 但**不可以說「這一頁沒有 `/api/*` 請求」**——
+ *    版面(`Layout.astro`)共用的行情列會發 `GET /api/market-ticker`。
+ *    那個請求**無查詢參數、與貼上內容完全無關**,但它確實存在。
+ *    2026-08-19 以瀏覽器網路紀錄逐筆核對過:
+ *      匯入相關的請求全部指向 `…:54321/rest/v1/…`(含 `rpc/import_paste`、`rpc/undo_import`);
+ *      指向本站的只有 `/api/market-ticker`,且不帶任何參數。
+ *    **承諾的措辭要對應實際資料流,不是把差異藏起來。**
+ *
+ * 🔴 為什麼是獨立一頁而不是塞進 /trades:
+ *    匯入是「貼上 → 預覽 → 確認 → 對帳 → 可撤銷」的多步流程,
+ *    塞進主頁會讓主頁的程式路徑多出一整條只在匯入時才走的分支。
+ *
+ * 🔴 驗收不是「匯入成功」,是【對帳吻合】:
+ *    匯入前瀏覽器先算出預期持倉,匯入後資料庫用完全不同的演算法自己算一次,
+ *    逐檔比對。對不上就要看得見。
+ * ══════════════════════════════════════════════════════════════════════════
+ */
+import Layout from "../../layouts/Layout.astro";
+import { SITE } from "../../lib/ui";
+
+export const prerender = true;
+---
+
+<Layout title={`匯入交易紀錄 — ${SITE.name}`} description="把試算表的交易紀錄貼進來,預覽確認後匯入,可整批撤銷。" noIndex={true}>
+  <div class="im-wrap">
+    <h1 class="im-h">匯入交易紀錄</h1>
+
+    <p class="im-lead">
+      把試算表裡的<b>交易紀錄</b>整片複製(含表頭)貼到下方。
+      解析<b>完全在你的瀏覽器裡</b>進行 —— 貼上的內容
+      <b>不會送到本站伺服器</b>,寫入時直接由你的瀏覽器連到資料庫。
+    </p>
+
+    <div class="im-auth" id="im-auth" role="status">正在確認登入狀態…</div>
+
+    <div id="im-app" hidden>
+      {/* ── 步驟 1:貼上 ─────────────────────────────────────── */}
+      <section class="im-step">
+        <h2 class="im-h2"><span class="im-n">1</span> 貼上</h2>
+        <textarea
+          id="im-text"
+          class="im-text"
+          rows="8"
+          spellcheck="false"
+          placeholder="Date&#9;Ticker&#9;Action&#9;Quantity&#9;Price&#9;Currency&#9;Ticker_Clean&#9;…&#10;貼上時請包含第一列的表頭 —— 欄位是靠【名稱】對應的,不是靠位置。"
+        ></textarea>
+
+        <label class="im-opt">
+          <input type="checkbox" id="im-notes" checked />
+          <span>
+            一併匯入 <code>Notes</code> 欄的備註
+            <em class="im-opt-why">
+              🔴 這些備註<b>會存進資料庫</b>(存在你自己的帳號下,只有你讀得到)。
+              下方預覽會列出實際內容,不想存就取消勾選 —— 取消只影響備註,不影響筆數。
+            </em>
+          </span>
+        </label>
+
+        <div class="im-actions">
+          <button class="im-btn im-btn--primary" type="button" id="im-parse">解析並預覽</button>
+          <span class="im-msg" id="im-parse-msg" role="status"></span>
+        </div>
+      </section>
+
+      {/* ── 步驟 2:預覽與對帳 ───────────────────────────────── */}
+      <section class="im-step" id="im-preview" hidden>
+        <h2 class="im-h2"><span class="im-n">2</span> 預覽 · 匯入前對帳</h2>
+
+        <div class="im-nums" id="im-nums"></div>
+
+        <h3 class="im-h3">來源自己的恆等式</h3>
+        <p class="im-why">
+          這兩條<b>不需要我們猜任何事</b> —— 它們用的是來源檔案自己就有的欄位互相驗證。
+          欄位若對應錯位,來源自己的算術就會對不上。
+        </p>
+        <table class="im-table" id="im-checks"></table>
+
+        <div id="im-problems-box" hidden>
+          <h3 class="im-h3 im-bad">無法辨識的列 —— 整批停下</h3>
+          <p class="im-why">
+            🔴 <b>不猜。</b>任何一列有問題就<b>不匯入任何一列</b> ——
+            「略過壞列繼續」會讓你以為全部進去了。
+          </p>
+          <table class="im-table" id="im-problems"></table>
+        </div>
+
+        <div id="im-dups-box" hidden>
+          <h3 class="im-h3">疑似重複</h3>
+          <p class="im-why">
+            與你<b>既有的交易</b>撞鍵(代號 + 日期 + 買賣別 + 股數 + 價格)。
+            <b>預設不排除</b> —— 同一天同價買同一檔兩次是合法的,由你決定。
+          </p>
+          <table class="im-table" id="im-dups"></table>
+        </div>
+
+        <div id="im-notes-box" hidden>
+          <h3 class="im-h3">將被存進資料庫的備註</h3>
+          <table class="im-table" id="im-notes-list"></table>
+        </div>
+
+        <h3 class="im-h3">匯入後應該長這樣(瀏覽器端預測)</h3>
+        <p class="im-why">
+          🔴 這是<b>匯入之前</b>算出來的預測。匯入後資料庫會用<b>完全不同的演算法</b>再算一次,
+          兩邊逐檔比對 —— <b>先預測、再實跑</b>,比「跑完再解釋」有力得多。
+        </p>
+        <table class="im-table" id="im-predict"></table>
+
+        <div class="im-actions">
+          <button class="im-btn im-btn--primary" type="button" id="im-run" disabled>確認匯入</button>
+          <span class="im-msg" id="im-run-msg" role="status"></span>
+        </div>
+      </section>
+
+      {/* ── 步驟 3:匯入後對帳 ───────────────────────────────── */}
+      <section class="im-step" id="im-recon" hidden>
+        <h2 class="im-h2"><span class="im-n">3</span> 匯入後對帳</h2>
+        <p class="im-verdict" id="im-verdict"></p>
+        <table class="im-table" id="im-recon-table"></table>
+        <p class="im-why">
+          左邊是匯入前瀏覽器算的,右邊是資料庫自己算的。
+          兩邊<b>演算法不同</b>(逐筆佇列 vs SQL 累積區間集合運算)——
+          同時錯成一樣的機率遠低於同時對。
+        </p>
+      </section>
+
+      {/* ── 批次與撤銷 ───────────────────────────────────────── */}
+      <section class="im-step">
+        <h2 class="im-h2"><span class="im-n">＊</span> 匯入紀錄 · 整批撤銷</h2>
+        <p class="im-why">
+          撤銷會刪掉<b>該批次寫進去的所有列</b>,一個交易內完成。
+          <b>手動輸入的交易不屬於任何批次,不會被波及。</b>
+        </p>
+        <table class="im-table" id="im-batches"></table>
+        <p class="im-msg" id="im-batch-msg" role="status"></p>
+      </section>
+    </div>
+
+    <p class="im-back"><a href="/trades">← 回投資組合</a></p>
+  </div>
+
+  <script>
+    import { getSupabase, supabaseConfigured, supabaseConfigError } from "../../lib/supabaseClient";
+    import { parsePaste, findDuplicates, type ParseResult } from "../../lib/importParse";
+    import {
+      fetchExistingTrades,
+      predictHoldings,
+      runImport,
+      reconcile,
+      fetchBatches,
+      undoImport,
+      type Prediction,
+    } from "../../lib/importApp";
+    import type { Trade } from "../../lib/fifo";
+
+    /* 🔴 一律 textContent,不用 innerHTML —— 貼上的內容是使用者資料,
+       而使用者資料可能含有任何字元。這一頁不需要富文字。 */
+    const $ = (id: string) => document.getElementById(id);
+    const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text = "", cls = "") => {
+      const n = document.createElement(tag);
+      if (text) n.textContent = text;
+      if (cls) n.className = cls;
+      return n;
+    };
+    function table(node: HTMLElement | null, head: string[], rows: (string | HTMLElement)[][]) {
+      if (!node) return;
+      node.replaceChildren();
+      const thead = el("thead");
+      const hr = el("tr");
+      for (const h of head) {
+        const th = el("th", h);
+        th.setAttribute("scope", "col");
+        hr.appendChild(th);
+      }
+      thead.appendChild(hr);
+      const tb = el("tbody");
+      for (const r of rows) {
+        const tr = el("tr");
+        for (const c of r) {
+          const td = el("td");
+          if (typeof c === "string") td.textContent = c;
+          else td.appendChild(c);
+          tr.appendChild(td);
+        }
+        tb.appendChild(tr);
+      }
+      node.append(thead, tb);
+    }
+    const n2 = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: 2 }));
+    const n4 = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: 4 }));
+
+    const authEl = $("im-auth");
+    const appEl = $("im-app");
+
+    if (!supabaseConfigured) {
+      if (authEl) authEl.textContent = supabaseConfigError ?? "尚未設定 Supabase 連線";
+    } else {
+      const sb = getSupabase()!;
+      let existing: Trade[] = [];
+      let parsed: ParseResult | null = null;
+      let predicted: Prediction | null = null;
+      const excluded = new Set<number>();
+
+      sb.auth.getUser().then(async ({ data }) => {
+        if (!data.user) {
+          if (authEl) {
+            authEl.replaceChildren();
+            authEl.append("要匯入必須先登入。");
+            const a = el("a", "前往登入 →");
+            a.setAttribute("href", "/trades");
+            authEl.appendChild(a);
+          }
+          return;
+        }
+        if (authEl) authEl.hidden = true;
+        if (appEl) appEl.hidden = false;
+        try {
+          existing = await fetchExistingTrades(sb);
+        } catch (e) {
+          if (authEl) {
+            authEl.hidden = false;
+            authEl.textContent = `讀不回既有交易,先不要匯入:${(e as Error).message}`;
+          }
+          if (appEl) appEl.hidden = true;
+          return;
+        }
+        await renderBatches();
+      });
+
+      /* ── 解析並預覽 ───────────────────────────────────────── */
+      $("im-parse")?.addEventListener("click", () => {
+        const text = ($("im-text") as HTMLTextAreaElement | null)?.value ?? "";
+        const importNotes = ($("im-notes") as HTMLInputElement | null)?.checked !== false;
+        excluded.clear();
+        parsed = parsePaste(text, { importNotes });
+        const msg = $("im-parse-msg");
+        const box = $("im-preview");
+        if (box) box.hidden = false;
+        $("im-recon")!.hidden = true;
+
+        /* ① 四個數字 */
+        const nums = $("im-nums");
+        if (nums) {
+          nums.replaceChildren();
+          const cells: [string, string][] = [
+            ["來源列數", String(parsed.sourceRowCount)],
+            ["將寫入交易", String(parsed.trades.length)],
+            ["將寫入現金流", String(parsed.cashFlows.length)],
+            [
+              "Action 分布",
+              Object.entries(parsed.actionCounts)
+                .map(([k, v]) => `${k} ${v}`)
+                .join(" · ") || "—",
+            ],
+          ];
+          for (const [k, v] of cells) {
+            const d = el("div", "", "im-num");
+            d.append(el("span", k, "im-num-k"), el("span", v, "im-num-v"));
+            nums.appendChild(d);
+          }
+        }
+
+        /* ② 來源自己的恆等式 */
+        table(
+          $("im-checks"),
+          ["檢查", "結果", "說明"],
+          parsed.checks.map((c) => {
+            const badge = el(
+              "span",
+              c.status === "pass" ? "通過" : c.status === "fail" ? "失敗" : "無法驗",
+              c.status === "pass" ? "im-pass" : c.status === "fail" ? "im-fail" : "im-unknown"
+            );
+            const detail = el("div");
+            detail.appendChild(el("div", c.detail));
+            if (c.maxDeviation != null) detail.appendChild(el("div", `最大偏差 ${c.maxDeviation}`, "im-sub"));
+            if (c.need) detail.appendChild(el("div", `要驗需要:${c.need}`, "im-sub"));
+            return [c.name, badge, detail];
+          })
+        );
+
+        /* ③ 問題列 */
+        const pbox = $("im-problems-box");
+        if (pbox) pbox.hidden = parsed.problems.length === 0;
+        if (parsed.problems.length) {
+          table(
+            $("im-problems"),
+            ["來源列", "欄位", "原始內容", "為什麼拒絕"],
+            parsed.problems.map((p) => [
+              p.rowNo === 0 ? "(表頭)" : `第 ${p.rowNo} 列`,
+              p.column ?? "—",
+              p.raw || "(空白)",
+              p.reason,
+            ])
+          );
+        }
+
+        /* ④ 疑似重複 —— 預設不勾選 */
+        const dups = findDuplicates(parsed.trades, existing.map((t) => ({
+          ticker: t.ticker, trade_date: t.trade_date, side: t.side, shares: t.shares, price: t.price,
+        })));
+        const dbox = $("im-dups-box");
+        if (dbox) dbox.hidden = dups.size === 0;
+        if (dups.size) {
+          table(
+            $("im-dups"),
+            ["排除", "來源列", "代號", "日期", "買/賣", "股數", "價格"],
+            parsed.trades
+              .filter((t) => dups.has(t.rowNo))
+              .map((t) => {
+                const cb = document.createElement("input");
+                cb.type = "checkbox";
+                cb.checked = false; // 🔴 預設不勾選
+                cb.setAttribute("aria-label", `排除第 ${t.rowNo} 列`);
+                cb.addEventListener("change", () => {
+                  if (cb.checked) excluded.add(t.rowNo);
+                  else excluded.delete(t.rowNo);
+                  refreshPredict();
+                });
+                return [cb, `第 ${t.rowNo} 列`, t.ticker, t.trade_date, t.side === "buy" ? "買" : "賣", t.shares.raw, t.price.raw];
+              })
+          );
+        }
+
+        /* ⑤ 會被存進資料庫的備註 —— 讓使用者看到自己寫了什麼 */
+        const withNotes = parsed.trades.filter((t) => t.note);
+        const nbox = $("im-notes-box");
+        if (nbox) nbox.hidden = withNotes.length === 0;
+        if (withNotes.length) {
+          table(
+            $("im-notes-list"),
+            ["來源列", "代號", "備註內容"],
+            withNotes.map((t) => [`第 ${t.rowNo} 列`, t.ticker, t.note ?? ""])
+          );
+        }
+
+        refreshPredict();
+
+        const runBtn = $("im-run") as HTMLButtonElement | null;
+        const canRun = parsed.ok;
+        if (runBtn) runBtn.disabled = !canRun;
+        if (msg) {
+          msg.textContent = canRun
+            ? `解析完成:${parsed.sourceRowCount} 列 → ${parsed.trades.length} 筆交易 + ${parsed.cashFlows.length} 筆現金流`
+            : `有 ${parsed.problems.length} 個問題,整批不匯入`;
+          msg.className = canRun ? "im-msg im-pass" : "im-msg im-fail";
+        }
+      });
+
+      /* ── 預測:匯入前先算出「應該長什麼樣」 ─────────────────── */
+      function refreshPredict() {
+        if (!parsed) return;
+        predicted = predictHoldings(existing, parsed.trades, excluded);
+        table(
+          $("im-predict"),
+          ["代號", "股數", "平均成本", "剩餘批次"],
+          predicted.holdings.map((h) => [h.ticker, n2(h.shares), n4(h.avgCost), String(h.openLotCount)])
+        );
+        if (predicted.oversold.length) {
+          const t = $("im-predict");
+          const tb = t?.querySelector("tbody");
+          for (const o of predicted.oversold) {
+            const tr = el("tr", "", "im-fail");
+            const td = el("td", `⚠️ ${o.ticker} 賣超 ${o.oversoldShares} 股 —— 幾乎必然是漏登買入或代號有誤`);
+            td.setAttribute("colspan", "4");
+            tr.appendChild(td);
+            tb?.appendChild(tr);
+          }
+        }
+      }
+
+      /* ── 匯入 ─────────────────────────────────────────────── */
+      $("im-run")?.addEventListener("click", async () => {
+        if (!parsed || !parsed.ok || !predicted) return;
+        const btn = $("im-run") as HTMLButtonElement;
+        const msg = $("im-run-msg");
+        btn.disabled = true;
+        if (msg) {
+          msg.textContent = "寫入中…";
+          msg.className = "im-msg";
+        }
+        const expect = predicted.holdings;
+        try {
+          const { batchId, stats } = await runImport(sb, parsed, excluded, {
+            notesImported: ($("im-notes") as HTMLInputElement | null)?.checked !== false,
+          });
+          if (msg) {
+            msg.textContent = `已寫入(批次 ${batchId.slice(0, 8)}…):交易 ${stats.tradeCount} 筆、現金流 ${stats.cashFlowCount} 筆`;
+            msg.className = "im-msg im-pass";
+          }
+          existing = await fetchExistingTrades(sb);
+          await renderRecon(expect);
+          await renderBatches();
+        } catch (e) {
+          if (msg) {
+            /* 🔴 失敗就是失敗。RPC 是單一交易,不會留下半批 —— 但不可因此說「沒事」。 */
+            msg.textContent = `匯入失敗,資料庫沒有寫入任何一列:${(e as Error).message}`;
+            msg.className = "im-msg im-fail";
+          }
+          btn.disabled = false;
+        }
+      });
+
+      /* ── 匯入後對帳 ───────────────────────────────────────── */
+      async function renderRecon(expect: Prediction["holdings"]) {
+        const sec = $("im-recon");
+        if (sec) sec.hidden = false;
+        const r = await reconcile(sb, expect);
+        const v = $("im-verdict");
+        if (v) {
+          v.textContent =
+            r.status === "ok"
+              ? `✅ 對帳吻合 —— ${r.detail}`
+              : r.status === "diff"
+                ? `❌ 對帳不吻合 —— ${r.detail}`
+                : `⚠️ 無法對帳 —— ${r.detail}`;
+          v.className = `im-verdict ${r.status === "ok" ? "im-pass" : r.status === "diff" ? "im-fail" : "im-unknown"}`;
+        }
+        table(
+          $("im-recon-table"),
+          ["代號", "預測股數", "資料庫股數", "預測均價", "資料庫均價", "判定"],
+          r.rows.map((row) => [
+            row.ticker,
+            n2(row.expShares),
+            n2(row.gotShares),
+            n4(row.expAvgCost),
+            n4(row.gotAvgCost),
+            el("span", row.ok ? "吻合" : "不吻合", row.ok ? "im-pass" : "im-fail"),
+          ])
+        );
+      }
+
+      /* ── 批次清單 ─────────────────────────────────────────── */
+      async function renderBatches() {
+        const msg = $("im-batch-msg");
+        try {
+          const rows = await fetchBatches(sb);
+          if (!rows.length) {
+            table($("im-batches"), ["匯入時間", "來源列數", "目前掛在此批次", "操作"], [["—", "—", "尚無匯入紀錄", ""]]);
+            return;
+          }
+          table(
+            $("im-batches"),
+            ["匯入時間", "來源列數", "目前掛在此批次", "操作"],
+            rows.map((b) => {
+              const btn = el("button", "撤銷整批", "im-btn im-btn--danger") as HTMLButtonElement;
+              btn.addEventListener("click", async () => {
+                btn.disabled = true;
+                if (msg) {
+                  msg.textContent = "撤銷中…";
+                  msg.className = "im-msg";
+                }
+                try {
+                  const u = await undoImport(sb, b.id);
+                  if (msg) {
+                    /* 🔴 顯示【實際刪除筆數】——「撤銷成功」與「撤銷了 N 筆」是兩件事 */
+                    msg.textContent = `已撤銷:交易 ${u.trades} 筆、現金流 ${u.cash_flows} 筆、批次 ${u.batch} 筆`;
+                    msg.className = "im-msg im-pass";
+                  }
+                  existing = await fetchExistingTrades(sb);
+                  await renderBatches();
+                } catch (e) {
+                  if (msg) {
+                    msg.textContent = `撤銷失敗,沒有刪除任何一列:${(e as Error).message}`;
+                    msg.className = "im-msg im-fail";
+                  }
+                  btn.disabled = false;
+                }
+              });
+              return [
+                new Date(b.createdAt).toLocaleString("zh-TW"),
+                String(b.sourceRowCount),
+                `交易 ${b.liveTrades} · 現金流 ${b.liveCashFlows}`,
+                btn,
+              ];
+            })
+          );
+        } catch (e) {
+          if (msg) {
+            msg.textContent = `讀不回匯入紀錄:${(e as Error).message}`;
+            msg.className = "im-msg im-fail";
+          }
+        }
+      }
+    }
+  </script>
+</Layout>
+
+<style>
+  .im-wrap { padding: 24px 0 60px; }
+  .im-h { font-size: 1.3rem; margin: 0 0 10px; }
+  .im-lead, .im-why { font-size: 0.84rem; line-height: 1.8; color: var(--text-secondary); }
+  .im-lead b, .im-why b { color: var(--text); }
+  .im-why { margin: 4px 0 8px; border-left: 2px solid var(--border); padding-left: 10px; }
+  .im-auth {
+    margin: 12px 0; padding: 0.7rem 0.9rem; font-size: 0.85rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .im-auth a { margin-left: 8px; }
+  .im-step { margin: 26px 0; }
+  .im-h2 { font-size: 1rem; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  .im-n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.5em; height: 1.5em; font-size: 0.78rem; font-family: var(--font-mono);
+    color: var(--accent); border: 1px solid var(--accent-glow); border-radius: 50%;
+  }
+  .im-h3 { font-size: 0.86rem; margin: 16px 0 4px; }
+  .im-h3.im-bad { color: #d4483b; }
+  .im-text {
+    width: 100%; font-family: var(--font-mono); font-size: 0.76rem; line-height: 1.6;
+    padding: 8px 10px; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); resize: vertical;
+  }
+  .im-text:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .im-opt { display: flex; gap: 8px; margin: 10px 0; font-size: 0.82rem; line-height: 1.7; }
+  .im-opt input { margin-top: 4px; flex: none; }
+  .im-opt-why { display: block; font-style: normal; font-size: 0.78rem; color: var(--text-secondary); }
+  .im-actions { display: flex; align-items: center; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  .im-btn {
+    padding: 6px 14px; font-size: 0.82rem; color: var(--text); cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .im-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .im-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .im-btn--primary { color: var(--accent); border-color: var(--accent-glow); }
+  .im-btn--danger { color: #d4483b; }
+  .im-nums { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .im-num {
+    display: flex; flex-direction: column; gap: 2px; min-width: 120px;
+    padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .im-num-k { font-size: 0.72rem; color: var(--muted); }
+  .im-num-v { font-family: var(--font-mono); font-size: 0.95rem; color: var(--text); }
+  .im-table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 0.78rem; }
+  .im-table th, .im-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  .im-table th { color: var(--muted); font-weight: 600; font-size: 0.72rem; }
+  .im-table td { font-family: var(--font-mono); font-size: 0.76rem; }
+  .im-sub { margin-top: 2px; font-family: var(--font-sans); font-size: 0.7rem; color: var(--text-secondary); }
+  .im-msg { font-size: 0.8rem; }
+  .im-verdict { font-size: 0.9rem; line-height: 1.7; margin: 4px 0 10px; }
+  .im-pass { color: var(--up, #d4483b); }
+  .im-fail { color: #d4483b; font-weight: 700; }
+  .im-unknown { color: var(--accent-hover); }
+  .im-back { margin-top: 28px; font-size: 0.82rem; }
+  code { font-family: var(--font-mono); font-size: 0.82em; }
+</style>

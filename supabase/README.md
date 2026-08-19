@@ -9,31 +9,43 @@ supabase/
 │  ├─ 20260812000100_phase2_core_schema.sql   表、索引、觸發器、費用/稅預設值函式
 │  ├─ 20260812000200_phase2_rls.sql           RLS、policy、權限、結構性斷言
 │  └─ 20260812000300_phase2_views.sql         持倉 / 配對明細 / 現金餘額(全部是 view)
+├─ migrations/(續)
+│  └─ 20260819000100_import_batches.sql      可撤銷的整批匯入:批次表 + import_paste / undo_import RPC
 └─ tests/
    ├─ rls_isolation.test.sql                  兩個使用者交叉查詢 + 結構性斷言(29 項)
    ├─ fifo_positions.test.sql                 FIFO 手算向量(16 項)
-   └─ guards_bite.test.sql                    🔴 注入測試:證明結構性斷言真的會咬(11 項)
+   ├─ guards_bite.test.sql                    🔴 注入測試:證明結構性斷言真的會咬(16 項)
+   └─ import_batches.test.sql                 🔴 原子性 / 不繞過 RLS / 撤銷不誤傷手動列(42 項)
 ```
 
-**合計 56 項。**
+**合計 103 項**(2026-08-19 輪 5 更新)。
+
+⚠️ 本文件先前寫「合計 56 項」,那個數字**已經過期** ——
+`guards_bite` 後來由 11 長到 16,而 README 沒跟著改。
+更正而不是覆蓋:**56 是當時的實數,不是筆誤。**
 
 跑測試:`supabase test db`(需要 Supabase CLI + Docker)。
 
 ---
 
-## 實測結果(2026-08-12,本機 Supabase 堆疊)
+## 實測結果(2026-08-19,本機 Supabase 堆疊)
 
 ```
-Files=3, Tests=56, Result: PASS
+Files=4, Tests=103, Result: PASS
 ```
 
 逐檔的 plan 與實跑數**逐一對得上**(pgTAP 的 plan 對不上就是「有測試沒跑到」):
 
 | 檔案 | plan | ok | not ok |
 |---|---|---:|---:|
-| `guards_bite.test.sql` | `1..11` | 11 | 0 |
+| `guards_bite.test.sql` | `1..16` | 16 | 0 |
 | `rls_isolation.test.sql` | `1..29` | 29 | 0 |
 | `fifo_positions.test.sql` | `1..16` | 16 | 0 |
+| `import_batches.test.sql` | `1..42` | 42 | 0 |
+
+🔴 **plan 這個機制在這一輪咬了我兩次**:`import_batches` 我宣告 34、實跑 42;
+瀏覽器端的 `tests/import-parse.mjs` 我宣告 55、實跑 63。**兩次都是我數錯,不是測試壞掉** ——
+但若沒有 plan,多出來的那 8 項與 8 項會靜靜通過,而我會以為自己知道跑了什麼。
 
 三個 migration 也在乾淨 schema 上**套用成功**,亦即內建的結構性斷言不會誤報
 (`guards_bite` 的第 4 項專門驗這件事)。
