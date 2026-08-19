@@ -169,9 +169,22 @@ revoke all on function public.undo_import(uuid)                            from 
 grant execute on function public.import_paste(int, jsonb, jsonb, jsonb, text) to authenticated;
 grant execute on function public.undo_import(uuid)                            to authenticated;
 
--- ── 結構性斷言:這兩支函式不得是 security definer ──────────────────
--- 逐支列舉會在下一支函式出現時漏掉,所以斷言的是【整個 public schema】:
--- 任何 security definer 函式都必須在白名單裡(目前只有註冊觸發器用的 handle_new_user)。
+-- ── 結構性斷言:不得有【呼叫得到】的 security definer 函式 ──────────
+-- 逐支列舉會在下一支函式出現時漏掉,所以斷言的是【整個 public schema】。
+--
+-- 🔴 判準用【性質】,不用【名字】。
+--    第一版寫成 `proname not in ('handle_new_user')` —— 那是名字白名單,
+--    而 `verify_online.sql` 的第 ⑥ 條早就寫下這條教訓:
+--    **名字白名單會祝福掉錯的東西**(任何人只要把函式取成那個名字就通過了)。
+--
+--    真正該問的是:**這支 definer 函式,呼叫端叫得動嗎?**
+--    叫不動的 definer 函式沒有攻擊面 —— `handle_new_user` 正是這一類
+--    (EXECUTE 已從 public / anon / authenticated 全數 revoke,只留給觸發器)。
+--    所以判準 = `prosecdef` 且 `anon` 或 `authenticated` 有 EXECUTE。
+--
+--    ⚠️ 同時排除【回傳 event_trigger】的函式:PostgreSQL 不允許直接呼叫這一類,
+--       線上專案層的 rls_auto_enable(新表自動 RLS)就是,它不是我們的東西。
+--       (與 verify_online.sql 第 ⑥ 條同一個放寬理由。)
 do $$
 declare
   bad text;
@@ -182,13 +195,16 @@ begin
   join pg_catalog.pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
     and p.prosecdef
-    and p.proname not in ('handle_new_user');
+    and p.prorettype <> 'pg_catalog.event_trigger'::regtype
+    and (pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')
+      or pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE'));
 
   if bad is not null then
     raise exception
-      'public 底下有未經白名單的 security definer 函式:% —— '
-      'definer 函式以擁有者權限執行,會【繞過 RLS】。'
-      '若確實需要,請連同理由一起加進本斷言的白名單。', bad;
+      'public 底下有【呼叫得到】的 security definer 函式:% —— '
+      'definer 以擁有者權限執行,會繞過 RLS。'
+      '若確實需要 definer,請把 EXECUTE 從 anon/authenticated revoke 掉(只留給觸發器),'
+      '而不是把它加進某個名單。', bad;
   end if;
 end;
 $$;

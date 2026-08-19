@@ -8,7 +8,8 @@
 --
 -- ⚠️ 責任分工:
 --    · fail closed(套用當下就拒絕)由 migration 內的 `do … raise exception` 負責 ——
---      `supabase db push` 成功本身就代表那六條斷言在線上成立。
+--      `supabase db push` 成功本身就代表 migration 內建的那些斷言在線上成立
+--      (輪 5 又加了一條:不得有【呼叫得到】的 security definer 函式)。
 --    · 本檔只負責【拿到實際數字】與【把違規列出來】,不負責中止流程。
 --
 -- ⚠️ 【單一語句、純 SQL】—— 這是刻意的,踩過兩次才對:
@@ -23,7 +24,7 @@
 --    (兩個問題都是先在本機跑才發現的 —— 要在線上跑的腳本不能是沒驗過的。)
 
 with
--- ── 六條結構性違規(任何一列出現就是問題)────────────────────────────
+-- ── 七條結構性違規(任何一列出現就是問題;⑦ 為輪 5 新增)──────────────
 v_no_rls as (
   select 'VIOLATION' as section, '① 未啟用 RLS 的表(全表外洩)' as item, c.relname as value
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -64,6 +65,19 @@ v_secdef as (
      and p.prorettype <> 'pg_catalog.event_trigger'::regtype
      and has_function_privilege('anon', p.oid, 'EXECUTE')
 ),
+v_secdef_auth as (
+  -- ⑦ 2026-08-19(輪 5)新增。⑥ 只看 anon,但**已登入使用者也是攻擊者** ——
+  --    輪 4 的威脅模型問的正是「另一個已登入使用者能不能讀到這一列」。
+  --    definer 函式若 authenticated 叫得動,它就是一扇繞過 RLS 的門。
+  --    放寬同 ⑥:排除回傳 event_trigger 者(不可直接呼叫)。
+  --    🔴 與 20260819000100 內建的斷言同一條判準 —— 那支在【套用當下】拒絕,
+  --       這裡負責在【線上】拿到實際清單。兩者都用性質、都不用名字。
+  select 'VIOLATION', '⑦ authenticated 可執行的 security definer 函式', p.proname
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and p.prorettype <> 'pg_catalog.event_trigger'::regtype
+     and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+),
 -- ── 實際數字 ────────────────────────────────────────────────────────
 c_counts as (
   select 'count' as section, 'tables' as item, count(*)::text as value
@@ -92,6 +106,12 @@ c_counts as (
    where n.nspname = 'public' and p.prosecdef
      and p.prorettype <> 'pg_catalog.event_trigger'::regtype
      and has_function_privilege('anon', p.oid, 'EXECUTE')
+  union all
+  select 'count', 'secdef_callable_by_authenticated', count(*)::text
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and p.prorettype <> 'pg_catalog.event_trigger'::regtype
+     and has_function_privilege('authenticated', p.oid, 'EXECUTE')
   union all
   select 'count', 'secdef_evtrig_fn(不可直接呼叫,不計入違規)', count(*)::text
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -124,6 +144,7 @@ all_rows as (
   select * from v_no_rls   union all select * from v_no_force
   union all select * from v_no_policy union all select * from v_bad_view
   union all select * from v_grant  union all select * from v_secdef
+  union all select * from v_secdef_auth
   union all select * from c_counts union all select * from c_tables
   union all select * from c_views  union all select * from c_rows
 )

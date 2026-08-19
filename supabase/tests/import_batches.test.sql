@@ -4,7 +4,8 @@
 --   ① **原子性**:任何一列壞掉 → 三張表全部不留痕跡(含批次本身)。
 --      對照 = 全部合法時三張表都寫進去。否則「沒寫進去」可能只是根本沒跑。
 --   ② **不繞過 RLS**:RPC 是 security invoker,所以 B 動不了 A 的批次。
---      並且用結構性斷言守住「public 底下不得有白名單外的 security definer 函式」。
+--      並且用結構性斷言守住「public 底下不得有【呼叫得到】的 security definer 函式」——
+--      判準是【性質】(anon/authenticated 有沒有 EXECUTE),不是名字白名單。
 --   ③ **撤銷是精準的**:只刪該批次的列,**手動輸入的列(import_batch is null)不得被波及**。
 --
 -- 🔴 「找不到批次」必須拋錯而不是回 0 —— 回 0 的話,
@@ -14,7 +15,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(42);
+select plan(43);
 
 \set uid_a '11111111-1111-1111-1111-111111111111'
 \set uid_b '22222222-2222-2222-2222-222222222222'
@@ -198,14 +199,28 @@ select ok(has_function_privilege('authenticated', 'public.import_paste(int, json
 select ok(not has_table_privilege('anon', 'public.import_batches', 'SELECT'),
           'anon 對 import_batches 沒有 SELECT');
 
--- 🔴 「不得有白名單外的 security definer 函式」這條斷言必須會咬
-\set guard_secdef 'do $$ declare bad text; begin select string_agg(p.proname, \', \') into bad from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace where n.nspname = \'public\' and p.prosecdef and p.proname not in (\'handle_new_user\'); if bad is not null then raise exception \'未經白名單的 security definer 函式:%\', bad; end if; end; $$;'
+-- 🔴 「不得有【呼叫得到】的 security definer 函式」這條斷言必須會咬。
+--    判準逐字搬自 migration —— 另寫一份的話,測到的就不是 migration 實際用的判準。
+--    ⚠️ 判準用【性質】(呼叫端有沒有 EXECUTE),不用【名字】:
+--       名字白名單會祝福掉錯的東西 —— 把函式取成白名單上的名字就通過了。
+--       (這條教訓 verify_online.sql 的第 ⑥ 條早就寫下來了,我第一版沒套用。)
+\set guard_secdef 'do $$ declare bad text; begin select string_agg(p.proname, \', \') into bad from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace where n.nspname = \'public\' and p.prosecdef and p.prorettype <> \'pg_catalog.event_trigger\'::regtype and (pg_catalog.has_function_privilege(\'anon\', p.oid, \'EXECUTE\') or pg_catalog.has_function_privilege(\'authenticated\', p.oid, \'EXECUTE\')); if bad is not null then raise exception \'有呼叫得到的 security definer 函式:%\', bad; end if; end; $$;'
 
 select lives_ok(:'guard_secdef', '對照:乾淨 schema 上不誤報(否則下一條的紅燈沒有意義)');
 
+-- 注入:definer,且 EXECUTE 預設給 PUBLIC(authenticated 因此叫得動)→ 必須被咬
 create function public._inject_secdef() returns int language sql security definer as $$ select 1 $$;
 select throws_ok(:'guard_secdef', 'P0001', null,
-          '🔴 注入一支 security definer 函式 → 斷言必須 raise(definer 會繞過 RLS)');
+          '🔴 注入【呼叫得到】的 security definer 函式 → 斷言必須 raise');
+
+-- 🔴 對照:同一支函式,把 EXECUTE 收回來 → 就不該再被咬。
+--    這一條證明判準抓的是「呼叫得到」,不是「有 definer 就一律紅」——
+--    否則 handle_new_user(EXECUTE 已全數 revoke,只留給觸發器)也會紅,
+--    而那會逼著把規則改回名字白名單。
+revoke all on function public._inject_secdef() from public, anon, authenticated;
+select lives_ok(:'guard_secdef',
+          '🔴 對照:definer 但 EXECUTE 已 revoke(叫不動)→ 不算違規');
+
 drop function public._inject_secdef();
 select lives_ok(:'guard_secdef', '移除注入後回到乾淨 —— 證明剛才的紅燈確實來自注入');
 
