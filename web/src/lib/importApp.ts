@@ -154,9 +154,11 @@ export type ReconRow = {
   /** 匯入前由瀏覽器預測的 */
   expShares: number | null;
   expAvgCost: number | null;
+  expCostBasis: number | null;
   /** 匯入後由資料庫算出來的 */
   gotShares: number | null;
   gotAvgCost: number | null;
+  gotCostBasis: number | null;
   ok: boolean;
 };
 
@@ -167,9 +169,17 @@ export type ReconResult = {
   detail: string;
 };
 
-/** 股數比到 1e-6;金額比到 0.005(numeric 的除法會有尾數,但不該有可見差) */
+/**
+ * 股數比到 1e-6;均價比到 0.005;**成本合計**比到 0.01。
+ *
+ * 🔴 為什麼三個都要比,而不是只比均價:`均價 = 成本 / 股數`,
+ *    除法會把小差異吃掉 —— 兩邊成本差 0.4 元、股數 850 的話,均價只差 0.0005,
+ *    在 0.005 的容差裡看不見。**直接比成本合計是嚴格更強的檢查。**
+ *    兩邊算式同形(Σ 剩餘股數 × 每股含費成本),差別只有 double vs numeric 的尾數。
+ */
 const SHARE_TOL = 1e-6;
 const COST_TOL = 0.005;
+const BASIS_TOL = 0.01;
 
 const near = (a: number | null, b: number | null, tol: number) =>
   a == null || b == null ? a === b : Math.abs(a - b) <= tol;
@@ -181,13 +191,17 @@ const near = (a: number | null, b: number | null, tol: number) =>
  * 🔴 查詢失敗時是 `unknown`,**不是 ok** —— 量不到與沒問題是兩件事。
  */
 export async function reconcile(sb: SupabaseClient, predicted: Holding[]): Promise<ReconResult> {
-  const { data, error } = await sb.from("v_holdings").select("ticker,shares,avg_cost");
+  const { data, error } = await sb.from("v_holdings").select("ticker,shares,avg_cost,cost_basis");
   if (error) {
     return { status: "unknown", rows: [], detail: `讀不回持倉,無法對帳:${error.message}` };
   }
-  const got = new Map<string, { shares: number; avgCost: number }>();
+  const got = new Map<string, { shares: number; avgCost: number; costBasis: number }>();
   for (const h of data ?? []) {
-    got.set(h.ticker as string, { shares: Number(h.shares), avgCost: Number(h.avg_cost) });
+    got.set(h.ticker as string, {
+      shares: Number(h.shares),
+      avgCost: Number(h.avg_cost),
+      costBasis: Number(h.cost_basis),
+    });
   }
   const exp = new Map(predicted.map((h) => [h.ticker, h]));
 
@@ -199,9 +213,14 @@ export async function reconcile(sb: SupabaseClient, predicted: Holding[]): Promi
       ticker,
       expShares: e?.shares ?? null,
       expAvgCost: e?.avgCost ?? null,
+      expCostBasis: e?.costBasis ?? null,
       gotShares: g?.shares ?? null,
       gotAvgCost: g?.avgCost ?? null,
-      ok: near(e?.shares ?? null, g?.shares ?? null, SHARE_TOL) && near(e?.avgCost ?? null, g?.avgCost ?? null, COST_TOL),
+      gotCostBasis: g?.costBasis ?? null,
+      ok:
+        near(e?.shares ?? null, g?.shares ?? null, SHARE_TOL) &&
+        near(e?.avgCost ?? null, g?.avgCost ?? null, COST_TOL) &&
+        near(e?.costBasis ?? null, g?.costBasis ?? null, BASIS_TOL),
     };
   });
 
@@ -211,7 +230,10 @@ export async function reconcile(sb: SupabaseClient, predicted: Holding[]): Promi
   }
   return badList.length
     ? { status: "diff", rows, detail: `${badList.length} / ${rows.length} 檔對不上:${badList.map((r) => r.ticker).join("、")}` }
-    : { status: "ok", rows, detail: `${rows.length} 檔逐檔吻合(股數與平均成本)` };
+    /* 🔴 這句話必須逐字對應上面實際比的欄位。
+       它原本寫「股數與平均成本」,而程式已經在比三欄 ——
+       轉述比程式碼窄,會讓讀者以為某一欄沒被檢查(反之更糟)。 */
+    : { status: "ok", rows, detail: `${rows.length} 檔逐檔吻合(股數 / 均價 / 成本合計三欄)` };
 }
 
 /* ── 批次清單與撤銷 ──────────────────────────────────────────────── */

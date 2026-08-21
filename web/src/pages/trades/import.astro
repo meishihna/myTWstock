@@ -429,17 +429,40 @@ export const prerender = true;
                 : `⚠️ 無法對帳 —— ${r.detail}`;
           v.className = `im-verdict ${r.status === "ok" ? "im-pass" : r.status === "diff" ? "im-fail" : "im-unknown"}`;
         }
+        /* 🔴 三欄都比:均價 = 成本 / 股數,除法會把小差異吃掉 ——
+           只比均價的話,成本差幾角錢在 850 股上會變成看不見的 0.0005。 */
         table(
           $("im-recon-table"),
-          ["代號", "預測股數", "資料庫股數", "預測均價", "資料庫均價", "判定"],
-          r.rows.map((row) => [
-            row.ticker,
-            n2(row.expShares),
-            n2(row.gotShares),
-            n4(row.expAvgCost),
-            n4(row.gotAvgCost),
-            el("span", row.ok ? "吻合" : "不吻合", row.ok ? "im-pass" : "im-fail"),
-          ])
+          ["代號", "預測股數", "資料庫股數", "預測均價", "資料庫均價", "預測成本", "資料庫成本", "判定"],
+          r.rows.map((row) => {
+            const verdict = el("span", row.ok ? "吻合" : "不吻合", row.ok ? "im-pass" : "im-fail");
+            /* 🔴 顯示只到小數 2 位,比對用全精度 ——
+               兩邊若只差在第 3 位,畫面會印出兩個【看起來一樣】的數字卻判不吻合,
+               那時判定的證據是看不見的。不吻合時把逐欄的實際差額印出來。 */
+            if (!row.ok) {
+              const d = (a: number | null, b: number | null) =>
+                a == null || b == null ? "缺一邊" : String(a - b);
+              const box = el("div");
+              box.appendChild(verdict);
+              box.appendChild(
+                el(
+                  "div",
+                  `差額 股數 ${d(row.expShares, row.gotShares)} · 均價 ${d(row.expAvgCost, row.gotAvgCost)} · 成本 ${d(row.expCostBasis, row.gotCostBasis)}`,
+                  "im-sub"
+                )
+              );
+              return [
+                row.ticker, n2(row.expShares), n2(row.gotShares),
+                n4(row.expAvgCost), n4(row.gotAvgCost),
+                n2(row.expCostBasis), n2(row.gotCostBasis), box,
+              ];
+            }
+            return [
+              row.ticker, n2(row.expShares), n2(row.gotShares),
+              n4(row.expAvgCost), n4(row.gotAvgCost),
+              n2(row.expCostBasis), n2(row.gotCostBasis), verdict,
+            ];
+          })
         );
       }
 
