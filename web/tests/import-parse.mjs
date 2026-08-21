@@ -321,8 +321,116 @@ console.log("\n── 疑似重複 ──");
   check(findDuplicates(r2.trades, existing).size === 1, "🔴 備註被排除時仍抓得到重複(鍵不含備註/費用)", "");
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+ * 十一、🔴 真實 Excel 複製的「不乾淨」貼上
+ *
+ * 前十節用的都是【乾淨】輸入 —— 而真實的 Excel 複製不乾淨:
+ * 工作表右側常有數個空欄與雜欄(例如 `目前現金`),表格下方常有合計列,
+ * 而且 Excel 會把尾端的空儲存格截掉。
+ * 這一節的形狀比照使用者轉述的來源:41 有效列 = 26 BUY + 13 SELL + 2 DEPOSIT、10 檔。
+ *
+ * 🔴 判準:容忍 或 具名拒絕 都可接受;**靜默錯位不可接受。**
+ * ══════════════════════════════════════════════════════════════════════ */
+console.log("\n── 不乾淨的貼上(真實 Excel 形狀)──");
+{
+  const TK = ["2330", "2317", "2454", "2603", "2882", "1301", "3034", "2412", "1216", "2891"];
+  const R41 = [{ date: "2024-01-02", action: "DEPOSIT", amount: 500000, notes: "" }];
+  for (let i = 0; i < 26; i++)
+    R41.push({
+      date: `2024-0${1 + Math.floor(i / 14)}-${String(10 + (i % 14)).padStart(2, "0")}`,
+      action: "BUY", ticker: TK[i % 10], qty: 1000, price: 100 + i,
+      fee: Math.round(1000 * (100 + i) * 0.001425), tax: 0, notes: "",
+    });
+  R41.push({ date: "2024-03-01", action: "DEPOSIT", amount: 100000, notes: "" });
+  for (let i = 0; i < 13; i++)
+    R41.push({
+      date: `2024-04-${String(10 + i).padStart(2, "0")}`, action: "SELL", ticker: TK[i % 10],
+      qty: 500, price: 120 + i, fee: Math.round(500 * (120 + i) * 0.001425),
+      tax: Math.round(500 * (120 + i) * 0.003), notes: "",
+    });
+
+  /** 雜欄:3 個空欄名 + 目前現金。`trim` 模擬 Excel 截掉尾端空儲存格。 */
+  function build41({ junk = false, trim = false, tail = [], mutate } = {}) {
+    const heads = junk ? [...HEADERS, "", "", "", "目前現金"] : HEADERS.slice();
+    let run = 0;
+    const out = [heads.join("\t")];
+    R41.forEach((r, i) => {
+      const ci = cashImpactOf(r);
+      run += ci;
+      const c = {
+        Date: r.date, Ticker: r.ticker ?? "", Action: r.action, Quantity: r.qty ?? "",
+        Price: r.price ?? "", Currency: r.action === "DEPOSIT" ? "" : "TWD",
+        Ticker_Clean: r.ticker ?? "",
+        Signed_Qty: r.action === "BUY" ? r.qty : r.action === "SELL" ? -r.qty : "",
+        Buy_Amount: r.action === "BUY" ? r.qty * r.price : "",
+        Sell_Amount: r.action === "SELL" ? r.qty * r.price : "",
+        Fee: r.fee ?? "", Tax: r.tax ?? "", Cash_Impact: ci, Running_Cash: run, Notes: r.notes ?? "",
+      };
+      if (mutate) mutate(c, i);
+      let cells = heads.map((h) => String(h === "目前現金" ? (i === 0 ? 500000 : "") : (c[h] ?? "")));
+      if (trim) while (cells.length && cells[cells.length - 1] === "") cells.pop();
+      out.push(cells.join("\t"));
+    });
+    return [...out, ...tail].join("\n");
+  }
+
+  const shape = (r) => `${r.sourceRowCount}/${r.trades.length}/${r.cashFlows.length}/${new Set(r.trades.map((t) => t.ticker)).size}`;
+  const CLEAN = "41/39/2/10";
+
+  /* 對照:乾淨的 41 列。這一條同時驗證【監督者宣告的預期數字】 */
+  const a = parsePaste(build41());
+  check(a.ok && shape(a) === CLEAN, `對照:乾淨 41 列 → 39 交易 + 2 現金流 + 10 檔`, shape(a));
+  check(a.cashFlows.reduce((x, c) => x + c.amount.num, 0) === 600000, "現金流合計 = 600,000(50 萬 + 10 萬)", "");
+  check(a.checks[0].status === "pass" && a.checks[0].detail.startsWith("39 / 39"), "🔴 恆等式印出【分母】39 / 39", a.checks[0].detail);
+
+  /* B:尾端 3 個空欄名 + 目前現金,儲存格補齊 */
+  const b = parsePaste(build41({ junk: true }));
+  check(b.ok && shape(b) === CLEAN, "尾端空欄 + 目前現金 → 容忍,數字與乾淨版一字不差", shape(b));
+
+  /* C:同 B 但 Excel 截掉尾端空儲存格(資料列比表頭短) */
+  const c = parsePaste(build41({ junk: true, trim: true }));
+  check(c.ok && shape(c) === CLEAN, "Excel 截掉尾端空儲存格 → 容忍(cells 短於表頭也不錯位)", shape(c));
+
+  /* D:表格下方的合計列 —— 我們讀的 15 欄全空、只有雜欄有值 */
+  const d = parsePaste(build41({ junk: true, tail: ["\t".repeat(17) + "647312"] }));
+  check(d.ok && shape(d) === CLEAN, "表格下方合計列(只有雜欄有值)→ 略過,不影響數字", shape(d));
+  check(d.skippedBlankRows === 1, "🔴 略過的空列有【數出來】—— 靜默略過與「本來就沒有」無法區分", String(d.skippedBlankRows));
+
+  /* 🔴 對照:略過的判準是「我們讀的欄全空」,不是「猜它是合計列」。
+     只要任何一個被讀的欄有值,就必須照常走白名單並具名拒絕。 */
+  const d2 = parsePaste(build41({ junk: true, tail: ["\t\t\t500" + "\t".repeat(14) + "1"] }));
+  check(
+    d2.ok === false && !!d2.problems.find((x) => x.column === "Action" && x.rowNo === 42),
+    "🔴 對照:Action 空白但 Quantity 有值 → 仍具名拒絕(沒有變成無條件吞列)",
+    JSON.stringify(d2.problems.slice(0, 2))
+  );
+  check(d2.skippedBlankRows === 0, "對照:該列不算「空列」", String(d2.skippedBlankRows));
+
+  /* E:尾端全空白列 */
+  const e = parsePaste(build41({ junk: true, tail: ["\t".repeat(18), "\t".repeat(18)] }));
+  check(e.ok && shape(e) === CLEAN, "尾端全空白列 → 略過", shape(e));
+
+  /* F:極端截斷 —— 某一列只剩前 3 欄。必須具名拒絕【且】Σ 恆等式同時失敗 */
+  const fLines = build41().split("\n");
+  fLines[5] = fLines[5].split("\t").slice(0, 3).join("\t");
+  const f = parsePaste(fLines.join("\n"));
+  check(f.ok === false && !!f.problems.find((x) => x.rowNo === 5), "極端截斷(整列只剩 3 欄)→ 具名拒絕到列號", JSON.stringify(f.problems.slice(0, 1)));
+  check(f.checks[1].status === "fail", "🔴 而且 Σ 恆等式【同時】失敗 —— 兩個獨立訊號,不靠單一守衛", f.checks[1].status);
+
+  /* 🔴 G:被收下的交易列缺 Cash_Impact → 恆等式覆蓋率不完整。
+     這是實測翻出來的洞:舊版會印「38 列全部吻合」而不說有 39 筆交易。 */
+  const g = parsePaste(build41({ mutate: (cc, i) => { if (i === 5) cc.Cash_Impact = ""; } }));
+  check(g.ok === true, "對照:Cash_Impact 逐列選填,空白不會讓該列被拒", JSON.stringify(g.problems.slice(0, 1)));
+  check(
+    g.checks[0].status === "unknown" && g.checks[0].detail.includes("38 / 39"),
+    "🔴 只驗到 38 / 39 列 → 判【無法驗】而非通過,並印出分母",
+    JSON.stringify(g.checks[0])
+  );
+  check(!!g.checks[0].need, "無法驗時說明要什麼才驗得了", JSON.stringify(g.checks[0].need));
+}
+
 /* ══════════════════════════════════════════════════════════════════════ */
-const PLAN = 63;
+const PLAN = 78;
 console.log(`\n通過 ${pass} 項;失敗 ${fails.length} 項(plan ${PLAN})`);
 if (pass + fails.length !== PLAN) {
   console.error(`❌ plan 對不上:宣告 ${PLAN} 項,實跑 ${pass + fails.length} 項 —— 有測試沒跑到或多跑了`);

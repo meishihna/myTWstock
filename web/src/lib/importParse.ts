@@ -99,8 +99,14 @@ export type CrossCheck = {
 
 export type ParseResult = {
   ok: boolean;
-  /** 來源實際資料列數(不含表頭、不含全空白列) */
+  /** 來源實際資料列數(不含表頭、不含空列) */
   sourceRowCount: number;
+  /**
+   * 被略過的空列數 —— 「我們讀的 15 欄全空」的列。
+   * 🔴 必須顯示出來。靜默略過的話,「本來就沒有那一列」與「我們吃掉了那一列」無法區分。
+   * 真實 Excel 複製會帶進工作表右側的雜欄,表格下方的合計列就落在這一類。
+   */
+  skippedBlankRows: number;
   headers: string[];
   trades: ParsedTrade[];
   cashFlows: ParsedCashFlow[];
@@ -200,6 +206,7 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
     return {
       ok: false,
       sourceRowCount: 0,
+      skippedBlankRows: 0,
       headers: [],
       trades,
       cashFlows,
@@ -221,6 +228,7 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
     return {
       ok: false,
       sourceRowCount: 0,
+      skippedBlankRows: 0,
       headers,
       trades,
       cashFlows,
@@ -240,21 +248,39 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
   const get = (cells: string[], name: string): string =>
     col.has(name) ? (cells[col.get(name)!] ?? "") : "";
 
+  /**
+   * 我們實際會讀的欄位。用來判斷「這一列到底有沒有資料」——
+   * 🔴 不可以用 `cells.every(c => c === "")`:真實的 Excel 複製會把
+   *    工作表右側的雜欄(空欄名、`目前現金` 之類)一起貼進來,
+   *    於是表格下方的合計列**在雜欄裡有值**、在我們讀的 15 欄裡全空。
+   *    那種列沒有攜帶任何我們讀得到的資訊 —— 它不是一筆記錄。
+   * ⚠️ 判準是【我們讀的欄全空】,不是【猜它是不是合計列】。
+   *    只要任何一個被讀的欄有值,這一列就會照常走完所有檢查(Action 白名單等)。
+   */
+  const USED_HEADERS = [...REQUIRED_HEADERS, "Running_Cash", "Notes"] as const;
+  const blankInUsedCols = (cells: string[]) => USED_HEADERS.every((h) => get(cells, h).trim() === "");
+
   /** 對帳用的累計 —— 用來源自己的恆等式,不自己另造一個裁判 */
   let sumCashImpact = 0;
   let identityChecked = 0;
   let identityMaxDev = 0;
   let identityBad = 0;
+  /** 已收下的交易列數 = 每列恆等式【應該】驗到的分母 */
+  let acceptedTrades = 0;
 
   let rowNo = 0;
   let sourceRowCount = 0;
+  /** 🔴 略過的空列要【數出來並顯示】—— 靜默略過與「本來就沒有」無法區分 */
+  let skippedBlank = 0;
 
   for (let li = firstIdx + 1; li < lines.length; li++) {
     const line = lines[li]!;
     if (line.trim() === "") continue;
     const cells = splitLine(line, delim);
-    /** 整列都空(只有分隔符)也跳過 —— 那是 Excel 常見的尾巴 */
-    if (cells.every((c) => c === "")) continue;
+    if (blankInUsedCols(cells)) {
+      skippedBlank++;
+      continue;
+    }
     rowNo++;
     sourceRowCount++;
 
@@ -378,7 +404,12 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
       note: importNotes && noteRaw !== "" ? noteRaw : null,
     });
 
-    /* ── 來源自己的恆等式 ── */
+    acceptedTrades++;
+
+    /* ── 來源自己的恆等式 ──
+       🔴 `Cash_Impact` 是【欄位必備、逐列選填】:某一列空白時這條驗不到那一列。
+          所以分母是 acceptedTrades,不是 identityChecked ——
+          「38 列全部吻合」不會告訴你另外 1 列根本沒驗到。 */
     if (cash) {
       sumCashImpact += cash.num;
       const gross = qty.num * price.num;
@@ -419,15 +450,30 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
           detail: "沒有任何一列可驗(Cash_Impact 全空,或沒有 BUY/SELL 列)",
           need: "來源需有 Cash_Impact 欄且至少一筆 BUY/SELL",
         }
-      : {
-          name: IDENT,
-          status: identityBad === 0 ? "pass" : "fail",
-          detail:
-            identityBad === 0
-              ? `${identityChecked} 列全部吻合 —— 欄位對應由【來源自己的算術】背書`
-              : `${identityBad} / ${identityChecked} 列對不上:欄位對應可能錯位`,
-          maxDeviation: identityMaxDev,
-        }
+      : identityBad > 0
+        ? {
+            name: IDENT,
+            status: "fail",
+            detail: `${identityBad} / ${identityChecked} 列對不上:欄位對應可能錯位`,
+            maxDeviation: identityMaxDev,
+          }
+        : identityChecked < acceptedTrades
+          ? {
+              /* 🔴 驗到的都吻合,但【沒有驗完】。這不是通過 ——
+                 「37 列全部吻合」在 39 筆交易的情況下讀起來像通過,
+                 而那兩列可能正是壞的。覆蓋率不完整一律判無法驗。 */
+              name: IDENT,
+              status: "unknown",
+              detail: `只驗到 ${identityChecked} / ${acceptedTrades} 列(其餘 ${acceptedTrades - identityChecked} 列的 Cash_Impact 空白),驗到的全部吻合`,
+              maxDeviation: identityMaxDev,
+              need: "那些列需要 Cash_Impact 才驗得了;在補上之前,它們的欄位對應【沒有證據】",
+            }
+          : {
+              name: IDENT,
+              status: "pass",
+              detail: `${identityChecked} / ${acceptedTrades} 列全部吻合 —— 欄位對應由【來源自己的算術】背書`,
+              maxDeviation: identityMaxDev,
+            }
   );
 
   checks.push(
@@ -449,6 +495,7 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
   return {
     ok: problems.length === 0 && (trades.length > 0 || cashFlows.length > 0),
     sourceRowCount,
+    skippedBlankRows: skippedBlank,
     headers,
     trades,
     cashFlows,

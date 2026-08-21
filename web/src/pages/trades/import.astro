@@ -261,6 +261,12 @@ export const prerender = true;
                 .join(" · ") || "—",
             ],
           ];
+          /* 🔴 略過的空列一定要顯示。數出來卻不顯示等於沒數 ——
+             「本來就沒有那一列」與「我們吃掉了那一列」不可以長得一樣。
+             (真實 Excel 複製會帶進右側雜欄,表格下方的合計列就落在這一類。) */
+          if (parsed.skippedBlankRows > 0) {
+            cells.push(["略過的空列", `${parsed.skippedBlankRows}(我們讀的欄位全空)`]);
+          }
           for (const [k, v] of cells) {
             const d = el("div", "", "im-num");
             d.append(el("span", k, "im-num-k"), el("span", v, "im-num-v"));
