@@ -199,7 +199,7 @@ export const prerender = true;
           ["v_holdings", "A 需要尚有剩餘的持倉"],
           ["v_position_anomalies", "A 需要一檔【賣超】—— 正常帳號不該有,這一項通常無法判定,那是正常的"],
           ["v_realized_lots", "A 需要至少一組買賣配對(有買也有賣)"],
-          ["v_cash_balance", "A 需要至少一筆現金流"],
+          ["v_cash_flow_total", "A 需要至少一筆現金流"],
         ];
         for (const [v, need] of VIEWS) await pair(`檢視 ${v}`, v, "user_id", need);
 

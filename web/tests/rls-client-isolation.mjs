@@ -114,7 +114,7 @@ const errB = await seed(b, B.id, "2317");
 check(errA.length === 0, "A 可寫入自己的列", errA.join(" | "));
 check(errB.length === 0, "B 可寫入自己的列", errB.join(" | "));
 
-const VIEWS = ["v_trade_lots", "v_ticker_sold", "v_open_lots", "v_holdings", "v_position_anomalies", "v_realized_lots", "v_cash_balance"];
+const VIEWS = ["v_trade_lots", "v_ticker_sold", "v_open_lots", "v_holdings", "v_position_anomalies", "v_realized_lots", "v_cash_flow_total"];
 /** profiles 以 auth.users.id 為主鍵,沒有 user_id 欄 —— 擁有者欄位逐表指定,不可假設同名 */
 const TABLES = [
   { name: "trades", owner: "user_id" },

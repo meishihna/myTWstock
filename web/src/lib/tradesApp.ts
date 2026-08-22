@@ -151,7 +151,7 @@ export async function fetchRealizedByTicker(sb: SupabaseClient): Promise<Map<str
 
 /**
  * 🔴 逐列取回而不是只取合計 —— 因為要按 `kind` 分成【外部資金流】與【內部現金流】。
- *    只拿 `v_cash_balance.balance` 的話這一刀就切不出來。
+ *    只拿檢視的合計的話這一刀就切不出來。
  */
 export async function fetchCashFlows(sb: SupabaseClient): Promise<CashFlowRow[]> {
   const { data, error } = await sb
@@ -167,18 +167,25 @@ export async function fetchCashFlows(sb: SupabaseClient): Promise<CashFlowRow[]>
 }
 
 /**
- * `v_cash_balance.balance` —— **只是交叉檢查用**。
+ * `v_cash_flow_total.flow_total` —— **只是交叉檢查用**。
  *
- * ⚠️ 它只加總 `cash_flows`,**不含交易的現金影響**,所以它【不是現金水位】。
+ * ⚠️ 它只加總 `cash_flows` 這張表,**不含交易的現金影響**,所以它【不是現金餘額】。
  *    現金水位 = 這個值 + 交易淨現金流(見 `equity.ts`)。
  *    取它回來的唯一用途是驗「我們自己加的 cash_flows 總和」有沒有算錯。
- *    沒有列時回 null(不是 0)—— 沒有現金流與餘額為零是兩件事。
+ *
+ * 🔴 它原本叫 `v_cash_balance` —— 那個名字在說假話。改名的理由見
+ *    `supabase/migrations/20260822000100_rename_cash_flow_total.sql` 的檔頭。
+ *    ⚠️ 也**不叫** `v_external_cash_flow_total`:它把 `dividend`/`fee`/`other`
+ *    也加進去了,那些是【內部】現金流,不是存入。叫 external 會讓下一個人
+ *    拿它當 TWR 的外部資金流分母 —— 那會產生錯誤結果,比錯誤推論更糟。
+ *
+ * 沒有列時回 null(不是 0)—— 沒有現金流與合計為零是兩件事。
  */
 export async function fetchCashFlowSumView(sb: SupabaseClient): Promise<number | null> {
-  const { data, error } = await sb.from("v_cash_balance").select("balance");
+  const { data, error } = await sb.from("v_cash_flow_total").select("flow_total");
   if (error) throw new Error(error.message);
   const row = (data ?? [])[0];
-  return row ? Number(row.balance) : null;
+  return row ? Number(row.flow_total) : null;
 }
 
 export type Quote = { price: number | null; name: string | null };

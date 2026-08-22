@@ -75,8 +75,8 @@ select is((select count(*) from public.v_holdings where ticker = '2454')::int, 0
           '🔴 A 透過 view 撈不到 B 的 2454 持倉(view 若沒設 security_invoker,這裡會是 1)');
 select is((select count(*) from public.v_realized_lots)::int, 2,
           'A 透過 v_realized_lots 只看到自己的配對明細');
-select is((select count(*) from public.v_cash_balance)::int, 1,
-          'A 透過 v_cash_balance 只看到自己的餘額');
+select is((select count(*) from public.v_cash_flow_total)::int, 1,
+          'A 透過 v_cash_flow_total 只看到自己的現金流合計');
 select is((select count(*) from public.v_trade_lots)::int, 3,
           'A 透過中介 view v_trade_lots 也只看到自己的列');
 
@@ -108,7 +108,7 @@ select is((select count(*) from public.trades where ticker = '2330')::int, 0,
           'B 撈不到 A 的 2330');
 select is((select count(*) from public.v_holdings where ticker = '2330')::int, 0,
           '🔴 B 透過 view 撈不到 A 的 2330 持倉');
-select is((select coalesce(sum(balance), 0) from public.v_cash_balance)::numeric, 3000000::numeric,
+select is((select coalesce(sum(flow_total), 0) from public.v_cash_flow_total)::numeric, 3000000::numeric,
           'B 的現金餘額不含 A 的 500,000');
 select is((select count(*) from public.trades where id in
              (select id from public.trades))::int, 2,

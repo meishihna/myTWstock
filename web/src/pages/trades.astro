@@ -878,32 +878,51 @@ const MONTHLY_STATS = [
         let holds: any[] = [];
         try {
           /* 🔴 現金水位與已實現損益【與股價無關】—— 和持倉一起先取,
-             不必等報價。它們是本地已知的事實,沒有理由留白等網路。 */
-          const [h, anom, flows, realizedByTk, flowSum] = await Promise.all([
+             不必等報價。它們是本地已知的事實,沒有理由留白等網路。
+
+             ⚠️ 這裡【只放畫面必需的查詢】。交叉檢查移到下方單獨跑 ——
+             理由見那一段:一個檢查不該有能力把頁面弄壞。 */
+          const [h, anom, flows, realizedByTk] = await Promise.all([
             fetchHoldings(sb),
             fetchAnomalies(sb),
             fetchCashFlows(sb),
             fetchRealizedByTicker(sb),
-            fetchCashFlowSumView(sb),
           ]);
           holds = h;
           anomalyList = anom;
           cashFlows = flows;
           realizedTotal = [...realizedByTk.values()].reduce((n: number, v: number) => n + v, 0);
 
-          /* 交叉檢查:我們自己加的 cash_flows 總和 vs SQL 檢視算的。
-             🔴 不相等就出聲 —— 靜默的話,現金水位錯了也沒人知道。
-             (檢視只加總 cash_flows,不含交易現金流,所以比的是同一個東西。) */
-          const mine = flows.reduce((n: number, r: any) => n + r.amount, 0);
-          if (flowSum != null && Math.abs(mine - flowSum) > 0.005) {
-            console.warn(`[trades] cash_flows 合計不一致:本地 ${mine} vs v_cash_balance ${flowSum}`);
-          }
-
           renderAnomalies(anom);
           hdRows = buildHoldingRows(holds, new Map());
           hdTotals = portfolioTotals(hdRows);
           renderHoldings();
           renderSummary();
+
+          /* ── 交叉檢查:本地加的 cash_flows 總和 vs SQL 檢視算的 ──
+             🔴 **它不可以擋住渲染,也不可以靜默。** 兩者都錯:
+                擋住渲染 → 一個檢查把主要內容弄掉了(而檢查本身不是資料);
+                靜默跳過 → 現金水位錯了也沒人知道(「量不到」與「沒問題」不可混為一談)。
+             所以:單獨跑、自己吞例外、結果一律出聲(含「跑不起來」也要出聲)。 */
+          void (async () => {
+            const mine = flows.reduce((n: number, r: any) => n + r.amount, 0);
+            try {
+              const flowSum = await fetchCashFlowSumView(sb);
+              if (flowSum == null) {
+                /* 一筆現金流都沒有時,檢視本來就沒有列 —— 那是【正常狀態】,不是異常。
+                   🔴 對正常狀態發警告會訓練人忽略警告,而那比不發更糟:
+                      真的出問題那天,這行字看起來和前一百次一模一樣。
+                   只有「本地有列、檢視卻沒有」才是矛盾。 */
+                if (flows.length > 0) {
+                  console.error(`[trades] 🔴 本地有 ${flows.length} 筆現金流,檢視卻沒有回傳列 —— 兩邊不一致`);
+                }
+              } else if (Math.abs(mine - flowSum) > 0.005) {
+                console.error(`[trades] 🔴 現金流合計不一致:本地 ${mine} vs v_cash_flow_total ${flowSum}`);
+              }
+            } catch (err) {
+              console.warn(`[trades] 現金流合計交叉檢查【跑不起來】:${(err as Error).message} —— 這一格沒有被驗證`);
+            }
+          })();
         } catch (e) {
           console.warn(`[trades] 讀取持倉失敗:${(e as Error).message}`);
         }

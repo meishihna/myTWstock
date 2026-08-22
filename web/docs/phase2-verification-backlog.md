@@ -230,7 +230,7 @@ Google 是**方便性功能,不是上線條件**,而它需要 user 先在 Google
 | 表 `cash_flows` | **沒有任何 UI 會寫入這張表**(現金流輸入尚未實作) |
 | 表 `watchlist` | `/watchlist` 用的是 **localStorage**,不寫 DB 的 watchlist 表 |
 | 表 `preferences` | 沒有偏好設定 UI |
-| 檢視 `v_cash_balance` | 由 `cash_flows` 推導,同上 |
+| 檢視 `v_cash_flow_total` | 由 `cash_flows` 推導,同上(2026-08-22 由 `v_cash_balance` 改名 —— 見下) |
 
 另有 1 項需要**刻意製造壞資料**才能取得鑑別力:
 `v_position_anomalies` —— 正常帳號不該有賣超;要驗它必須故意賣超過買入量(UI 做得到)。
@@ -262,7 +262,7 @@ Google 是**方便性功能,不是上線條件**,而它需要 user 先在 Google
 檢視 v_holdings           攻擊 0 / 對照 1    通過
 檢視 v_position_anomalies 攻擊 0 / 對照 1    通過   ← 刻意製造賣超後升級
 檢視 v_realized_lots      攻擊 0 / 對照 2    通過
-檢視 v_cash_balance       攻擊 0 / 對照 0    無法判定
+檢視 v_cash_balance       攻擊 0 / 對照 0    無法判定   ← 該檢視已於 2026-08-22 改名 v_cash_flow_total
 無條件 select trades      他人 0 / 自己 5    通過
 寫入 peer 的列            已拒(42501)/ 哨兵寫入成功   通過
 刪除 peer 的列            影響 0 列 / 哨兵刪除 1 列    通過
@@ -277,7 +277,7 @@ Google 是**方便性功能,不是上線條件**,而它需要 user 先在 Google
 | `cash_flows` | 目前**沒有任何介面會寫入這張表**(現金流輸入尚未實作) |
 | `watchlist` | `/watchlist` 的自選股存在 **localStorage**,不寫 DB 的 watchlist 表 |
 | `preferences` | 沒有偏好設定介面 |
-| `v_cash_balance` | 由 `cash_flows` 推導,同上 |
+| `v_cash_flow_total` | 由 `cash_flows` 推導,同上 |
 
 > **重訪條件:上述任一張表出現輸入介面後,補跑這一頁。**
 > 三張表都有介面時,上限即為 15/15。
@@ -307,6 +307,34 @@ Postgres 的序號不隨交易回滾歸還,**被拒的 insert 一樣吃掉一個
 刪除探針跑完後確認 peer 的資料仍是 `id 4 | 2317 | buy | 500` ——
 比對的是**內容**而不是**筆數**(筆數相同但內容被改動,只數筆數看不出來)。
 先前擔心的「刪除探針會造成損害」,實測結果是**零損害**。
+
+---
+
+### ✅ `v_cash_balance` → `v_cash_flow_total`(2026-08-22 完成)
+
+**舊名字在說假話。** 那個檢視只做 `sum(amount) from cash_flows`,
+**不含交易造成的現金變動** → 它不是現金餘額。實際的現金水位 =
+本檢視合計 + 交易淨現金流(後者由 `equity.ts` 在瀏覽器算)。
+
+⚠️ 它不會產生錯誤結果 —— 它讓未來的人做出**錯誤推論**。
+而且它是本頁上方 15 條隔離探針裡的一條:**名字會讓人以為「真正的現金餘額」已經驗過了。**
+
+🔴 也**沒有**採用第一版提案的 `v_external_cash_flow_total`:
+本檢視把 `dividend`/`fee`/`other` 也加進去了,那些是【內部】現金流、不是存入。
+叫 external 會讓下一個人拿它當 TWR 的外部資金流分母 ——
+**那會產生錯誤結果,比錯誤推論更糟。** 分類的權威在
+`equity.ts` 的 `EXTERNAL_KINDS` / `INTERNAL_KINDS`。
+
+**計算的切分刻意保留**:左邊(已實現/未實現)全部來自 SQL 檢視、右邊的現金由 TS 算,
+於是「合計損益 == 淨值 − 總存入」順便成了跨層交叉檢查。要改的只有名字。
+
+順帶修掉一個缺陷:那個交叉檢查原本在 `reload()` 的 `Promise.all` 裡 ——
+**一個檢查不該有能力把頁面弄壞。** 已移出關鍵路徑、自己吞例外,
+且「跑不起來」也會出聲(靜默跳過等於把「量不到」講成「沒問題」)。
+
+migration `20260822000100_rename_cash_flow_total.sql` 帶兩條斷言:
+view 必須 `security_invoker`、**舊名字不得還在**
+(`drop view if exists` 不會告訴你它有沒有真的刪到東西)。實測注入舊名字 → 紅,移除 → 靜。
 
 ---
 
