@@ -21,7 +21,8 @@
     "check:selfcontained": "node scripts/check-selfcontained.mjs",
     "check:selfcontained:self-test": "node scripts/check-selfcontained.mjs --self-test",
     "test:import-parse": "npx --yes tsx tests/import-parse.mjs",
-    "test:recon-fields": "npx --yes tsx tests/recon-fields.mjs"
+    "test:recon-fields": "npx --yes tsx tests/recon-fields.mjs",
+    "test:equity": "npx --yes tsx tests/equity-identity.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.4",

@@ -14,6 +14,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeFifo, type Trade } from "./fifo";
+import type { CashFlowRow } from "./equity";
 
 /** 與回測引擎同口徑:手續費 0.1425%(買賣各一次)、證交稅 0.3%(賣出才有) */
 export const FEE_RATE = 0.001425;
@@ -146,6 +147,40 @@ export async function fetchRealizedByTicker(sb: SupabaseClient): Promise<Map<str
  *
  * 🔴 取不到就回 null,**絕不回 0**。下游必須把 null 呈現為「未取得」而不是「0 元」。
  */
+/* ── 現金流(輪 6:現金水位 / 總存入)────────────────────────────── */
+
+/**
+ * 🔴 逐列取回而不是只取合計 —— 因為要按 `kind` 分成【外部資金流】與【內部現金流】。
+ *    只拿 `v_cash_balance.balance` 的話這一刀就切不出來。
+ */
+export async function fetchCashFlows(sb: SupabaseClient): Promise<CashFlowRow[]> {
+  const { data, error } = await sb
+    .from("cash_flows")
+    .select("flow_date,kind,amount")
+    .order("flow_date");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    flow_date: String(r.flow_date),
+    kind: r.kind as CashFlowRow["kind"],
+    amount: Number(r.amount),
+  }));
+}
+
+/**
+ * `v_cash_balance.balance` —— **只是交叉檢查用**。
+ *
+ * ⚠️ 它只加總 `cash_flows`,**不含交易的現金影響**,所以它【不是現金水位】。
+ *    現金水位 = 這個值 + 交易淨現金流(見 `equity.ts`)。
+ *    取它回來的唯一用途是驗「我們自己加的 cash_flows 總和」有沒有算錯。
+ *    沒有列時回 null(不是 0)—— 沒有現金流與餘額為零是兩件事。
+ */
+export async function fetchCashFlowSumView(sb: SupabaseClient): Promise<number | null> {
+  const { data, error } = await sb.from("v_cash_balance").select("balance");
+  if (error) throw new Error(error.message);
+  const row = (data ?? [])[0];
+  return row ? Number(row.balance) : null;
+}
+
 export type Quote = { price: number | null; name: string | null };
 
 export async function fetchQuotes(tickers: string[]): Promise<Map<string, Quote>> {

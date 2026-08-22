@@ -24,10 +24,13 @@ const GOAL_TICKS = ["0", "25 萬", "50 萬", "75 萬", "100 萬"] as const;
 
 /** 頭條下的 4 格 KPI */
 const KPIS = [
-  { label: "合計損益", foot: "已實現 + 未實現", meter: false },
-  { label: "累積報酬 TWR", foot: "時間加權,排除現金流影響", meter: false },
-  { label: "VS 0050 超額", foot: "同期對照 元大台灣50", meter: false },
-  { label: "現金水位", foot: "現金占淨值比重", meter: true },
+  { key: "pnl", label: "合計損益", foot: "已實現 + 未實現", meter: false },
+  /* TWR 與 VS 0050 需要【逐日重建部位 × 逐日股價】—— 那是時間序列輪的範圍,
+     不是現值類。這裡維持留白,但 foot 會由 JS 補上「排在哪一輪」,
+     🔴 不可讓它看起來像「算出來是沒有」。 */
+  { key: "twr", label: "累積報酬 TWR", foot: "時間加權,排除現金流影響", meter: false },
+  { key: "vs0050", label: "VS 0050 超額", foot: "同期對照 元大台灣50", meter: false },
+  { key: "cash", label: "現金水位", foot: "現金占淨值比重", meter: true },
 ] as const;
 
 const HOLDING_COLS = ["代號", "名稱", "股數", "均價", "現價", "市值", "未實現損益", "報酬率"];
@@ -128,13 +131,16 @@ const MONTHLY_STATS = [
         <span class="tr-phase">{TRADES_PAGE.phase}</span>
       </div>
       <h1 class="tr-num" id="tr-hero-h">
-        <span class="cur">NT$</span><span class="tr-na">—</span>
+        <span class="cur">NT$</span><span class="tr-na" id="tr-equity">—</span>
       </h1>
       <p class="tr-sub">
-        vs 總存入 <b class="tr-na">—</b>
+        vs 總存入 <b class="tr-na" id="tr-vsdep">—</b>
         <span class="sep" aria-hidden="true">·</span>
-        證券 <b class="tr-na">—</b> ＋ 現金 <b class="tr-na">—</b>
+        證券 <b class="tr-na" id="tr-sec">—</b> ＋ 現金 <b class="tr-na" id="tr-cash">—</b>
       </p>
+      {/* 🔴 恆等式的結果要看得見:合計損益 與 vs 總存入 是兩條不同的路,
+          它們相等是定義逼出來的。不一致時必須說出來,不可只顯示其中一個。 */}
+      <p class="tr-idcheck" id="tr-idcheck" role="status" hidden></p>
 
       {/* ② 目標獲利進度條 */}
       <div class="tr-goal">
@@ -180,13 +186,13 @@ const MONTHLY_STATS = [
           KPIS.map((k) => (
             <div class="tr-stat">
               <div class="micro">{k.label}</div>
-              <div class="value tr-na">—</div>
+              <div class="value tr-na" id={`kpi-${k.key}`}>—</div>
               {k.meter && (
                 <div class="meter" aria-hidden="true">
-                  <div style="width:0"></div>
+                  <div style="width:0" id={`kpi-${k.key}-meter`}></div>
                 </div>
               )}
-              <div class="foot">{k.foot}</div>
+              <div class="foot" id={`kpi-${k.key}-foot`}>{k.foot}</div>
             </div>
           ))
         }
@@ -221,7 +227,7 @@ const MONTHLY_STATS = [
             <span class="sub">市值 vs 風險曝險</span>
           </div>
           <div class="alloc">
-            <div class="alloc-donut" role="img" aria-label="配置比重圖(尚無資料)">
+            <div class="alloc-donut" id="alloc-donut" role="img" aria-label="配置比重圖">
               <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="var(--border)" stroke-width="11"></circle>
                 <circle
@@ -235,7 +241,7 @@ const MONTHLY_STATS = [
                 ></circle>
               </svg>
             </div>
-            <ul class="alloc-list" aria-label="配置明細(尚無資料)">
+            <ul class="alloc-list" id="alloc-list" aria-label="配置明細">
               {
                 ["產業／個股", "現金", "其他"].map((n) => (
                   <li class="a-row">
@@ -249,7 +255,7 @@ const MONTHLY_STATS = [
               }
             </ul>
           </div>
-          <p class="note">輸入交易後,這裡會依你的持倉自動分群。</p>
+          <p class="note" id="alloc-note">輸入交易後,這裡會依你的持倉自動分群。</p>
         </div>
       </div>
     </section>
@@ -288,22 +294,29 @@ const MONTHLY_STATS = [
           <h2>個股走勢與買賣點</h2>
           <span class="sub">以公開收盤價繪製,標上你自己的進出點</span>
         </div>
+        {/*
+          🔴 2026-08-22 修:這一區【整塊都是靜態 markup】,從來沒有被 JS 接上,
+             而它寫死了一句「尚無持股」—— 於是同一頁的 03 現有持倉有 6 檔、
+             這裡卻說沒有持股。矛盾出現過兩輪。
+
+             成因不是渲染時序、也不是資料流:**是佔位文字陳述了一個事實。**
+             「尚無持股」與「算出來的結果」在畫面上長得一模一樣,
+             所以真實資料一到就自相矛盾,而且沒人分得清是 bug 還是未實作。
+
+             → 守則:**佔位文字不可以陳述事實。** 要嘛接上真資料,
+               要嘛說「此區尚未實作」——不可以替使用者的資料下結論。
+
+             左側清單只需要【持倉】,現值類資料現在就有 → 接上。
+             右側走勢圖需要【逐日股價】,那是時間序列輪 → 明說排在哪一輪,不假裝沒資料。
+        */}
         <div class="stock-flex">
-          <div class="stock-list" aria-label="持股清單(尚無資料)">
-            {
-              [1, 2, 3, 4].map(() => (
-                <div class="s-row" aria-hidden="true">
-                  <span class="s-tk">—</span>
-                  <span class="s-bar"><i style="width:0"></i></span>
-                </div>
-              ))
-            }
-            <p class="s-empty">尚無持股</p>
-          </div>
+          <div class="stock-list" id="stk-list" aria-label="持股清單"></div>
           <div class="stock-main">
-            <div class="plot" role="img" aria-label="個股走勢圖(尚無資料)">
+            <div class="plot" role="img" aria-label="個股走勢圖(尚未實作)">
               <span class="plot-t">個股走勢 + 你的買賣點</span>
-              <span class="plot-e">選擇持股後,這裡會顯示走勢與你的買賣位置</span>
+              <span class="plot-e" id="stk-plot-note"
+                >走勢圖需要逐日收盤價,排在<b>時間序列輪</b>(與淨值曲線、回撤、TWR 同一批)</span
+              >
             </div>
             <p class="note">股價來源:臺灣證券交易所／證券櫃檯買賣中心公開收盤價(非即時報價)。</p>
           </div>
@@ -521,6 +534,7 @@ const MONTHLY_STATS = [
         fetchTrades, insertTrade, updateTrade, deleteTrade,
         crossCheck, newCompareState, defaultFee, defaultTax,
         fetchHoldings, fetchAnomalies, fetchQuotes, buildHoldingRows, portfolioTotals,
+        fetchRealizedByTicker,
       } = await import("../lib/tradesApp");
 
       const form = document.getElementById("tx-form") as HTMLFormElement | null;
@@ -612,6 +626,198 @@ const MONTHLY_STATS = [
       let hdRows: any[] = [];
       let hdTotals: any = { marketValue: null, unrealized: null, pricedCount: 0, missingCount: 0 };
 
+      /* ══ 輪 6:現值類卡片(淨值 / 合計損益 / 現金水位 / 資產配置 / 個股清單)══
+         🔴 時間序列類(淨值曲線、回撤、TWR、VS 0050)不在本輪 ——
+            那需要逐日重建部位 × 逐日股價,是另一個量級的問題。
+            但那四格【不可以只留白】:留白看起來像「算出來是沒有」。 */
+      const { summarizeEquity } = await import("../lib/equity");
+      const { fetchCashFlows, fetchCashFlowSumView } = await import("../lib/tradesApp");
+
+      let cashFlows: any[] = [];
+      let realizedTotal = 0;
+      let anomalyList: any[] = [];
+
+      const $$ = (id: string) => document.getElementById(id);
+      /** 金額:整數位到元,小數兩位。null → 留白(「—」),不以 0 代替 */
+      const money = (v: number | null) =>
+        v == null ? "—" : v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const signed = (v: number | null) => (v == null ? "—" : (v > 0 ? "+" : "") + money(v));
+      const pct1 = (v: number | null) => (v == null ? "—" : `${v.toFixed(2)}%`);
+
+      /** 套上「留白 vs 有值」的樣式,並回傳該元素 */
+      function put(id: string, text: string, tone: "" | "up" | "down" = "") {
+        const el = $$(id);
+        if (!el) return null;
+        el.textContent = text;
+        el.classList.toggle("tr-na", text === "—");
+        el.classList.remove("up", "down");
+        if (tone) el.classList.add(tone);
+        return el;
+      }
+
+      function renderSummary() {
+        const s = summarizeEquity({
+          rows: hdRows,
+          realizedTotal,
+          cashFlows,
+          trades: cache,
+          oversoldTickers: anomalyList.map((a: any) => a.ticker),
+        });
+
+        /* ── 頭條 ── */
+        put("tr-equity", money(s.equity));
+        put("tr-vsdep", signed(s.vsDeposits), toneOf(s.vsDeposits));
+        put("tr-sec", money(s.securities));
+        put("tr-cash", money(s.cash));
+
+        /* ── KPI:合計損益 ── */
+        put("kpi-pnl", signed(s.totalPnl), toneOf(s.totalPnl));
+        const pnlFoot = $$("kpi-pnl-foot");
+        if (pnlFoot) {
+          pnlFoot.textContent =
+            s.unrealized == null
+              ? `已實現 ${money(s.realized)} + 未實現(缺 ${s.missingPriceCount} 檔現價)`
+              : `已實現 ${money(s.realized)} + 未實現 ${signed(s.unrealized)}` +
+                (s.internalFlows !== 0 ? ` + 股息等 ${signed(s.internalFlows)}` : "");
+        }
+
+        /* ── KPI:現金水位 ── */
+        put("kpi-cash", pct1(s.cashPct));
+        const meter = $$("kpi-cash-meter");
+        if (meter) meter.style.width = s.cashPct == null ? "0" : `${Math.max(0, Math.min(100, s.cashPct))}%`;
+        const cashFoot = $$("kpi-cash-foot");
+        if (cashFoot) {
+          cashFoot.textContent =
+            s.cashPct == null
+              ? `現金 ${money(s.cash)} · 占比需要淨值才算得出來`
+              : `現金 ${money(s.cash)} · 總存入 ${money(s.totalDeposits)}`;
+        }
+
+        /* ── KPI:TWR / VS 0050 ──
+           🔴 留白 + 明說排在哪一輪。留白而不說明,讀起來像「算出來是沒有」。 */
+        for (const [id, why] of [
+          ["kpi-twr-foot", "時間加權,排除現金流影響 · 需逐日重建部位,排時間序列輪"],
+          ["kpi-vs0050-foot", "同期對照 元大台灣50 · 需逐日 0050 序列,排時間序列輪"],
+        ] as const) {
+          const el = $$(id);
+          if (el) el.textContent = why;
+        }
+
+        /* ── 🔴 恆等式:兩條不同的路必須等值 ── */
+        const idc = $$("tr-idcheck");
+        if (idc) {
+          const i = s.identity;
+          idc.classList.remove("bad", "warn");
+          if (i.status === "ok") {
+            idc.hidden = false;
+            idc.textContent =
+              `✓ 兩條路一致:已實現 + 未實現${s.internalFlows !== 0 ? " + 股息等" : ""} ` +
+              `= 淨值 − 總存入 = ${signed(i.totalPnl)}(差額 ${i.diff})`;
+          } else if (i.status === "diff") {
+            idc.hidden = false;
+            idc.classList.add("bad");
+            idc.textContent =
+              `🔴 兩條路不一致:合計損益 ${money(i.totalPnl)} vs 淨值 − 總存入 ${money(i.vsDeposits)}` +
+              `,差額 ${i.diff} —— 這兩個數字相等是定義逼出來的,不一致代表某一邊算錯了。`;
+          } else {
+            idc.hidden = false;
+            idc.classList.add("warn");
+            idc.textContent = `⚠️ 無法核對兩條路:${i.reason ?? ""}`;
+          }
+        }
+
+        /* ── 資產配置 ── */
+        const list = $$("alloc-list");
+        const note = $$("alloc-note");
+        const donut = $$("alloc-donut");
+        if (list) {
+          list.textContent = "";
+          if (!s.allocation.length) {
+            if (note) {
+              note.textContent =
+                s.missingPriceCount > 0
+                  ? `有 ${s.missingPriceCount} 檔取不到現價 —— 配置的分母(淨值)不可信,所以整塊不顯示。🔴 不會塞一個「其他」把缺口蓋掉。`
+                  : "輸入交易後,這裡會依你的持倉自動分群。";
+            }
+          } else {
+            for (const a of s.allocation) {
+              const li = document.createElement("li");
+              li.className = "a-row";
+              const l = document.createElement("span");
+              l.className = "a-l";
+              l.textContent = a.label;
+              const track = document.createElement("span");
+              track.className = "a-track";
+              const i = document.createElement("i");
+              i.style.width = `${Math.max(0, Math.min(100, a.pct))}%`;
+              track.appendChild(i);
+              const v = document.createElement("span");
+              v.className = "a-v";
+              v.textContent = pct1(a.pct);
+              li.append(l, track, v);
+              list.appendChild(li);
+            }
+            if (note) note.textContent = `占淨值 ${money(s.equity)};各片加總 100%(含現金)。`;
+          }
+        }
+        /* donut:用 conic-gradient 疊出比例(不畫 SVG 弧,省一層幾何) */
+        if (donut) {
+          const inner = donut.querySelector("svg");
+          if (s.allocation.length) {
+            if (inner) (inner as SVGElement).style.display = "none";
+            let acc = 0;
+            const stops = s.allocation.map((a, idx) => {
+              const from = acc;
+              acc += a.pct;
+              const c = a.key === "__cash__" ? "var(--border-strong)" : `var(--accent)`;
+              const op = a.key === "__cash__" ? 1 : 1 - (idx / Math.max(1, s.allocation.length)) * 0.65;
+              return `color-mix(in srgb, ${c} ${(op * 100).toFixed(0)}%, transparent) ${from}% ${acc}%`;
+            });
+            donut.style.background = `conic-gradient(${stops.join(",")})`;
+            donut.style.borderRadius = "50%";
+            donut.setAttribute("aria-label", `配置比重圖:${s.allocation.map((a) => `${a.label} ${pct1(a.pct)}`).join("、")}`);
+          } else {
+            donut.style.background = "";
+            if (inner) (inner as SVGElement).style.display = "";
+          }
+        }
+
+        /* ── 個股清單(項目 ⑤ 的實際修法:接上真資料)── */
+        const stk = $$("stk-list");
+        if (stk) {
+          stk.textContent = "";
+          if (!hdRows.length) {
+            const p = document.createElement("p");
+            p.className = "s-empty";
+            p.textContent = "尚無持股 —— 新增買進紀錄後會出現在這裡";
+            stk.appendChild(p);
+          } else {
+            const max = Math.max(...hdRows.map((r: any) => r.marketValue ?? 0), 1);
+            for (const r of hdRows) {
+              const row = document.createElement("div");
+              row.className = "s-row";
+              const tk = document.createElement("span");
+              tk.className = "s-tk";
+              tk.textContent = r.name ? `${r.ticker} ${r.name}` : r.ticker;
+              const bar = document.createElement("span");
+              bar.className = "s-bar";
+              const i = document.createElement("i");
+              /* 🔴 缺價的那一檔畫 0 寬並標注 —— 不可畫成「最小的一檔」 */
+              i.style.width = r.marketValue == null ? "0" : `${(r.marketValue / max) * 100}%`;
+              bar.appendChild(i);
+              row.append(tk, bar);
+              if (r.marketValue == null) {
+                const na = document.createElement("span");
+                na.className = "s-na";
+                na.textContent = "現價未取得";
+                row.appendChild(na);
+              }
+              stk.appendChild(row);
+            }
+          }
+        }
+      }
+
       function renderHoldings() {
         if (!hdBody) return;
         if (!hdRows.length) {
@@ -671,12 +877,33 @@ const MONTHLY_STATS = [
         // 持倉先以「尚未取價」畫出來 —— 股數與成本是本地已知的事實,不必等網路
         let holds: any[] = [];
         try {
-          const [h, anom] = await Promise.all([fetchHoldings(sb), fetchAnomalies(sb)]);
+          /* 🔴 現金水位與已實現損益【與股價無關】—— 和持倉一起先取,
+             不必等報價。它們是本地已知的事實,沒有理由留白等網路。 */
+          const [h, anom, flows, realizedByTk, flowSum] = await Promise.all([
+            fetchHoldings(sb),
+            fetchAnomalies(sb),
+            fetchCashFlows(sb),
+            fetchRealizedByTicker(sb),
+            fetchCashFlowSumView(sb),
+          ]);
           holds = h;
+          anomalyList = anom;
+          cashFlows = flows;
+          realizedTotal = [...realizedByTk.values()].reduce((n: number, v: number) => n + v, 0);
+
+          /* 交叉檢查:我們自己加的 cash_flows 總和 vs SQL 檢視算的。
+             🔴 不相等就出聲 —— 靜默的話,現金水位錯了也沒人知道。
+             (檢視只加總 cash_flows,不含交易現金流,所以比的是同一個東西。) */
+          const mine = flows.reduce((n: number, r: any) => n + r.amount, 0);
+          if (flowSum != null && Math.abs(mine - flowSum) > 0.005) {
+            console.warn(`[trades] cash_flows 合計不一致:本地 ${mine} vs v_cash_balance ${flowSum}`);
+          }
+
           renderAnomalies(anom);
           hdRows = buildHoldingRows(holds, new Map());
           hdTotals = portfolioTotals(hdRows);
           renderHoldings();
+          renderSummary();
         } catch (e) {
           console.warn(`[trades] 讀取持倉失敗:${(e as Error).message}`);
         }
@@ -695,6 +922,7 @@ const MONTHLY_STATS = [
             hdRows = buildHoldingRows(holds, quotes);
             hdTotals = portfolioTotals(hdRows);
             renderHoldings();
+            renderSummary();
           }
         });
       }
@@ -1049,6 +1277,15 @@ const MONTHLY_STATS = [
   .s-bar { height: 4px; border-radius: 2px; background: rgba(var(--ink), 0.08); overflow: hidden; }
   .s-bar i { display: block; height: 100%; background: var(--accent); }
   .s-empty { margin: 6px 0 0; font-size: 10.5px; color: var(--muted); text-align: center; }
+  .s-na { font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+  /* 恆等式核對:一致時低調、不一致時必須刺眼 */
+  .tr-idcheck {
+    margin: 6px 0 0; font-size: 0.76rem; line-height: 1.6; color: var(--text-secondary);
+    font-family: var(--font-mono);
+  }
+  .tr-idcheck.bad { color: #d4483b; font-weight: 700; font-family: var(--font-sans); }
+  .tr-idcheck.warn { color: var(--accent-hover); font-family: var(--font-sans); }
+  .alloc-donut { overflow: hidden; }
   .stock-main { flex: 1 1 18rem; min-width: 0; }
 
   /* 06 月報 */
