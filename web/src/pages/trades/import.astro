@@ -157,6 +157,7 @@ export const prerender = true;
       reconcile,
       fetchBatches,
       undoImport,
+      RECON_FIELDS,
       type Prediction,
     } from "../../lib/importApp";
     import type { Trade } from "../../lib/fifo";
@@ -195,7 +196,9 @@ export const prerender = true;
       node.append(thead, tb);
     }
     const n2 = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: 2 }));
-    const n4 = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: 4 }));
+    /** 小數位由欄位定義帶進來,不寫死在呼叫端 */
+    const nd = (v: number | null, digits: number) =>
+      v == null ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: digits });
 
     const authEl = $("im-auth");
     const appEl = $("im-app");
@@ -367,7 +370,7 @@ export const prerender = true;
         table(
           $("im-predict"),
           ["代號", "股數", "平均成本", "剩餘批次"],
-          predicted.holdings.map((h) => [h.ticker, n2(h.shares), n4(h.avgCost), String(h.openLotCount)])
+          predicted.holdings.map((h) => [h.ticker, n2(h.shares), nd(h.avgCost, 4), String(h.openLotCount)])
         );
         if (predicted.oversold.length) {
           const t = $("im-predict");
@@ -429,39 +432,32 @@ export const prerender = true;
                 : `⚠️ 無法對帳 —— ${r.detail}`;
           v.className = `im-verdict ${r.status === "ok" ? "im-pass" : r.status === "diff" ? "im-fail" : "im-unknown"}`;
         }
-        /* 🔴 三欄都比:均價 = 成本 / 股數,除法會把小差異吃掉 ——
-           只比均價的話,成本差幾角錢在 850 股上會變成看不見的 0.0005。 */
+        /* 🔴 表頭與每一格都由 RECON_FIELDS 導出 ——
+           這一頁【不自己知道有哪些欄】。日後加減比對欄位時,
+           畫面與結論句會自動跟上,不會出現「畫面少一欄但其實有比」那種漂移。 */
         table(
           $("im-recon-table"),
-          ["代號", "預測股數", "資料庫股數", "預測均價", "資料庫均價", "預測成本", "資料庫成本", "判定"],
+          ["代號", ...RECON_FIELDS.flatMap((f) => [`預測${f.label}`, `資料庫${f.label}`]), "判定"],
           r.rows.map((row) => {
             const verdict = el("span", row.ok ? "吻合" : "不吻合", row.ok ? "im-pass" : "im-fail");
-            /* 🔴 顯示只到小數 2 位,比對用全精度 ——
-               兩邊若只差在第 3 位,畫面會印出兩個【看起來一樣】的數字卻判不吻合,
-               那時判定的證據是看不見的。不吻合時把逐欄的實際差額印出來。 */
-            if (!row.ok) {
-              const d = (a: number | null, b: number | null) =>
-                a == null || b == null ? "缺一邊" : String(a - b);
-              const box = el("div");
-              box.appendChild(verdict);
-              box.appendChild(
-                el(
-                  "div",
-                  `差額 股數 ${d(row.expShares, row.gotShares)} · 均價 ${d(row.expAvgCost, row.gotAvgCost)} · 成本 ${d(row.expCostBasis, row.gotCostBasis)}`,
-                  "im-sub"
-                )
-              );
-              return [
-                row.ticker, n2(row.expShares), n2(row.gotShares),
-                n4(row.expAvgCost), n4(row.gotAvgCost),
-                n2(row.expCostBasis), n2(row.gotCostBasis), box,
-              ];
-            }
-            return [
-              row.ticker, n2(row.expShares), n2(row.gotShares),
-              n4(row.expAvgCost), n4(row.gotAvgCost),
-              n2(row.expCostBasis), n2(row.gotCostBasis), verdict,
-            ];
+            const values = row.cells.flatMap((c) => [nd(c.exp, c.digits), nd(c.got, c.digits)]);
+            if (row.ok) return [row.ticker, ...values, verdict];
+            /* 🔴 顯示有小數位上限,比對用全精度 ——
+               兩邊若只差在顯示位數之後,畫面會印出兩個【看起來一樣】的數字卻判不吻合,
+               那時判定的證據是看不見的。所以不吻合時把逐欄的實際差額原值印出來。 */
+            const box = el("div");
+            box.appendChild(verdict);
+            box.appendChild(
+              el(
+                "div",
+                "差額 " +
+                  row.cells
+                    .map((c) => `${c.label} ${c.delta == null ? "缺一邊" : c.delta}`)
+                    .join(" · "),
+                "im-sub"
+              )
+            );
+            return [row.ticker, ...values, box];
           })
         );
       }

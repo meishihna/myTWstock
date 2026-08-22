@@ -149,16 +149,76 @@ export async function runImport(
 
 /* ── 對帳 ────────────────────────────────────────────────────────── */
 
+/* ══════════════════════════════════════════════════════════════════════
+ * 🔴 對帳比對的【單一真相】
+ *
+ * 這一份清單同時決定四件事:比哪些欄、容差多少、畫面怎麼顯示、
+ * 以及結論那句話怎麼寫。**描述由行為導出,不另寫一次字串。**
+ *
+ * 為什麼要這樣:同一件事在兩個地方各寫一次,就一定會漂 ——
+ * 本輪已經發生三次「轉述比程式碼窄」(結論句寫兩欄而程式在比三欄是最後一次)。
+ * 前兩次的處置是加註解,但**註解只攔得住讀到它的人** ——
+ * `verify_online.sql` 第 ⑥ 條旁邊早就寫著「名字白名單會祝福掉錯的東西」,
+ * 而我下一個加斷言時還是寫成名字白名單。
+ * **能寫成會響的檢查(或讓它結構上不可能漂),就不要只寫成註解。**
+ *
+ * 這與輪 5「頁面必須 import 同一支判準函式」同源:
+ * 讓唯一一份定義同時餵給行為與描述,兩者就不可能各自漂。
+ *
+ * 🔴 為什麼三欄都要比,而不是只比均價:`均價 = 成本 / 股數`,
+ *    除法會把小差異吃掉 —— 兩邊成本差 0.4 元、股數 850 的話,均價只差 0.0005,
+ *    在 0.005 的容差裡看不見。**直接比成本合計是嚴格更強的檢查。**
+ *    兩邊算式同形(Σ 剩餘股數 × 每股含費成本),差別只有 double vs numeric 的尾數。
+ * ══════════════════════════════════════════════════════════════════════ */
+
+export type ReconFieldKey = "shares" | "avgCost" | "costBasis";
+
+export type ReconField = {
+  key: ReconFieldKey;
+  /** 畫面與結論句共用的名稱 —— 只寫在這裡 */
+  label: string;
+  /** 容差。🔴 實測過:兩組除不盡的數字下 TS 與 SQL 的差都是 0,容差沒在掩護東西 */
+  tol: number;
+  /** 顯示小數位 */
+  digits: number;
+};
+
+export const RECON_FIELDS: readonly ReconField[] = [
+  { key: "shares", label: "股數", tol: 1e-6, digits: 2 },
+  { key: "avgCost", label: "均價", tol: 0.005, digits: 4 },
+  { key: "costBasis", label: "成本合計", tol: 0.01, digits: 2 },
+] as const;
+
+/**
+ * 🔴 空清單守衛。
+ *
+ * `cells.every(...)` 在清單為空時**回傳 true** —— 也就是 `RECON_FIELDS` 若被清空,
+ * 每一檔都會判「吻合」,而實際上**一項都沒比**。
+ * 那與「attack 0 + control 0」是同一個病:在正確與錯誤假設下都會通過。
+ * 一個不比任何東西的對帳,比沒有對帳更糟 —— 它會發出通過的訊號。
+ */
+if (RECON_FIELDS.length === 0) {
+  throw new Error("RECON_FIELDS 不得為空:every() 在空清單上恆真,會讓對帳零檢查卻宣告吻合");
+}
+
+/** 結論句用的欄位描述 —— 由 RECON_FIELDS 導出,不是另寫的字串 */
+export const reconFieldSummary = () =>
+  `${RECON_FIELDS.map((f) => f.label).join(" / ")} 共 ${RECON_FIELDS.length} 欄`;
+
+/** 逐欄的比對結果。畫面直接渲染這個,不需要自己知道有哪些欄。 */
+export type ReconCell = {
+  label: string;
+  digits: number;
+  exp: number | null;
+  got: number | null;
+  /** 任一邊缺值時為 null */
+  delta: number | null;
+  ok: boolean;
+};
+
 export type ReconRow = {
   ticker: string;
-  /** 匯入前由瀏覽器預測的 */
-  expShares: number | null;
-  expAvgCost: number | null;
-  expCostBasis: number | null;
-  /** 匯入後由資料庫算出來的 */
-  gotShares: number | null;
-  gotAvgCost: number | null;
-  gotCostBasis: number | null;
+  cells: ReconCell[];
   ok: boolean;
 };
 
@@ -169,20 +229,30 @@ export type ReconResult = {
   detail: string;
 };
 
-/**
- * 股數比到 1e-6;均價比到 0.005;**成本合計**比到 0.01。
- *
- * 🔴 為什麼三個都要比,而不是只比均價:`均價 = 成本 / 股數`,
- *    除法會把小差異吃掉 —— 兩邊成本差 0.4 元、股數 850 的話,均價只差 0.0005,
- *    在 0.005 的容差裡看不見。**直接比成本合計是嚴格更強的檢查。**
- *    兩邊算式同形(Σ 剩餘股數 × 每股含費成本),差別只有 double vs numeric 的尾數。
- */
-const SHARE_TOL = 1e-6;
-const COST_TOL = 0.005;
-const BASIS_TOL = 0.01;
-
 const near = (a: number | null, b: number | null, tol: number) =>
   a == null || b == null ? a === b : Math.abs(a - b) <= tol;
+
+export type ReconSide = { shares: number; avgCost: number; costBasis: number } | null;
+
+/**
+ * 逐欄比一檔。**純函式,不碰資料庫** —— 所以 `tests/recon-fields.mjs` 測得到
+ * 「每一欄都真的參與判定」,而且新增欄位時那個測試會自動涵蓋它。
+ */
+export function judgeReconRow(ticker: string, e: ReconSide, g: ReconSide): ReconRow {
+  const cells: ReconCell[] = RECON_FIELDS.map((f) => {
+    const exp = e ? e[f.key] : null;
+    const got = g ? g[f.key] : null;
+    return {
+      label: f.label,
+      digits: f.digits,
+      exp,
+      got,
+      delta: exp == null || got == null ? null : exp - got,
+      ok: near(exp, got, f.tol),
+    };
+  });
+  return { ticker, cells, ok: cells.every((c) => c.ok) };
+}
 
 /**
  * 逐檔比對「匯入前的預測」與「匯入後資料庫算出來的」。
@@ -206,23 +276,9 @@ export async function reconcile(sb: SupabaseClient, predicted: Holding[]): Promi
   const exp = new Map(predicted.map((h) => [h.ticker, h]));
 
   const tickers = [...new Set([...exp.keys(), ...got.keys()])].sort();
-  const rows: ReconRow[] = tickers.map((ticker) => {
-    const e = exp.get(ticker) ?? null;
-    const g = got.get(ticker) ?? null;
-    return {
-      ticker,
-      expShares: e?.shares ?? null,
-      expAvgCost: e?.avgCost ?? null,
-      expCostBasis: e?.costBasis ?? null,
-      gotShares: g?.shares ?? null,
-      gotAvgCost: g?.avgCost ?? null,
-      gotCostBasis: g?.costBasis ?? null,
-      ok:
-        near(e?.shares ?? null, g?.shares ?? null, SHARE_TOL) &&
-        near(e?.avgCost ?? null, g?.avgCost ?? null, COST_TOL) &&
-        near(e?.costBasis ?? null, g?.costBasis ?? null, BASIS_TOL),
-    };
-  });
+  const rows: ReconRow[] = tickers.map((ticker) =>
+    judgeReconRow(ticker, exp.get(ticker) ?? null, got.get(ticker) ?? null)
+  );
 
   const badList = rows.filter((r) => !r.ok);
   if (tickers.length === 0) {
@@ -230,10 +286,9 @@ export async function reconcile(sb: SupabaseClient, predicted: Holding[]): Promi
   }
   return badList.length
     ? { status: "diff", rows, detail: `${badList.length} / ${rows.length} 檔對不上:${badList.map((r) => r.ticker).join("、")}` }
-    /* 🔴 這句話必須逐字對應上面實際比的欄位。
-       它原本寫「股數與平均成本」,而程式已經在比三欄 ——
-       轉述比程式碼窄,會讓讀者以為某一欄沒被檢查(反之更糟)。 */
-    : { status: "ok", rows, detail: `${rows.length} 檔逐檔吻合(股數 / 均價 / 成本合計三欄)` };
+    /* 🔴 欄位描述由 RECON_FIELDS 導出 —— 不在這裡另寫一次字串。
+       另寫一次就會漂,而這一句本輪已經漂過一次(寫兩欄、程式比三欄)。 */
+    : { status: "ok", rows, detail: `${rows.length} 檔逐檔吻合(${reconFieldSummary()})` };
 }
 
 /* ── 批次清單與撤銷 ──────────────────────────────────────────────── */

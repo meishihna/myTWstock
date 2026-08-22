@@ -20,7 +20,8 @@
     "test:fin-compare": "npx --yes tsx tests/compare-financials-migration.ts",
     "check:selfcontained": "node scripts/check-selfcontained.mjs",
     "check:selfcontained:self-test": "node scripts/check-selfcontained.mjs --self-test",
-    "test:import-parse": "npx --yes tsx tests/import-parse.mjs"
+    "test:import-parse": "npx --yes tsx tests/import-parse.mjs",
+    "test:recon-fields": "npx --yes tsx tests/recon-fields.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.4",
