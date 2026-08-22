@@ -18,7 +18,9 @@
 import {
   parsePaste,
   normalizeNumber,
+  normalizeCurrency,
   normalizeDate,
+  dateRejectReason,
   findDuplicates,
   splitLine,
 } from "../src/lib/importParse.ts";
@@ -429,8 +431,206 @@ console.log("\n── 不乾淨的貼上(真實 Excel 形狀)──");
   check(!!g.checks[0].need, "無法驗時說明要什麼才驗得了", JSON.stringify(g.checks[0].need));
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+ * 十二、🔴 真實的【顯示格式】—— 合成數值,真實格式
+ *
+ * 🔴🔴 夾具**不得**放使用者的真實資料:本 repo 是公開的,他的貼上內容含持股與備註。
+ *      被測的是【格式】,不是【值】—— 所以下面每個數字都是編的,
+ *      但每一種長相都照著他 Excel 實際渲染出來的樣子。
+ *
+ * 🔴 根因(要記住,不只是修):前 78 項全部用 ISO 日期 + 純數字,
+ *    也就是**合成資料共用了寫測試的人的假設**。
+ *    輪 5 測了髒【欄位】(雜欄、截斷、合計列),沒測髒【格式】。
+ * ══════════════════════════════════════════════════════════════════════ */
+console.log("\n── 🔴 真實顯示格式 ──");
+
+/** `NT$#,##0`:零 → `NT$-`;負 → `NT$-165,736`;正 → `NT$165,500` */
+function nt(v, exact = false) {
+  if (v === 0) return "NT$-";
+  const a = Math.abs(v);
+  const body = exact
+    ? a.toLocaleString("en-US", { maximumFractionDigits: 20 })
+    : a.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return (v < 0 ? "NT$-" : "NT$") + body;
+}
+/** `2026年6月26日` —— 月日**不補零** */
+const ymd = (iso) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${y}年${m}月${d}日`;
+};
+const grp = (v) => v.toLocaleString("en-US", { maximumFractionDigits: 20 });
+
+/** 🔴 表頭刻意帶前後空白 —— 他的來源就是這樣(" Quantity "、" Notes ") */
+const REAL_HEADERS = [
+  "Date", "Ticker", "Action", " Quantity ", "Price", "Currency", "Ticker_Clean",
+  "Signed_Qty", "Buy_Amount", "Sell_Amount", "Fee", "Tax", "Cash_Impact",
+  " Running_Cash ", " Notes ",
+];
+
+/**
+ * 依真實顯示格式產生貼上文字。
+ * `cashOverride(i)` 可覆寫某列的 Cash_Impact 原文,用來注入四捨五入/錯位。
+ */
+function realTsv(rows, { cashOverride, exact = false, runExact = exact, headers = REAL_HEADERS, tailRows = [] } = {}) {
+  let run = 0;
+  const out = [headers.join("\t")];
+  rows.forEach((r, i) => {
+    const gross = r.action === "DEPOSIT" ? 0 : r.qty * r.price;
+    const ci =
+      r.action === "DEPOSIT" ? r.amount : r.action === "BUY" ? -(gross + r.fee) : gross - r.fee - r.tax;
+    run += ci;
+    const over = cashOverride ? cashOverride(i) : null;
+    out.push(
+      [
+        ymd(r.date),
+        r.ticker ?? "",
+        r.action,
+        r.qty != null ? ` ${grp(r.qty)} ` : r.action === "DEPOSIT" ? ` ${grp(r.amount)} ` : "",
+        r.price != null ? String(r.price) : "",
+        r.action === "DEPOSIT" ? "" : "TWD",
+        r.ticker ?? "",
+        r.action === "BUY" ? String(r.qty) : r.action === "SELL" ? String(-r.qty) : "0",
+        r.action === "BUY" ? nt(gross, exact) : nt(0),
+        r.action === "SELL" ? nt(gross, exact) : nt(0),
+        r.action === "DEPOSIT" ? nt(0) : nt(r.fee, exact),
+        r.action === "DEPOSIT" ? nt(0) : nt(r.tax, exact),
+        over ?? nt(ci, exact),
+        /* Running_Cash 的格式可獨立於 Cash_Impact —— 同一張 Excel 裡兩欄格式不同很常見,
+           而那正是 Σ 恆等式唯一能看見四捨五入的情況(見下方測試)。 */
+        ` ${nt(run, runExact)} `,
+        r.notes ? ` ${r.notes} ` : "",
+      ].join("\t")
+    );
+  });
+  return [...out, ...tailRows].join("\n");
+}
+
+/** 合成的持股與數值,金額刻意取整數 → 恆等式在對照組上必須精確吻合 */
+const REAL_ROWS = [
+  { date: "2026-06-26", action: "DEPOSIT", amount: 500000, notes: "" },
+  { date: "2026-07-01", action: "BUY", ticker: "1111", qty: 1000, price: 165.5, fee: 236, tax: 0, notes: "短線搶反彈" },
+  { date: "2026-07-15", action: "BUY", ticker: "2222", qty: 500, price: 173, fee: 123, tax: 0, notes: "" },
+  { date: "2026-08-18", action: "SELL", ticker: "1111", qty: 500, price: 180, fee: 128, tax: 270, notes: "" },
+];
+
+{
+  const r = parsePaste(realTsv(REAL_ROWS));
+  const ident = r.checks.find((c) => c.name.startsWith("每列"));
+  const run = r.checks.find((c) => c.name.startsWith("Σ"));
+  check(r.ok === true, "🔴 對照:真實格式(年月日 + NT$ + 千分位 + 表頭空白)整批通過", JSON.stringify(r.problems.slice(0, 2)));
+  check(r.trades.length === 3 && r.cashFlows.length === 1, "3 筆交易 + 1 筆現金流", `${r.trades.length}/${r.cashFlows.length}`);
+  check(r.trades[0].trade_date === "2026-07-01", "「2026年7月1日」→ 2026-07-01", r.trades[0]?.trade_date);
+  check(r.trades[0].fee.raw === "236", "「NT$236」→ 236", JSON.stringify(r.trades[0]?.fee));
+  check(
+    r.trades[0].tax.raw === "0" && r.trades[0].tax.num === 0,
+    "🔴「NT$-」→ 0(而且是【值】,買進列不會被當成缺稅拒絕)",
+    JSON.stringify(r.trades[0]?.tax)
+  );
+  check(r.trades[0].shares.raw === "1000", "「 1,000 」→ 1000(表頭與值的前後空白都吃掉)", JSON.stringify(r.trades[0]?.shares));
+  check(r.trades[0].price.raw === "165.5", "Price 全精度保留", JSON.stringify(r.trades[0]?.price));
+  check(r.trades[0].note === "短線搶反彈", "「 短線搶反彈 」→ trim 後匯入", JSON.stringify(r.trades[0]?.note));
+  check(r.cashFlows[0].amount.raw === "500000", "DEPOSIT 取 Cash_Impact 而非 Quantity", JSON.stringify(r.cashFlows[0]?.amount));
+  check(ident.status === "pass" && ident.maxDeviation === 0, "🔴 對照:恆等式在真實格式下精確吻合(偏差 0)", JSON.stringify(ident));
+  check(run.status === "pass", "🔴 對照:Σ 恆等式通過", JSON.stringify(run));
+}
+
+console.log("\n── 🔴 NT$ 的兩種 `-`:一個是零,一個是負號 ──");
+{
+  /* 這兩條【一起】否決兩種常見的錯寫法:
+     · parseFloat("NT$-") → NaN     → 第一條會紅
+     · 「含 - 就當 0」                → 第二條會紅 */
+  const zero = normalizeCurrency("NT$-");
+  check(zero !== null && zero.num === 0 && zero.raw === "0", "🔴「NT$-」→ 0(不是 NaN、不是 null)", JSON.stringify(zero));
+  const neg = normalizeCurrency("NT$-165,736");
+  check(neg !== null && neg.num === -165736, "🔴「NT$-165,736」→ -165736(不是 0)", JSON.stringify(neg));
+  check(normalizeCurrency("NT$165,500")?.num === 165500, "「NT$165,500」→ 165500");
+  check(normalizeCurrency("  NT$ 1,234.56  ")?.raw === "1234.56", "空白與千分位都吃掉,小數保留");
+  check(normalizeCurrency("") === null && normalizeCurrency("   ") === null, "🔴 空白仍然是【缺席】→ null(不是 0)");
+  check(normalizeCurrency("NT$") === null, "「NT$」後面什麼都沒有 → null(具名拒絕)");
+  check(normalizeCurrency("--") === null && normalizeCurrency("NT$1.2.3") === null, "「--」與「1.2.3」→ null");
+  /* 🔴 Price/Quantity 刻意【不】用貨幣解析器:
+     若 `-` 在 Price 被讀成 0,schema 允許 price >= 0 → 會靜默存進一筆 0 元成交。 */
+  check(normalizeNumber("-") === null, "🔴 Price/Quantity 的解析器不把「-」當 0(否則會靜默存進 0 元成交)");
+  check(normalizeNumber("NT$165") === null, "🔴 Price 帶 NT$ → 具名拒絕,不靜默接受");
+}
+
+console.log("\n── 🔴 民國年具名拒絕,不 +1911 ──");
+{
+  check(normalizeDate("2026年6月26日") === "2026-06-26", "年月日 → ISO");
+  check(normalizeDate("2026年6月6日") === "2026-06-06", "月日皆一位數 → 補零");
+  check(normalizeDate("2026 年 6 月 26 日") === "2026-06-26", "年月日之間有空白也接受");
+  for (const bad of ["115年6月26日", "115/6/26", "115-06-26"]) {
+    check(normalizeDate(bad) === null, `🔴「${bad}」→ 拒絕(不 +1911)`);
+    check(/民國/.test(dateRejectReason(bad)), `「${bad}」的拒絕理由要指名民國年`, dateRejectReason(bad));
+  }
+  check(!/民國/.test(dateRejectReason("26 Jun 2026")), "對照:非民國形狀的壞日期不要誤扣民國帽子", dateRejectReason("26 Jun 2026"));
+  const r = parsePaste(realTsv(REAL_ROWS).replace("2026年7月1日", "115年7月1日"));
+  const p = r.problems.find((x) => x.column === "Date");
+  check(r.ok === false && !!p && /民國/.test(p.reason), "整批:民國年的列被具名拒絕", JSON.stringify(r.problems));
+}
+
+console.log("\n── 🔴 顯示格式四捨五入:偵測並具名,不塞進容差 ──");
+{
+  /* 180 股 × 333.33 = 59,999.4 → 加費用後 Cash_Impact 的真值有小數,
+     而 `NT$#,##0` 會把它顯示成整數。 */
+  const ROWS = [
+    { date: "2026-06-26", action: "DEPOSIT", amount: 500000, notes: "" },
+    { date: "2026-07-01", action: "BUY", ticker: "1111", qty: 180, price: 333.33, fee: 85, tax: 0, notes: "" },
+  ];
+  const rounded = parsePaste(realTsv(ROWS)); // 預設 #,##0 → 會捨入
+  const ident = rounded.checks.find((c) => c.name.startsWith("每列"));
+  check(ident.status === "unknown", "🔴 疑似四捨五入 → 判【無法驗】,不是通過", JSON.stringify(ident));
+  check(/四捨五入/.test(ident.detail) && /列 2/.test(ident.detail), "逐列具名(列 2)並說明成因", ident.detail);
+  check(!!ident.need && /不捨入/.test(ident.need), "說明要怎麼做才驗得了", ident.need);
+  check(rounded.ok === true, "⚠️ 但不擋匯入 —— Cash_Impact 本身【不寫入資料庫】,它只是檢查的輸入", JSON.stringify(rounded.problems));
+  /* 🔴 這一條的預期我原本寫錯了,實測才發現 —— 留著,因為它本身是個結論:
+     `Running_Cash` 若用【同一個】#,##0 格式,兩邊會【一致地】捨入,於是 Σ 剛好對得上。
+     **Σ 通過並不能反證每列恆等式** —— 共用同一個捨入的兩邊會一起對上。
+     所以上面那條 unknown 不可因為「Σ 通過了」就降級。 */
+  const runChk = rounded.checks.find((c) => c.name.startsWith("Σ"));
+  check(runChk.status === "pass", "⚠️ 兩欄同樣捨入時 Σ 仍會通過 —— 它不能當成每列恆等式的替代證據", JSON.stringify(runChk));
+
+  /* 混合格式:Cash_Impact 捨入、Running_Cash 全精度(同一張 Excel 兩欄格式不同,很常見)
+     → 這時 Σ 才看得見捨入,必須歸因而不是誤報 fail。 */
+  const mixed = parsePaste(realTsv(ROWS, { runExact: true }));
+  const runMixed = mixed.checks.find((c) => c.name.startsWith("Σ"));
+  check(
+    runMixed.status === "unknown" && /四捨五入/.test(runMixed.detail),
+    "🔴 混合格式(Cash_Impact 捨入、Running_Cash 全精度)→ Σ 歸因到四捨五入,不誤報 fail",
+    JSON.stringify(runMixed)
+  );
+
+  /* 🔴 對照:同一組資料,Cash_Impact 用全精度 → 必須回到 pass。
+     沒有這條,上面的 unknown 可能只是「這組資料永遠驗不過」。 */
+  const exactly = parsePaste(realTsv(ROWS, { exact: true }));
+  const ident2 = exactly.checks.find((c) => c.name.startsWith("每列"));
+  check(ident2.status === "pass", "🔴 對照:同組資料改成全精度 → 恆等式通過", JSON.stringify(ident2));
+
+  /* 注入:差 1 元以上 → 真的對不上,不可歸類成四捨五入 */
+  const wayOff = parsePaste(realTsv(ROWS, { cashOverride: (i) => (i === 1 ? "NT$-60,090" : null) }));
+  const ident3 = wayOff.checks.find((c) => c.name.startsWith("每列"));
+  check(ident3.status === "fail", "🔴 注入:差 5.6 元 → fail(不得被歸類成四捨五入)", JSON.stringify(ident3));
+
+  /* 注入:差得很小【但不是整數】→ 仍然 fail(判準是兩個條件的【且】) */
+  const nonInt = parsePaste(realTsv(ROWS, { cashOverride: (i) => (i === 1 ? "NT$-60,084.5" : null) }));
+  const ident4 = nonInt.checks.find((c) => c.name.startsWith("每列"));
+  check(ident4.status === "fail", "🔴 注入:差 0.1 但貼上值非整數 → fail(不是四捨五入的形狀)", JSON.stringify(ident4));
+}
+
+console.log("\n── 🔴 備註含 tab → 欄位位移,具名拒絕 ──");
+{
+  const shifted = realTsv(REAL_ROWS).split("\n");
+  shifted[2] = shifted[2] + "\t被擠出來的東西"; // 模擬 Notes 裡有一個 tab
+  const r = parsePaste(shifted.join("\n"));
+  const p = r.problems.find((x) => /儲存格/.test(x.reason));
+  check(r.ok === false && !!p && p.rowNo === 2, "🔴 儲存格數多於表頭 → 具名拒絕到列號", JSON.stringify(r.problems));
+  check(/tab/.test(p.reason) && /位移/.test(p.reason), "理由要講明是 tab/換行造成的位移", p?.reason);
+  /* 對照:沒有多出來的 tab 時不得誤報 */
+  check(parsePaste(realTsv(REAL_ROWS)).ok === true, "對照:沒有多餘 tab 時不誤報");
+}
+
 /* ══════════════════════════════════════════════════════════════════════ */
-const PLAN = 78;
+const PLAN = 78 + 43;
 console.log(`\n通過 ${pass} 項;失敗 ${fails.length} 項(plan ${PLAN})`);
 if (pass + fails.length !== PLAN) {
   console.error(`❌ plan 對不上:宣告 ${PLAN} 項,實跑 ${pass + fails.length} 項 —— 有測試沒跑到或多跑了`);

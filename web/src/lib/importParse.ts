@@ -12,7 +12,14 @@
  *      本檔【沒有】費率、沒有折扣、沒有最低手續費、沒有捨入規則 —— 不算就沒有捨入問題。
  *   ③ **缺值不補 0。** 儲存格空白 / 欄位不存在 → 該列拒絕並具名。
  *      🔴 但來源寫的 `0` 是【值】,不是缺席(買進的 Tax 本來就是 0)。
+ *      **`NT$-` 也是【值】** —— Excel 用那個字形寫「零」。
  *      「沒有」與「是零」必須分得開,否則買進與缺資料長得一樣。
+ *
+ * 🔴 **被測的是格式,不是值。** 解析器要吃得下來源【實際渲染出來】的長相:
+ *    `2026年6月26日` · `NT$-165,736` · `NT$-`(零) · ` 1,000 ` · 表頭帶前後空白。
+ *    輪 5 的 78 項合成測試全部用 ISO 日期 + 純數字 ——
+ *    **合成資料共用了寫測試的人的假設**,所以測了髒欄位卻沒測髒格式。
+ *    現在 §十二 專門測格式(合成數值、真實格式)。
  *
  * 🔴 數字保留【原始字串】(`raw`)供寫入,另存 `num` 供算術。
  *    寫入走 raw → 由 Postgres 做十進位轉換,字面值不經過 IEEE754。
@@ -169,21 +176,96 @@ export function normalizeNumber(s: string): Num | null {
 }
 
 /**
- * 日期正規化 → `YYYY-MM-DD`。
- * 接受 `2024-01-15`、`2024/1/15`,以及尾隨時間的 `2024-01-15 00:00:00`。
+ * 🔴 貨幣顯示格式的正規化 —— Excel 的 `NT$#,##0` 會產生三種長相:
  *
- * 🔴 其餘一律拒絕並具名。日期猜錯不會報錯,只會把交易排到錯的順序 ——
- *    而 FIFO 的結果完全取決於順序。
+ * ```
+ * 零   NT$-           ← NT$ 後面【只有一個 -】,沒有數字
+ * 正   NT$165,500
+ * 負   NT$-165,736    ← NT$ 後面是 -,然後接數字
+ * ```
+ *
+ * **同一個 `-`,一個是「零」一個是「負號」。** 兩種寫錯的方式都會【靜默】產生錯資料:
+ *   · `parseFloat("NT$-")` → `NaN`(整批合法的零費用被當成缺值拒絕)
+ *   · 「含 `-` 就當 0」 → **所有負數變成 0**(現金流出全部消失,而畫面完全正常)
+ *
+ * 所以規則寫死:剝掉 `NT$` / 空白 / 逗號之後 ——
+ *   剩下**恰好** `-`            → 0
+ *   符合 `^-?\d+(\.\d+)?$`      → 該數
+ *   其他                        → `null`,由呼叫端具名拒絕
+ *
+ * ⚠️ 這裡的 `raw = "0"` **不是補值**,是同一個值的十進位寫法 ——
+ *    來源用 `-` 這個字形寫「零」。與「儲存格空白 → 補 0」是完全不同的兩件事:
+ *    空白仍然回 `null` 並被具名拒絕。
+ */
+export function normalizeCurrency(s: string): Num | null {
+  const t = String(s ?? "")
+    .replace(/NT\$/gi, "")
+    .replace(/[,\s]/g, "");
+  if (t === "") return null; // 空白 = 缺席,不是零
+  if (t === "-") return { raw: "0", num: 0 }; // 🔴 會計式的零
+  if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(t)) return null;
+  const num = Number(t);
+  if (!Number.isFinite(num)) return null;
+  return { raw: t.replace(/^\+/, ""), num };
+}
+
+/**
+ * 只剝掉【尾隨的時間】,不是「切在第一個空白」。
+ *
+ * 🔴 原本寫 `.split(/[ T]/)[0]` —— 那在 `2026 年 6 月 26 日`(年月日之間有空白)
+ *    會把整個日期切成 `2026`,然後被判成格式錯誤。
+ *    「取第一段」是個看起來無害但會吃掉合法輸入的簡化。
+ */
+const stripTrailingTime = (s: string): string =>
+  String(s ?? "")
+    .trim()
+    .replace(/[ T]\d{1,2}:\d{2}(:\d{2})?(\.\d+)?\s*$/, "")
+    .trim();
+
+/** 日期接受的格式 —— 拒絕訊息與文件共用同一份字串,不各寫一次 */
+export const DATE_FORMATS = "YYYY-MM-DD、YYYY/M/D、YYYY年M月D日";
+
+/**
+ * 日期正規化 → `YYYY-MM-DD`。
+ * 接受 `2024-01-15`、`2024/1/15`、**`2026年6月26日`**(月日不補零),
+ * 以及尾隨時間的 `2024-01-15 00:00:00`。
+ *
+ * 🔴 **年份 < 1000 一律拒絕,不做 `+1911`。**
+ *    民國年與西元年在格式上分不出來,只能靠猜。而猜錯的代價是
+ *    **整批交易的日期全錯,畫面卻完全正常** —— FIFO 的結果完全取決於順序。
+ *
+ * 🔴 其餘一律拒絕並具名。日期猜錯不會報錯。
  */
 export function normalizeDate(s: string): string | null {
-  const t = String(s ?? "").trim().split(/[ T]/)[0] ?? "";
-  const m = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  const t = stripTrailingTime(s);
+  const m =
+    t.match(/^(\d{1,4})[-/](\d{1,2})[-/](\d{1,2})$/) ??
+    t.match(/^(\d{1,4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$/);
   if (!m) return null;
-  const [, y, mo, d] = m;
-  const mm = Number(mo);
-  const dd = Number(d);
+  const y = Number(m[1]);
+  const mm = Number(m[2]);
+  const dd = Number(m[3]);
+  if (y < 1000) return null; // 🔴 民國年 → 不猜
   if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
   return `${y}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+}
+
+/**
+ * 日期被拒的**具體原因**。分開一支函式是為了讓「看起來是民國年」這種
+ * 可行動的訊息不要被泛用的「格式不符」蓋掉 —— 使用者要知道該去改什麼。
+ */
+export function dateRejectReason(s: string): string {
+  const t = stripTrailingTime(s);
+  const m = t.match(/^(\d{1,4})[-/年]/);
+  const y = m ? Number(m[1]) : NaN;
+  if (Number.isFinite(y) && y > 0 && y < 1000) {
+    return (
+      `年份「${m![1]}」小於 1000,看起來是民國年。` +
+      `🔴 本站【不自動 +1911】—— 那是猜,而猜錯的話整批日期全錯而畫面完全正常。` +
+      `請在來源把年份改成西元(接受 ${DATE_FORMATS})。`
+    );
+  }
+  return `無法解析的日期格式(接受 ${DATE_FORMATS})`;
 }
 
 /* ── 主解析 ───────────────────────────────────────────────────────── */
@@ -265,6 +347,18 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
   let identityChecked = 0;
   let identityMaxDev = 0;
   let identityBad = 0;
+  /**
+   * 🔴 疑似「被顯示格式四捨五入」的列。
+   *
+   * 若來源的 Cash_Impact 用 `NT$#,##0`(0 位小數)顯示,貼出來的就是整數 ——
+   * 例如 `180 × 333.33 = 59,999.4` 會被顯示成 `59,999`。
+   * 那時恆等式必然差 0.4,而那**不是欄位錯位**。
+   *
+   * ⚠️ 但**絕不可以把它塞進容差**。「允許預期中的差異」是
+   *    「在正確與錯誤假設下都會通過」那件外衣 —— 真的錯位也會被吸收掉。
+   *    所以:分開計數、逐列具名、判【無法驗】而不是通過。
+   */
+  const identityRounded: number[] = [];
   /** 已收下的交易列數 = 每列恆等式【應該】驗到的分母 */
   let acceptedTrades = 0;
 
@@ -287,6 +381,22 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
     const bad = (column: string | null, reason: string, raw = "") =>
       problems.push({ rowNo, column, reason, raw });
 
+    /* ── 🔴 欄位位移守衛:這一列的儲存格【比表頭多】──
+       實測目前 0 筆備註含 tab,所以 TSV 沒有被撕裂。**但不可假設永遠如此。**
+       備註裡的一個 tab 會讓該列從此往右整排位移,而且每一格都還是「有值」——
+       那是靜默錯位:值看起來都在,意義全換了一欄。
+       ⚠️ 比表頭【少】是正常的(Excel 會把尾端空儲存格截掉),已在別處處理。 */
+    if (cells.length > headers.length) {
+      bad(
+        null,
+        `這一列有 ${cells.length} 個儲存格,表頭只有 ${headers.length} 個 —— ` +
+          `最可能是某個欄位(通常是 Notes)的內容含 tab 或換行,把整列往右擠了。` +
+          `🔴 不猜哪一欄多出來:欄位位移不會報錯,只會讓每個值落到隔壁欄。`,
+        line.slice(0, 120)
+      );
+      continue;
+    }
+
     /* ── Action:白名單,不猜 ── */
     const actionRaw = get(cells, "Action").trim();
     const action = actionRaw.toUpperCase();
@@ -304,7 +414,7 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
     const dateRaw = get(cells, "Date");
     const date = normalizeDate(dateRaw);
     if (!date) {
-      bad("Date", "無法解析的日期格式(接受 YYYY-MM-DD 或 YYYY/M/D)", dateRaw);
+      bad("Date", dateRejectReason(dateRaw), dateRaw);
       continue;
     }
 
@@ -317,8 +427,10 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
       continue;
     }
 
+    /* 🔴 貨幣欄一律走 normalizeCurrency:要吃得下 `NT$`、千分位,
+       並且把 `NT$-` 讀成【零】而不是「空白」或「負號」。 */
     const cashRaw = get(cells, "Cash_Impact");
-    const cash = normalizeNumber(cashRaw);
+    const cash = normalizeCurrency(cashRaw);
 
     /* ── 現金流:DEPOSIT ── */
     if (action === "DEPOSIT") {
@@ -359,8 +471,8 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
     /* 🔴 費用/稅:空白 = 缺席 → 拒絕;來源寫的 0 = 值 → 照收。 */
     const feeRaw = get(cells, "Fee");
     const taxRaw = get(cells, "Tax");
-    const fee = normalizeNumber(feeRaw);
-    const tax = normalizeNumber(taxRaw);
+    const fee = normalizeCurrency(feeRaw);
+    const tax = normalizeCurrency(taxRaw);
 
     if (!qty || qty.num <= 0) {
       bad("Quantity", "股數空白、無法解析或非正數", get(cells, "Quantity"));
@@ -371,11 +483,11 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
       continue;
     }
     if (!fee) {
-      bad("Fee", "手續費空白 —— 🔴 不補 0。「沒有」與「是零」必須分得開", feeRaw);
+      bad("Fee", "手續費空白或無法解析 —— 🔴 不補 0。零費用請由來源寫出來(`0` 或 `NT$-` 都收)", feeRaw);
       continue;
     }
     if (!tax) {
-      bad("Tax", "證交稅空白 —— 🔴 不補 0(買進的 0 應由來源寫出來,不由我們填)", taxRaw);
+      bad("Tax", "證交稅空白或無法解析 —— 🔴 不補 0。買進的零稅請由來源寫出來(`0` 或 `NT$-` 都收)", taxRaw);
       continue;
     }
     if (fee.num < 0) {
@@ -417,7 +529,12 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
       const dev = Math.abs(cash.num - expect);
       identityChecked++;
       identityMaxDev = Math.max(identityMaxDev, dev);
-      if (dev > IDENTITY_TOL) identityBad++;
+      if (dev > IDENTITY_TOL) {
+        /* 差得不到 1 元、且貼上的值恰好是整數 → 顯示格式四捨五入的形狀。
+           判準寫死成這兩個條件的【且】,不是「差得小就算了」。 */
+        if (dev < 1 && Number.isInteger(cash.num)) identityRounded.push(rowNo);
+        else identityBad++;
+      }
     }
   }
 
@@ -427,7 +544,7 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
     for (let li = lines.length - 1; li > firstIdx; li--) {
       const line = lines[li]!;
       if (line.trim() === "") continue;
-      const v = normalizeNumber(splitLine(line, delim)[col.get("Running_Cash")!] ?? "");
+      const v = normalizeCurrency(splitLine(line, delim)[col.get("Running_Cash")!] ?? "");
       if (v) {
         lastRunningCash = v;
         break;
@@ -457,7 +574,26 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
             detail: `${identityBad} / ${identityChecked} 列對不上:欄位對應可能錯位`,
             maxDeviation: identityMaxDev,
           }
-        : identityChecked < acceptedTrades
+        : identityRounded.length > 0
+          ? {
+              /* 🔴 差得不到 1 元、且貼上值是整數 → 來源的 Cash_Impact 很可能被
+                 顯示格式(`NT$#,##0`)四捨五入過。那時這條恆等式【驗不了】——
+                 因為我們拿不到未捨入的值,無法區分「本來就一致」與「真的差了幾角」。
+                 ⚠️ 判無法驗,不判通過;也不把 1 元塞進容差。 */
+              name: IDENT,
+              status: "unknown",
+              detail:
+                `${identityRounded.length} / ${identityChecked} 列差在 1 元以內且貼上值是整數 —— ` +
+                `來源的 Cash_Impact 疑似被顯示格式四捨五入(列 ${identityRounded.slice(0, 8).join("、")}` +
+                `${identityRounded.length > 8 ? ` …其餘 ${identityRounded.length - 8} 列` : ""})。` +
+                `其餘列全部吻合。`,
+              maxDeviation: identityMaxDev,
+              need:
+                "把來源 Cash_Impact 欄的格式改成不捨入的(一般/數值,不要 NT$#,##0)再貼一次。" +
+                "⚠️ 這不影響匯入的正確性 —— Cash_Impact 本身【不寫入資料庫】,它只是這條檢查的輸入;" +
+                "但在改掉之前,這些列的欄位對應【沒有完整證據】。",
+            }
+          : identityChecked < acceptedTrades
           ? {
               /* 🔴 驗到的都吻合,但【沒有驗完】。這不是通過 ——
                  「37 列全部吻合」在 39 筆交易的情況下讀起來像通過,
@@ -484,12 +620,27 @@ export function parsePaste(text: string, opts: ParseOptions = {}): ParseResult {
           detail: "來源沒有 Running_Cash 欄,或該欄全空",
           need: "來源需含 Running_Cash 欄且至少一列有值",
         }
-      : {
-          name: RUNNING,
-          status: Math.abs(sumCashImpact - lastRunningCash.num) <= IDENTITY_TOL ? "pass" : "fail",
-          detail: `Σ = ${sumCashImpact.toFixed(2)} · Running_Cash = ${lastRunningCash.raw}`,
-          maxDeviation: Math.abs(sumCashImpact - lastRunningCash.num),
-        }
+      : (() => {
+          const dev = Math.abs(sumCashImpact - lastRunningCash!.num);
+          const base = {
+            name: RUNNING,
+            detail: `Σ = ${sumCashImpact.toFixed(2)} · Running_Cash = ${lastRunningCash!.raw}`,
+            maxDeviation: dev,
+          };
+          if (dev <= IDENTITY_TOL) return { ...base, status: "pass" as const };
+          /* 🔴 來源被四捨五入時,累計必然也對不上(N 列各差 ±0.5 會累積)。
+             那時判【無法驗】並歸因,不報 fail —— 報 fail 會把使用者指向錯的方向。
+             但也不放寬容差:狀態不是 pass。 */
+          if (identityRounded.length > 0) {
+            return {
+              ...base,
+              status: "unknown" as const,
+              detail: `${base.detail} —— 差額與上一條偵測到的四捨五入一致(${identityRounded.length} 列),累計無從驗證`,
+              need: "同上:把 Cash_Impact 改成不捨入的格式再貼一次",
+            };
+          }
+          return { ...base, status: "fail" as const };
+        })()
   );
 
   return {
