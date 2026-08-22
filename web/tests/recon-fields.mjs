@@ -39,6 +39,48 @@ const side = (over = {}) => ({ ...BASE, ...over });
 console.log("── 空清單守衛 ──");
 check(RECON_FIELDS.length > 0, "🔴 RECON_FIELDS 非空(空清單會讓 every() 恆真 → 零檢查卻宣告吻合)", String(RECON_FIELDS.length));
 
+/* ══════════════════════════════════════════════════════════════════════
+ * 🔴 容差釘在這裡 —— 否則下面的注入測試是【自我指涉】的
+ *
+ * 下面「注入超出容差」用的注入量是 `f.tol * 10`,也就是**從容差推出來的**。
+ * 所以若有人把某欄的 `tol` 改成 `1e9`,注入量會跟著變成 `1e10`,
+ * 測試照樣全綠 —— 而那一欄實際上**不再檢查任何東西**。
+ * 「參數把檢查變空,測試卻仍綠」是比「檢查寫錯」更難發現的一種失效。
+ *
+ * 解法:把每一欄的容差**釘成常數**。之後放寬容差就必須同時改這裡 ——
+ * 從**靜默漂移**變成**刻意行為**(與凍結全量 md5 指紋是同一個手法)。
+ *
+ * ⚠️ 兩個方向都要檢查:
+ *   ① 每一欄都必須在這張表裡 → 新增欄位時會被迫替它訂一個容差
+ *   ② 這張表不得有多出來的鍵 → 欄位被移除時這裡不會留下無人看管的期望值
+ * ══════════════════════════════════════════════════════════════════════ */
+const PINNED_TOL = {
+  /* 股數是整數或零股小數,兩邊不該有任何實質差異 —— 這個容差只吸浮點噪音 */
+  shares: 1e-6,
+  /* 均價是除法結果,容差比股數鬆一級 */
+  avgCost: 0.005,
+  /* 成本合計是加總,容差再鬆一級(仍遠小於 1 分錢的實際意義) */
+  costBasis: 0.01,
+};
+
+console.log("\n── 🔴 容差釘死(否則注入測試是自我指涉的)──");
+{
+  const fieldKeys = RECON_FIELDS.map((f) => f.key).sort();
+  const pinnedKeys = Object.keys(PINNED_TOL).sort();
+  check(
+    JSON.stringify(fieldKeys) === JSON.stringify(pinnedKeys),
+    "🔴 每一欄都有釘死的容差,且沒有多餘的期望值(雙向)",
+    `欄位 ${JSON.stringify(fieldKeys)} vs 釘死 ${JSON.stringify(pinnedKeys)}`
+  );
+  for (const f of RECON_FIELDS) {
+    check(
+      f.tol === PINNED_TOL[f.key] && Number.isFinite(f.tol) && f.tol > 0,
+      `「${f.label}」的容差 = ${PINNED_TOL[f.key]}(放寬它必須同時改這個測試)`,
+      `實際 ${f.tol}`
+    );
+  }
+}
+
 console.log("\n── 對照組:兩邊相同必須全數吻合 ──");
 {
   const r = judgeReconRow("2330", side(), side());
@@ -96,7 +138,7 @@ console.log("\n── 🔴 結論句由欄位定義導出,不是另寫的字串 
 
 /* plan 由欄位數導出 —— 加一欄時期望值自動跟上,不會變成「有測試沒跑到」 */
 const N = RECON_FIELDS.length;
-const PLAN = 1 + 3 + N * 2 + N + 4 + N + 1;
+const PLAN = 1 + (1 + N) + 3 + N * 2 + N + 4 + N + 1;
 console.log(`\n通過 ${pass} 項;失敗 ${fails.length} 項(plan ${PLAN},由 ${N} 欄導出)`);
 if (pass + fails.length !== PLAN) {
   console.error(`❌ plan 對不上:宣告 ${PLAN} 項,實跑 ${pass + fails.length} 項`);
