@@ -361,12 +361,39 @@ export function eventsInHolding(
   events: CorporateEvent[],
   days: DayPosition[]
 ): CorporateEvent[] {
-  const held = new Map<string, Set<string>>(); // ticker → 持有的日期集合
-  for (const d of days) {
-    for (const tk of Object.keys(d.shares)) {
-      if (!held.has(tk)) held.set(tk, new Set());
-      held.get(tk)!.add(d.date);
+  if (!days.length) return [];
+  const firstDay = days[0]!.date;
+  const lastDay = days[days.length - 1]!.date;
+
+  /**
+   * 🔴 判準是「**事件日前一個軸日**收盤時是否持有」,不是「事件日當天是否持有」。
+   *
+   * 台股規則:**除息(權)日前一交易日收盤時持有**才領得到。
+   * 用「當天是否持有」會在兩個方向同時出錯,而且兩種錯都看起來完全正常:
+   *
+   * | 情境 | 實際 | 用「當天持有」 |
+   * |---|---|---|
+   * | 在除息日**當天買進** | 領不到、價格已調整 → 無失真 | 誤標(假陽性) |
+   * | 前一日持有、除息日**當天賣出** | 領得到、賣在調整後價 → 有失真 | 漏標(假陰性) |
+   *
+   * ⚠️ 用「軸日」而不是「該檔自己的交易日」:停牌期間的權益歸屬要看停牌前的
+   *    最後交易日,那需要逐檔的停牌資訊,本輪沒有。軸日是可辯護的近似 ——
+   *    **而且它是明寫的近似,不是沒想過。**
+   */
+  const idxBefore = (date: string): number => {
+    let hit = -1;
+    for (let i = 0; i < days.length; i++) {
+      if (days[i]!.date < date) hit = i;
+      else break;
     }
-  }
-  return events.filter((e) => held.get(e.ticker)?.has(e.date));
+    return hit;
+  };
+
+  return events.filter((e) => {
+    /* 事件落在曲線範圍之外 → 這條曲線上沒有那個失真 */
+    if (e.date < firstDay || e.date > lastDay) return false;
+    const i = idxBefore(e.date);
+    if (i < 0) return false; // 事件日之前沒有任何軸日 → 那時還沒有部位
+    return (days[i]!.shares[e.ticker] ?? 0) > 0;
+  });
 }

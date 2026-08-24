@@ -231,7 +231,7 @@ const MONTHLY_STATS = [
           {/* 🔴 品質註記:填補次數 / 缺價天數 / 除權息事件都必須看得見。
               填補會把問題抹平,而看不見的抹平就是靜默錯誤。 */}
           <p class="nv-quality" id="nv-quality" role="status"></p>
-          <ul class="nv-events" id="nv-events" hidden></ul>
+          <ul class="nv-events" id="nv-events" hidden aria-label="除權息事件檢查結果"></ul>
 
           {/* 🔴 D:逐日抽點。
               D 的期望值是【使用者自己的】逐日位置,那份資料在線上 ——
@@ -1093,18 +1093,34 @@ const MONTHLY_STATS = [
         const ul = $$("nv-events");
         if (ul) {
           ul.textContent = "";
-          ul.hidden = inHold.length === 0;
+          /* 🔴 **0 筆也要說出來。**
+             留白讀起來像「沒檢查」,而「已檢查 N 檔、0 筆」是有意義的 0。
+             一個永遠回 0 又不出聲的偵測器,分不出「真的沒有」與「根本沒在跑」——
+             那與「攻擊 0 + 對照 0」是同一件事。
+             (偵測器會響這件事由 tests/portfolio-series.mjs 的合成正向案例證明,
+              用的是真實的除息日期 + 合成部位。) */
+          ul.hidden = false;
+          const head = document.createElement("li");
           if (inHold.length) {
-            const head = document.createElement("li");
             head.textContent =
-              "🔴 持有期間內有除權息/配股事件 —— 曲線在這些日子前後【不可比】" +
-              "(配股的股數變動沒有紀錄,現金股息需要你自己登記):";
-            ul.appendChild(head);
-            for (const e of inHold.slice(0, 12)) {
-              const li = document.createElement("li");
-              li.textContent = `${e.date} · ${e.ticker} · ${e.detail}`;
-              ul.appendChild(li);
-            }
+              `🔴 已檢查 ${series.size} 檔的除權息/分割事件,持有期間內 ${inHold.length} 筆 —— ` +
+              "曲線在這些日子前後【不可比】(配股的股數變動沒有紀錄,現金股息需要你自己登記):";
+          } else {
+            head.textContent =
+              `✓ 已檢查 ${series.size} 檔的除權息/分割事件(判準:事件日【前一交易日】收盤是否持有),` +
+              "持有期間內 0 筆 —— 這條曲線沒有除權息造成的失真。";
+            head.style.color = "var(--text-secondary)";
+          }
+          ul.appendChild(head);
+          for (const e of inHold.slice(0, 12)) {
+            const li = document.createElement("li");
+            li.textContent = `${e.date} · ${e.ticker} · ${e.detail}`;
+            ul.appendChild(li);
+          }
+          if (inHold.length > 12) {
+            const li = document.createElement("li");
+            li.textContent = `…其餘 ${inHold.length - 12} 筆`;
+            ul.appendChild(li);
           }
         }
       }
