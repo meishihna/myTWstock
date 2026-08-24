@@ -11,8 +11,14 @@
  *    (不碰 永豐持股.xlsx、券商匯出檔、或任何真實持倉)。
  *    僅參考該儀表板的【版面結構】,未複製任何資料內容。
  *
- * 現階段【只有版型,零資料】。Phase 2 = 使用者登入後【手動輸入自己的交易】,
+ * Phase 2 = 使用者登入後【手動輸入或從試算表貼上匯入自己的交易】,
  * 系統以【公開股價】自動計算損益與績效;不代下單、不連接券商。
+ *
+ * ⚠️ 檔頭原本寫「現階段【只有版型,零資料】」—— 那從輪 2 起就是假的。
+ *    **會騙人的註解比沒有註解更糟**:它讓下一個讀的人以為這頁還是空殼。
+ *    已實作:auth(輪 1)· 交易 CRUD(輪 2)· 持倉/未實現(輪 3)·
+ *    線上隔離自測(輪 4)· 貼上匯入(輪 5)· 現值類卡片(輪 6)·
+ *    時間序列(輪 7)。
  */
 import Layout from "../layouts/Layout.astro";
 import { SITE, TRADES_PAGE } from "../lib/ui";
@@ -135,7 +141,7 @@ const MONTHLY_STATS = [
         <span class="rule" aria-hidden="true"></span>
         <span class="txt">每日投資簡報</span>
         <span class="dt" id="tr-date">—</span>
-        <span class="tr-phase">{TRADES_PAGE.phase}</span>
+        <span class="tr-phase" id="tr-phase">{TRADES_PAGE.phase}</span>
       </div>
       <h1 class="tr-num" id="tr-hero-h">
         <span class="cur">NT$</span><span class="tr-na" id="tr-equity">—</span>
@@ -219,13 +225,13 @@ const MONTHLY_STATS = [
               這裡的空狀態說「尚未計算」而不是「你沒有資料」。 */}
           <div class="plot" id="nv-plot" role="img" aria-label="淨值走勢圖">
             <span class="plot-t">淨值 / 累積報酬</span>
-            <span class="plot-e" id="nv-empty">淨值曲線需要逐日收盤價,正在計算</span>
+            <span class="plot-e" id="nv-empty">淨值曲線由你的交易與逐日收盤價計算</span>
           </div>
           <div class="dd-head">
             <span class="t">回撤</span><span class="hint">自高點回落</span>
           </div>
           <div class="plot plot--sm" id="dd-plot" role="img" aria-label="回撤圖">
-            <span class="plot-e" id="dd-empty">回撤由淨值曲線推導,正在計算</span>
+            <span class="plot-e" id="dd-empty">回撤由淨值曲線推導</span>
           </div>
 
           {/* 🔴 品質註記:填補次數 / 缺價天數 / 除權息事件都必須看得見。
@@ -342,7 +348,9 @@ const MONTHLY_STATS = [
              右側走勢圖需要【逐日股價】,那是時間序列輪 → 明說排在哪一輪,不假裝沒資料。
         */}
         <div class="stock-flex">
-          <div class="stock-list" id="stk-list" aria-label="持股清單"></div>
+          <div class="stock-list" id="stk-list" aria-label="持股清單">
+            <p class="s-empty">持股清單由你的交易自動列出</p>
+          </div>
           <div class="stock-main">
             <div class="plot" role="img" aria-label="個股走勢圖(尚未實作)">
               <span class="plot-t">個股走勢 + 你的買賣點</span>
@@ -513,6 +521,11 @@ const MONTHLY_STATS = [
       document.querySelectorAll<HTMLElement>(".tr-hint").forEach((h) => {
         h.textContent = signedIn ? "手動輸入,或從試算表匯入" : "登入後即可輸入";
       });
+      /* 🔴 報頭徽章原本永遠寫「Phase 2 · 登入後可用」—— 那是**以未登入為前提**的文案,
+         而它對一個已登入、正在用這頁的人一直掛在那裡。
+         (未登入時它仍然是有用的資訊,所以是切換而不是刪除。) */
+      const ph = document.getElementById("tr-phase");
+      if (ph) ph.textContent = signedIn ? "Phase 2" : "Phase 2 · 登入後可用";
     }
 
     function show(which: "signedout" | "signedin" | "unconfigured") {
@@ -992,6 +1005,14 @@ const MONTHLY_STATS = [
 
       async function renderSeries() {
         if (!cache.length) return;
+        /* 🔴 「正在計算」只能在【真的開始算】的時候說。
+           把它寫進靜態 markup 的話,一個未登入的人會看到「正在計算」——
+           而那時什麼都沒有在算。**那是我剛修完那個病的新實例,我自己犯的。**
+           靜態文字改成狀態中立的機制描述,活動狀態由這裡設。 */
+        for (const id of ["nv-empty", "dd-empty"] as const) {
+          const el = $$(id);
+          if (el) el.textContent = id === "nv-empty" ? "正在計算淨值曲線…" : "正在計算回撤…";
+        }
 
         /* 🔴 需要【曾持有過】的全部代號,不只現在持有的 ——
            已出清的標的也在曲線期間內。隱私聲明已照這件事改過措辭。 */
@@ -1126,7 +1147,7 @@ const MONTHLY_STATS = [
       }
 
       /* ── D:逐日抽點 ── */
-      $("nv-probe-go")?.addEventListener("click", () => {
+      $$("nv-probe-go")?.addEventListener("click", () => {
         const out = $$("nv-probe-out");
         const dateEl = $$("nv-date") as HTMLInputElement | null;
         if (!out || !dateEl) return;
