@@ -153,7 +153,7 @@ const MONTHLY_STATS = [
       <div class="tr-goal">
         <div class="g-head">
           <span class="lbl">目標獲利進度</span>
-          <span class="right">尚無資料 · <b>登入後設定你的目標</b></span>
+          <span class="right"><b>目標設定尚未實作</b></span>
         </div>
         <div
           class="g-track"
@@ -161,7 +161,7 @@ const MONTHLY_STATS = [
           aria-label="目標獲利進度"
           aria-valuemin="0"
           aria-valuemax="100"
-          aria-valuetext="尚無資料"
+          aria-valuetext="目標設定尚未實作"
         >
           <div class="g-fill" style="width:0"></div>
           {
@@ -219,13 +219,13 @@ const MONTHLY_STATS = [
               這裡的空狀態說「尚未計算」而不是「你沒有資料」。 */}
           <div class="plot" id="nv-plot" role="img" aria-label="淨值走勢圖">
             <span class="plot-t">淨值 / 累積報酬</span>
-            <span class="plot-e" id="nv-empty">{TRADES_PAGE.emptyCta}</span>
+            <span class="plot-e" id="nv-empty">淨值曲線需要逐日收盤價,正在計算</span>
           </div>
           <div class="dd-head">
             <span class="t">回撤</span><span class="hint">自高點回落</span>
           </div>
           <div class="plot plot--sm" id="dd-plot" role="img" aria-label="回撤圖">
-            <span class="plot-e" id="dd-empty">尚未計算</span>
+            <span class="plot-e" id="dd-empty">回撤由淨值曲線推導,正在計算</span>
           </div>
 
           {/* 🔴 品質註記:填補次數 / 缺價天數 / 除權息事件都必須看得見。
@@ -310,7 +310,7 @@ const MONTHLY_STATS = [
             </thead>
             <tbody id="hd-body">
               <tr class="tr-empty">
-                <td colspan={HOLDING_COLS.length}>{TRADES_PAGE.emptyCta}</td>
+                <td colspan={HOLDING_COLS.length}>持倉由你的交易自動計算</td>
               </tr>
             </tbody>
           </table>
@@ -368,7 +368,7 @@ const MONTHLY_STATS = [
           {/* 貼上匯入獨立一頁:那是「貼上 → 預覽 → 確認 → 對帳 → 撤銷」的多步流程,
               放進本頁會讓本頁多出一整條只在匯入時才走的分支。 */}
           <a class="tr-btn" href="/trades/import">⇱ 從試算表匯入</a>
-          <span class="tr-hint">Phase 2 · 登入後開放</span>
+          <span class="tr-hint">登入後即可輸入</span>
           <span class="tx-status" id="tx-status" role="status"></span>
         </div>
 
@@ -411,7 +411,7 @@ const MONTHLY_STATS = [
             </thead>
             <tbody id="tx-body">
               <tr class="tr-empty">
-                <td colspan={TX_COLS.length + 1}>{TRADES_PAGE.emptyCta}</td>
+                <td colspan={TX_COLS.length + 1}>交易紀錄由你自行輸入</td>
               </tr>
             </tbody>
           </table>
@@ -500,10 +500,18 @@ const MONTHLY_STATS = [
     const msg = document.getElementById("tr-auth-msg");
     const who = document.getElementById("tr-who");
 
-    /** 交易/觀察區塊的提示文字:登入前後說法不同,但兩者都不假裝功能已開放 */
+    /**
+     * 交易區塊的提示文字。
+     *
+     * 🔴 已登入時原本寫「輸入功能開發中」—— 那句話從輪 2 起就是**假的**
+     *    (新增/編輯/刪除都能用,而且有雙實作比對)。
+     *    它是條件式的,所以躲過了「佔位陳述事實」那一輪的清查 ——
+     *    **條件式的假話還是假話,只是更難數。**
+     *    改成描述【機制】而不是【開發狀態】:機制不會過期。
+     */
     function setHints(signedIn: boolean) {
       document.querySelectorAll<HTMLElement>(".tr-hint").forEach((h) => {
-        h.textContent = signedIn ? "輸入功能開發中" : "Phase 2 · 登入後開放";
+        h.textContent = signedIn ? "手動輸入,或從試算表匯入" : "登入後即可輸入";
       });
     }
 
@@ -789,7 +797,18 @@ const MONTHLY_STATS = [
               li.append(l, track, v);
               list.appendChild(li);
             }
-            if (note) note.textContent = `占淨值 ${money(s.equity)};各片加總 100%(含現金)。`;
+            /* 🔴 原本寫「各片加總 100%」—— 但畫面上的七片各自四捨五入到兩位,
+               相加會是 99.99%。**那句話斷言了一個看得見的數字不支持的事**
+               (同「描述比程式碼寬」那族,只是很輕)。
+               改成講清楚:全精度是 100,顯示值經過捨入。不湊數字去迎合文案。 */
+            if (note) {
+              const shown = s.allocation.reduce((n, a) => n + Number(a.pct.toFixed(2)), 0);
+              note.textContent =
+                `占淨值 ${money(s.equity)};各片【全精度】加總 100%(含現金)。` +
+                (Math.abs(shown - 100) > 1e-9
+                  ? ` 上方顯示值各自四捨五入到兩位,相加是 ${shown.toFixed(2)}%。`
+                  : "");
+            }
           }
         }
         /* donut:用 conic-gradient 疊出比例(不畫 SVG 弧,省一層幾何) */
