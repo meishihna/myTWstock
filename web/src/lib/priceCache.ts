@@ -506,7 +506,10 @@ export interface Bar {
   volume: number;
 }
 
-const barsCache = new Map<string, { bars: Bar[] | null; ts: number }>();
+/** 除權息 / 分割事件 —— 與日線同一次 Yahoo 呼叫取得,不另外打一次 */
+export type CorpEvent = { date: string; kind: "dividend" | "split"; detail: string };
+
+const barsCache = new Map<string, { bars: Bar[] | null; events: CorpEvent[]; ts: number }>();
 
 /**
  * 完整 2 年日線 OHLCV（未裁切），供 Lightweight Charts 與未來 Charting Library Datafeed 使用。
@@ -521,7 +524,10 @@ export async function getBars(ticker: string): Promise<Bar[] | null> {
   for (const suffix of suffixOrder(ticker)) {
     try {
       const symbol = `${ticker}${suffix}`;
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d`;
+      /* 🔴 `events=div,splits` 是【同一次呼叫】順便帶回來的 ——
+         除權息事件必須被偵測並具名(淨值曲線在配股日前後不可比),
+         而為了它多打一次 Yahoo 是沒必要的成本。 */
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d&events=div,splits`;
       const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; TWstock/1.0)" },
       });
@@ -558,12 +564,42 @@ export async function getBars(ticker: string): Promise<Bar[] | null> {
         });
       }
       if (bars.length < 2) continue;
-      barsCache.set(ticker, { bars, ts: now });
+
+      const ev = (result as { events?: Record<string, Record<string, { date?: number; amount?: number; numerator?: number; denominator?: number; splitRatio?: string }>> }).events;
+      const events: CorpEvent[] = [];
+      const day = (t?: number) => (t == null ? null : new Date(t * 1000).toISOString().split("T")[0]!);
+      for (const d of Object.values(ev?.dividends ?? {})) {
+        const dt = day(d.date);
+        if (dt) events.push({ date: dt, kind: "dividend", detail: `現金股息 ${d.amount ?? "?"}` });
+      }
+      for (const sp of Object.values(ev?.splits ?? {})) {
+        const dt = day(sp.date);
+        if (dt) events.push({ date: dt, kind: "split", detail: `分割/配股 ${sp.splitRatio ?? `${sp.numerator ?? "?"}:${sp.denominator ?? "?"}`}` });
+      }
+      events.sort((a, b) => (a.date < b.date ? -1 : 1));
+
+      barsCache.set(ticker, { bars, events, ts: now });
       return bars;
     } catch {
       continue;
     }
   }
-  barsCache.set(ticker, { bars: null, ts: now });
+  barsCache.set(ticker, { bars: null, events: [], ts: now });
   return null;
+}
+
+/**
+ * 除權息 / 分割事件(與 `getBars` 共用同一次呼叫與同一份快取)。
+ *
+ * 🔴 用途是【偵測並具名】,不是修正:
+ *   · 現金股息 —— 未還原價在除息日下跌 + 使用者登記的 `cash_flows(dividend)` 現金上升 → 自洽,
+ *     **前提是他有登記**。沒登記的話曲線會在該日出現一個假的下跌。
+ *   · 股票股利(配股)—— 股數變動沒有任何紀錄(`trades` 只有買賣)→ 該日前後失真。
+ *   兩者都不猜、不平滑:畫出來並在該日標記【不可比】。
+ */
+export async function getCorpEvents(ticker: string): Promise<CorpEvent[]> {
+  const hit = barsCache.get(ticker);
+  if (hit && Date.now() - hit.ts < TTL_MS) return hit.events;
+  await getBars(ticker);
+  return barsCache.get(ticker)?.events ?? [];
 }

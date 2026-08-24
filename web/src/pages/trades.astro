@@ -62,12 +62,19 @@ const MONTHLY_STATS = [
       損益由你自行輸入的交易搭配<b>公開股價</b>計算。
       <br />
       {/*
-        🔴 架構承諾是「伺服器從不看到使用者資料」,但取現價時代號清單會經過本站的報價代理,
+        🔴 架構承諾是「伺服器從不看到使用者資料」,但取價時代號清單會經過本站的報價代理,
            因而會出現在存取記錄裡。**承諾與實際資料流不一致時,要改的是承諾的措辭,
            不是把差異藏起來。** 詳見 docs/financials-known-limitations 的同名條目。
+
+        🔴 2026-08-24(輪 7)更新措辭:淨值曲線需要【歷史持股】的日線,
+           包含**已經出清的標的** —— 所以送出的不只是「現在持有的」,而是「曾持有過的」。
+           **歷史持股比現有持股透露更多:那是交易歷史的形狀,不只是現在的部位。**
+           措辭必須跟著實際資料流走。
       */}
-      <b>一個例外要讓你知道:</b>取得現價時,<b>你持有的股票代號會傳送到本站的報價代理</b>
-      (交易明細、股數、成本都不會)。這是取得即時報價無法避免的一步。
+      <b>一個例外要讓你知道:</b>取得股價時,<b>你曾持有過的股票代號會傳送到本站的報價代理</b>
+      (交易明細、股數、成本、日期都不會)。
+      <b>包含已經賣光的標的</b> —— 淨值曲線要算歷史,就得取那些代號的歷史股價。
+      這比「現在持有什麼」透露更多:它是<b>交易歷史的形狀</b>。這是計算歷史績效無法避免的一步。
     </p>
 
     {/*
@@ -208,16 +215,41 @@ const MONTHLY_STATS = [
             <h2>績效走勢</h2>
             <span class="sub">淨值曲線與回撤</span>
           </div>
-          <div class="plot" role="img" aria-label="淨值走勢圖(尚無資料)">
+          {/* 🔴 佔位文字不可以陳述事實(輪 6 的教訓)——
+              這裡的空狀態說「尚未計算」而不是「你沒有資料」。 */}
+          <div class="plot" id="nv-plot" role="img" aria-label="淨值走勢圖">
             <span class="plot-t">淨值 / 累積報酬</span>
-            <span class="plot-e">{TRADES_PAGE.emptyCta}</span>
+            <span class="plot-e" id="nv-empty">{TRADES_PAGE.emptyCta}</span>
           </div>
           <div class="dd-head">
             <span class="t">回撤</span><span class="hint">自高點回落</span>
           </div>
-          <div class="plot plot--sm" role="img" aria-label="回撤圖(尚無資料)">
-            <span class="plot-e">尚無資料</span>
+          <div class="plot plot--sm" id="dd-plot" role="img" aria-label="回撤圖">
+            <span class="plot-e" id="dd-empty">尚未計算</span>
           </div>
+
+          {/* 🔴 品質註記:填補次數 / 缺價天數 / 除權息事件都必須看得見。
+              填補會把問題抹平,而看不見的抹平就是靜默錯誤。 */}
+          <p class="nv-quality" id="nv-quality" role="status"></p>
+          <ul class="nv-events" id="nv-events" hidden></ul>
+
+          {/* 🔴 D:逐日抽點。
+              D 的期望值是【使用者自己的】逐日位置,那份資料在線上 ——
+              所以 D 不可能是 repo 裡的單元測試。它必須是使用者跑得起來的東西。 */}
+          <details class="nv-probe">
+            <summary>逐日抽點(核對某一天的現金與持股)</summary>
+            <p class="nv-why">
+              輸入日期 → 顯示<b>該日收盤後</b>的現金與逐檔股數。
+              🔴 這是驗<b>逐日位置</b>的唯一方式 ——
+              「現金累加 == 現在的現金」那條在<b>日期全錯時照樣通過</b>,它只驗總量。
+            </p>
+            <div class="nv-probe-row">
+              <label class="sr-only" for="nv-date">抽點日期</label>
+              <input type="date" id="nv-date" />
+              <button class="tr-btn" type="button" id="nv-probe-go">查這一天</button>
+            </div>
+            <p class="nv-probe-out" id="nv-probe-out" role="status"></p>
+          </details>
         </div>
 
         <div class="panel">
@@ -870,6 +902,223 @@ const MONTHLY_STATS = [
         }
       }
 
+
+      /* ══ 輪 7:時間序列(淨值曲線 / 回撤 / TWR / VS 0050)════════════════
+         🔴 全部排在【首次繪製之後】,而且不 await —— 它要抓 10 檔的兩年日線,
+            那不可以是白畫面的原因。同輪 2 的雙實作比對。
+
+         🔴 日線快取只在伺服器記憶體(priceCache 的 5 分鐘),**不落地** ——
+            持久化就從「代理」跨進「重散布」。見 docs/portfolio-series-design.md §0。 */
+      const PS = await import("../lib/portfolioSeries");
+      const CH = await import("../lib/seriesChartSvg");
+
+      /** 對標:元大台灣50 */
+      const BENCH = "0050";
+
+      let seriesDays: any[] = [];
+
+      const svgNS = "http://www.w3.org/2000/svg";
+      const mkSvg = (c: any, cls: string, areas?: string[]) => {
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("viewBox", `0 0 ${c.w} ${c.h}`);
+        svg.setAttribute("preserveAspectRatio", "none");
+        for (const t of c.ticks) {
+          const l = document.createElementNS(svgNS, "line");
+          l.setAttribute("x1", "0");
+          l.setAttribute("x2", String(c.w));
+          l.setAttribute("y1", String(t.y));
+          l.setAttribute("y2", String(t.y));
+          l.setAttribute("class", "nv-grid");
+          svg.appendChild(l);
+        }
+        for (const d of areas ?? []) {
+          if (!d) continue;
+          const p = document.createElementNS(svgNS, "path");
+          p.setAttribute("d", d);
+          p.setAttribute("class", cls);
+          svg.appendChild(p);
+        }
+        if (!areas) {
+          for (const d of c.paths) {
+            const p = document.createElementNS(svgNS, "path");
+            p.setAttribute("d", d);
+            p.setAttribute("class", cls);
+            svg.appendChild(p);
+          }
+        }
+        return svg;
+      };
+
+      /** 取一檔的日線。🔴 失敗回 null,不回空陣列 —— 「沒有資料」與「取不到」是兩件事 */
+      async function fetchBars(tk: string): Promise<any[] | null> {
+        try {
+          const r = await fetch(`/api/bars/${encodeURIComponent(tk)}`);
+          if (!r.ok) return null;
+          const j = await r.json();
+          return Array.isArray(j?.bars) ? j.bars.map((b: any) => ({ time: b.time, close: b.close })) : null;
+        } catch {
+          return null;
+        }
+      }
+      async function fetchEvents(tk: string): Promise<any[]> {
+        try {
+          const r = await fetch(`/api/corp-events/${encodeURIComponent(tk)}`);
+          if (!r.ok) return [];
+          const j = await r.json();
+          return Array.isArray(j?.events) ? j.events.map((e: any) => ({ ...e, ticker: tk })) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      async function renderSeries() {
+        if (!cache.length) return;
+
+        /* 🔴 需要【曾持有過】的全部代號,不只現在持有的 ——
+           已出清的標的也在曲線期間內。隱私聲明已照這件事改過措辭。 */
+        const everHeld = [...new Set(cache.map((t: any) => t.ticker))].sort();
+        const first = cache.reduce((m: string, t: any) => (t.trade_date < m ? t.trade_date : m), cache[0].trade_date);
+        const today = new Date().toISOString().split("T")[0]!;
+
+        const fetched = await Promise.all(everHeld.map(async (tk) => [tk, await fetchBars(tk)] as const));
+        const series = new Map<string, any[]>();
+        const noBars: string[] = [];
+        for (const [tk, bars] of fetched) {
+          if (bars && bars.length) series.set(tk, bars);
+          else noBars.push(tk);
+        }
+        if (!series.size) {
+          const e = $$("nv-empty");
+          if (e) e.textContent = "取不到任何日線 —— 曲線無法計算(不是「你沒有資料」)";
+          return;
+        }
+
+        const axis = PS.buildAxis(series, first, today);
+        seriesDays = PS.rebuildDaily(axis, cache, cashFlows);
+        const nav = PS.buildNav(seriesDays, series);
+        const dd = PS.drawdownSeries(nav.points);
+        const t = PS.twr(nav.points, PS.externalFlowByDate(cashFlows));
+
+        /* ── 繪圖 ── */
+        const plot = $$("nv-plot");
+        if (plot) {
+          const c = CH.buildLineChart(nav.points.map((p: any) => ({ date: p.date, v: p.nav })), { w: 640, h: 168 });
+          plot.querySelectorAll("svg").forEach((n) => n.remove());
+          if (c.paths.length) {
+            $$("nv-empty")!.hidden = true;
+            plot.appendChild(mkSvg(c, "nv-line"));
+            plot.setAttribute(
+              "aria-label",
+              `淨值走勢:${axis[0]} 至 ${axis[axis.length - 1]},共 ${axis.length} 個交易日` +
+                (c.gaps ? `,其中 ${c.gaps} 天無法定價(曲線斷開)` : "")
+            );
+          } else {
+            $$("nv-empty")!.hidden = false;
+            $$("nv-empty")!.textContent = "沒有任何一天算得出淨值 —— 見下方品質註記";
+          }
+        }
+        const ddEl = $$("dd-plot");
+        if (ddEl) {
+          const c = CH.buildDrawdownArea(dd.series.map((p: any) => ({ date: p.date, v: p.dd })), { w: 640, h: 64 });
+          ddEl.querySelectorAll("svg").forEach((n) => n.remove());
+          if (c.areas.length) {
+            $$("dd-empty")!.hidden = true;
+            ddEl.appendChild(mkSvg(c, "nv-dd", c.areas));
+            ddEl.setAttribute("aria-label", `回撤圖:最大回撤 ${dd.maxDrawdown?.toFixed(2)}%`);
+          } else {
+            $$("dd-empty")!.hidden = false;
+          }
+        }
+
+        /* ── KPI:TWR / VS 0050 ── */
+        put("kpi-twr", t.pct == null ? "—" : `${t.pct >= 0 ? "+" : ""}${t.pct.toFixed(2)}%`, toneOf(t.pct));
+        const twrFoot = $$("kpi-twr-foot");
+        if (twrFoot) {
+          twrFoot.textContent =
+            t.pct == null
+              ? "時間加權 · 沒有可連乘的日子"
+              : `時間加權,排除現金流影響 · 連乘 ${t.linkedDays} 天` +
+                (t.skippedDays ? ` · 跳過 ${t.skippedDays} 天(無法定價)` : "") +
+                (t.degenerateDays ? ` · ${t.degenerateDays} 天分母 ≤ 0` : "");
+        }
+
+        const benchBars = await fetchBars(BENCH);
+        const bench = benchBars ? PS.benchmarkReturn(benchBars, axis) : null;
+        const excess = t.pct == null || bench == null ? null : t.pct - bench;
+        put("kpi-vs0050", excess == null ? "—" : `${excess >= 0 ? "+" : ""}${excess.toFixed(2)}%`, toneOf(excess));
+        const vsFoot = $$("kpi-vs0050-foot");
+        if (vsFoot) {
+          vsFoot.textContent =
+            excess == null
+              ? bench == null
+                ? "同期對照 元大台灣50 · 取不到 0050 日線"
+                : "同期對照 元大台灣50 · 需要投組 TWR"
+              : `同期對照 元大台灣50(買進持有 ${bench.toFixed(2)}%),同一條軸`;
+        }
+
+        /* ── 🔴 品質註記:填補 / 缺價 / 末點 / 取不到日線的檔 ── */
+        const q = $$("nv-quality");
+        if (q) {
+          const bits: string[] = [`軸 ${axis.length} 個交易日(${axis[0]} → ${axis[axis.length - 1]})`];
+          if (nav.carriedTotal) bits.push(`向前填補 ${nav.carriedTotal} 格(上限 ${PS.CARRY_MAX_DAYS} 個交易日)`);
+          if (nav.unknownDays) bits.push(`${nav.unknownDays} 天無法定價 → 曲線斷開`);
+          if (nav.lastPointUnpriced) bits.push("🔴 末點未取價 —— 末點刻意不使用填補值");
+          if (noBars.length) bits.push(`取不到日線:${noBars.join("、")}`);
+          q.textContent = bits.join(" · ");
+          q.classList.toggle("warn", nav.unknownDays > 0 || nav.lastPointUnpriced || noBars.length > 0);
+        }
+
+        /* ── 除權息:偵測並具名,不修正 ── */
+        const evAll = (await Promise.all([...series.keys()].map(fetchEvents))).flat();
+        const inHold = PS.eventsInHolding(evAll, seriesDays);
+        const ul = $$("nv-events");
+        if (ul) {
+          ul.textContent = "";
+          ul.hidden = inHold.length === 0;
+          if (inHold.length) {
+            const head = document.createElement("li");
+            head.textContent =
+              "🔴 持有期間內有除權息/配股事件 —— 曲線在這些日子前後【不可比】" +
+              "(配股的股數變動沒有紀錄,現金股息需要你自己登記):";
+            ul.appendChild(head);
+            for (const e of inHold.slice(0, 12)) {
+              const li = document.createElement("li");
+              li.textContent = `${e.date} · ${e.ticker} · ${e.detail}`;
+              ul.appendChild(li);
+            }
+          }
+        }
+      }
+
+      /* ── D:逐日抽點 ── */
+      $("nv-probe-go")?.addEventListener("click", () => {
+        const out = $$("nv-probe-out");
+        const dateEl = $$("nv-date") as HTMLInputElement | null;
+        if (!out || !dateEl) return;
+        if (!seriesDays.length) {
+          out.textContent = "曲線還沒算好(或算不出來)—— 沒有可抽點的逐日部位";
+          return;
+        }
+        const d = dateEl.value;
+        if (!d) {
+          out.textContent = "請先選一個日期";
+          return;
+        }
+        const p = PS.positionAt(seriesDays, d);
+        if (!p) {
+          out.textContent = `${d} 早於全部軸日(第一個軸日是 ${seriesDays[0].date})—— 那一天還沒有任何部位`;
+          return;
+        }
+        const sh = Object.entries(p.shares)
+          .sort(([a], [b]) => (a < b ? -1 : 1))
+          .map(([tk, n]) => `${tk}:${n}`)
+          .join("  ");
+        out.textContent =
+          `${p.date}${p.date === d ? "" : `(${d} 不在軸上,取 ≤ 該日的最後一個軸日)`}` +
+          `\n現金 ${money(p.cash)}\n${sh || "(當日無持股)"}`;
+        out.style.whiteSpace = "pre-line";
+      });
+
       async function reload() {
         cache = await fetchTrades(sb);
         renderTrades(cache);
@@ -942,6 +1191,16 @@ const MONTHLY_STATS = [
             hdTotals = portfolioTotals(hdRows);
             renderHoldings();
             renderSummary();
+            /* 🔴 時間序列排最後,而且自己吞例外 ——
+               它要抓 10 檔的兩年日線,不可以把已經畫好的現值卡片弄掉。 */
+            renderSeries().catch((e) => {
+              console.warn(`[trades] 時間序列算不出來:${(e as Error).message}`);
+              const q = document.getElementById("nv-quality");
+              if (q) {
+                q.textContent = `時間序列計算失敗:${(e as Error).message} —— 這一區沒有被計算(不是「你沒有資料」)`;
+                q.classList.add("warn");
+              }
+            });
           }
         });
       }
@@ -1297,6 +1556,26 @@ const MONTHLY_STATS = [
   .s-bar i { display: block; height: 100%; background: var(--accent); }
   .s-empty { margin: 6px 0 0; font-size: 10.5px; color: var(--muted); text-align: center; }
   .s-na { font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+  /* 淨值曲線 / 回撤 */
+  #nv-plot svg, #dd-plot svg { width: 100%; height: 100%; display: block; }
+  .nv-line { fill: none; stroke: var(--accent); stroke-width: 1.4; }
+  .nv-grid { stroke: var(--border); stroke-width: 0.5; }
+  .nv-dd { fill: color-mix(in srgb, #d4483b 22%, transparent); stroke: #d4483b; stroke-width: 1; }
+  .nv-quality { margin: 6px 0 0; font-size: 0.72rem; line-height: 1.7; color: var(--text-secondary); }
+  .nv-quality.warn { color: var(--accent-hover); }
+  .nv-events { margin: 4px 0 0; padding-left: 1.1rem; }
+  .nv-events li { font-size: 0.72rem; line-height: 1.7; color: var(--accent-hover); }
+  .nv-probe { margin: 10px 0 0; font-size: 0.78rem; }
+  .nv-probe summary { cursor: pointer; color: var(--text-secondary); }
+  .nv-why { margin: 6px 0; font-size: 0.74rem; line-height: 1.7; color: var(--text-secondary);
+            border-left: 2px solid var(--border); padding-left: 9px; }
+  .nv-why b { color: var(--text); }
+  .nv-probe-row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+  .nv-probe-row input {
+    font-family: var(--font-mono); font-size: 0.76rem; padding: 4px 6px; color: var(--text);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .nv-probe-out { margin: 4px 0 0; font-family: var(--font-mono); font-size: 0.74rem; line-height: 1.8; }
   /* 恆等式核對:一致時低調、不一致時必須刺眼 */
   .tr-idcheck {
     margin: 6px 0 0; font-size: 0.76rem; line-height: 1.6; color: var(--text-secondary);
